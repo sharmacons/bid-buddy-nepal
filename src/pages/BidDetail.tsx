@@ -21,9 +21,10 @@ import {
   constructionScheduleTemplate, mobilizationScheduleTemplate,
 } from '@/lib/templates';
 import { generatePrintPackageHTML } from '@/lib/letterhead';
+import { exportWorkSchedulePDF } from '@/lib/pdf-export';
 import { suggestContent } from '@/lib/ai-assist';
 import { toast } from 'sonner';
-import { Trash2, Save, FileText, CheckCircle2, Printer, Plus, Users, Calendar, Upload, Sparkles, Loader2 } from 'lucide-react';
+import { Trash2, Save, FileText, CheckCircle2, Printer, Plus, Users, Calendar, Upload, Sparkles, Loader2, Download } from 'lucide-react';
 import GanttChart from '@/components/GanttChart';
 
 export default function BidDetail() {
@@ -700,6 +701,18 @@ export default function BidDetail() {
                   <div className="mt-4">
                     <h4 className="text-xs font-semibold mb-2">Gantt Chart</h4>
                     <GanttChart items={bid.workSchedule} totalWeeks={bid.totalDurationWeeks || 24} />
+                    <Button variant="outline" size="sm" className="mt-3 gap-2" onClick={() => {
+                      exportWorkSchedulePDF({
+                        projectName: bid.projectName,
+                        employer: bid.employer,
+                        ifbNumber: bid.ifbNumber,
+                        contractId: bid.contractId,
+                        workSchedule: bid.workSchedule,
+                        totalDurationWeeks: bid.totalDurationWeeks || 24,
+                      });
+                    }}>
+                      <Download className="h-3 w-3" /> Export Gantt PDF
+                    </Button>
                   </div>
                 </div>
               )}

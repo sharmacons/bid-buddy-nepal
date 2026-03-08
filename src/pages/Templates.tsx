@@ -15,10 +15,11 @@ import {
 } from '@/lib/templates';
 import { detectActivitiesFromBOQ, generateWorkSchedule } from '@/lib/work-schedule';
 import { generatePrintPackageHTML } from '@/lib/letterhead';
+import { exportWorkSchedulePDF } from '@/lib/pdf-export';
 import GanttChart from '@/components/GanttChart';
 import { WorkScheduleItem } from '@/lib/types';
 import { toast } from 'sonner';
-import { FileText, Copy, Printer, AlertTriangle, FolderOpen, Calendar } from 'lucide-react';
+import { FileText, Copy, Printer, AlertTriangle, FolderOpen, Calendar, Download } from 'lucide-react';
 
 export default function Templates() {
   const profile = getCompanyProfile();
@@ -226,8 +227,20 @@ export default function Templates() {
               Construction Schedule — Gantt Chart
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <GanttChart items={workScheduleItems} totalWeeks={selectedBid?.totalDurationWeeks || 24} />
+            <Button variant="outline" size="sm" className="gap-2" onClick={() => {
+              exportWorkSchedulePDF({
+                projectName: selectedBid?.projectName || '',
+                employer: selectedBid?.employer || '',
+                ifbNumber: selectedBid?.ifbNumber || '',
+                contractId: selectedBid?.contractId || '',
+                workSchedule: workScheduleItems,
+                totalDurationWeeks: selectedBid?.totalDurationWeeks || 24,
+              });
+            }}>
+              <Download className="h-3 w-3" /> Export Gantt Chart PDF (Landscape)
+            </Button>
           </CardContent>
         </Card>
       )}
