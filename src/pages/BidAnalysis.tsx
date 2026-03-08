@@ -378,7 +378,7 @@ The AI will automatically extract:
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>Project Name (परियोजनाको नाम) *</Label>
+                <Label>Project Name *</Label>
                 <Input value={projectName} onChange={e => setProjectName(e.target.value)}
                   placeholder="From IFB / Cover Page" />
               </div>
