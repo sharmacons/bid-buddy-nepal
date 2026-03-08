@@ -89,7 +89,9 @@ export default function BidDetail() {
       if (field === 'quantity' || field === 'rate') updated.amount = Number(updated.quantity) * Number(updated.rate);
       return updated;
     });
-    save({ ...bid!, boqItems: items });
+    // Auto-sync bid amount from BOQ total
+    const total = items.reduce((s, i) => s + i.amount, 0);
+    save({ ...bid!, boqItems: items, bidAmount: total > 0 ? total.toFixed(2) : bid!.bidAmount });
   }
 
   function removeBoqItem(itemId: string) {
