@@ -201,6 +201,8 @@ export default function BidDetail() {
       profile,
       projectName: bid!.projectName,
       documents: allDocs,
+      workSchedule: bid!.workSchedule,
+      totalDurationWeeks: bid!.totalDurationWeeks || 24,
     }));
     printWindow.document.close();
   }

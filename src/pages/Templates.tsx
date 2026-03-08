@@ -92,6 +92,8 @@ export default function Templates() {
       profile,
       projectName: selectedBid?.projectName || 'PPMO Standard Templates',
       documents: templates,
+      workSchedule: selectedBid?.workSchedule,
+      totalDurationWeeks: selectedBid?.totalDurationWeeks || 24,
     }));
     printWindow.document.close();
   }
