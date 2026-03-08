@@ -246,10 +246,10 @@ export default function BidDetail() {
 
   function generateAllDocuments() {
     const docs = [
-      { title: 'Letter of Bid (बोलपत्र पत्र)', content: letterOfBidTemplate(profile, bid!) },
-      { title: 'Bid Security — Bank Guarantee (बोलपत्र जमानत)', content: bidSecurityTemplate(profile, bid!) },
-      { title: 'Power of Attorney (अख्तियारनामा)', content: powerOfAttorneyTemplate(profile, bid!) },
-      { title: 'Declaration of Undertaking (घोषणा पत्र)', content: declarationTemplate(profile, bid!) },
+      { title: 'Letter of Bid', content: letterOfBidTemplate(profile, bid!) },
+      { title: 'Bid Security — Bank Guarantee', content: bidSecurityTemplate(profile, bid!) },
+      { title: 'Power of Attorney', content: powerOfAttorneyTemplate(profile, bid!) },
+      { title: 'Declaration of Undertaking', content: declarationTemplate(profile, bid!) },
       { title: 'Bidder Information — ELI-1', content: bidderInfoELI1Template(profile) },
       { title: 'Running Contracts — ELI-3', content: runningContractsELI3Template(bid!.runningContracts.map((c) => ({
         name: c.name, sourceOfFund: c.sourceOfFund, dateOfAcceptance: c.dateOfAcceptance,
