@@ -720,6 +720,22 @@ export default function BidAnalysis() {
                           </Button>
                         )}
                       </div>
+
+                      {/* Export button */}
+                      <Button
+                        variant="outline"
+                        className="w-full gap-2"
+                        onClick={() => exportWorkSchedulePDF({
+                          projectName,
+                          employer,
+                          ifbNumber,
+                          contractId,
+                          workSchedule,
+                          totalDurationWeeks: completionPeriodDays ? Math.round(parseInt(completionPeriodDays) / 7) : 52,
+                        })}
+                      >
+                        <FileDown className="h-4 w-4" /> Export Work Schedule (PDF / Print)
+                      </Button>
                     </>
                   )}
                 </>
