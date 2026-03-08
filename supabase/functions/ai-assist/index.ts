@@ -227,11 +227,14 @@ Return activities with proper sequencing, dependencies (predecessor indices), an
     const data = await response.json();
 
     // Handle tool call responses
-    if (type === "extract-bid-info" || type === "parse-boq") {
+    if (type === "extract-bid-info" || type === "parse-boq" || type === "generate-schedule") {
       const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
       if (toolCall) {
         const extracted = JSON.parse(toolCall.function.arguments);
-        const result = type === "parse-boq" ? extracted.items : extracted;
+        let result;
+        if (type === "parse-boq") result = extracted.items;
+        else if (type === "generate-schedule") result = extracted;
+        else result = extracted;
         return new Response(JSON.stringify({ result }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
