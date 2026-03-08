@@ -1,5 +1,5 @@
 import ExcelJS from 'exceljs';
-import { WorkScheduleItem } from './types';
+import { WorkScheduleItem, BOQItem } from './types';
 import { computeCriticalPath } from './critical-path';
 
 // Color palette for Gantt bars
@@ -28,8 +28,9 @@ export async function exportWorkScheduleExcel(params: {
   contractId?: string;
   workSchedule: WorkScheduleItem[];
   totalDurationWeeks: number;
+  boqItems?: BOQItem[];
 }) {
-  const { projectName, employer, ifbNumber, contractId, workSchedule, totalDurationWeeks } = params;
+  const { projectName, employer, ifbNumber, contractId, workSchedule, totalDurationWeeks, boqItems } = params;
   const wb = new ExcelJS.Workbook();
   wb.creator = 'BidReady Nepal';
   wb.created = new Date();
@@ -254,7 +255,132 @@ export async function exportWorkScheduleExcel(params: {
   legendCell.value = '🔴 = Critical Path  |  ★ = Major Activity  |  Adjust row heights, column widths, and bar colors as needed';
   legendCell.font = { size: 9, italic: true, color: { argb: '666666' } };
 
-  // ─── Sheet 3: Editable Config ───
+  // ─── Sheet 3: Bill of Quantities ───
+  if (boqItems && boqItems.length > 0) {
+    const boqSheet = wb.addWorksheet('Bill of Quantities', {
+      properties: { defaultRowHeight: 22 },
+      pageSetup: { paperSize: 9, orientation: 'landscape', fitToPage: true, fitToWidth: 1 },
+    });
+
+    // Title
+    boqSheet.mergeCells('A1:F1');
+    const boqTitle = boqSheet.getCell('A1');
+    boqTitle.value = `Bill of Quantities — ${projectName || 'Project'}`;
+    boqTitle.font = { size: 16, bold: true, color: { argb: HEADER_BG } };
+    boqTitle.alignment = { horizontal: 'center', vertical: 'middle' };
+    boqSheet.getRow(1).height = 30;
+
+    boqSheet.mergeCells('A2:F2');
+    const boqSub = boqSheet.getCell('A2');
+    boqSub.value = `Employer: ${employer || '—'}  |  IFB: ${ifbNumber || '—'}  |  Contract: ${contractId || '—'}`;
+    boqSub.font = { size: 10, color: { argb: '666666' } };
+    boqSub.alignment = { horizontal: 'center' };
+    boqSheet.getRow(2).height = 20;
+
+    boqSheet.columns = [
+      { key: 'sn', width: 6 },
+      { key: 'description', width: 45 },
+      { key: 'unit', width: 12 },
+      { key: 'quantity', width: 14 },
+      { key: 'rate', width: 16 },
+      { key: 'amount', width: 18 },
+    ];
+
+    // Header
+    const boqHeaderRow = boqSheet.getRow(4);
+    ['S.N.', 'Description', 'Unit', 'Quantity', 'Rate (NPR)', 'Amount (NPR)'].forEach((h, i) => {
+      const cell = boqHeaderRow.getCell(i + 1);
+      cell.value = h;
+      cell.font = { size: 11, bold: true, color: { argb: HEADER_FG } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: HEADER_BG } };
+      cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+      cell.border = thinBorder();
+    });
+    boqHeaderRow.height = 26;
+
+    // Data rows
+    let grandTotal = 0;
+    boqItems.forEach((item, idx) => {
+      const row = boqSheet.getRow(5 + idx);
+      const amount = item.amount || (item.quantity * item.rate);
+      grandTotal += amount;
+
+      row.getCell(1).value = idx + 1;
+      row.getCell(2).value = item.description;
+      row.getCell(3).value = item.unit;
+      row.getCell(4).value = item.quantity;
+      row.getCell(5).value = item.rate;
+      row.getCell(6).value = amount;
+
+      for (let c = 1; c <= 6; c++) {
+        const cell = row.getCell(c);
+        cell.border = thinBorder();
+        cell.alignment = { vertical: 'middle', wrapText: c === 2, horizontal: c <= 2 ? 'left' : c <= 3 ? 'center' : 'right' };
+        cell.font = { size: 10 };
+        if (idx % 2 === 1) {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: LIGHT_BG } };
+        }
+      }
+      // Number formatting for rate & amount
+      row.getCell(4).numFmt = '#,##0.00';
+      row.getCell(5).numFmt = '#,##0.00';
+      row.getCell(6).numFmt = '#,##0.00';
+      row.height = 22;
+    });
+
+    // Grand total row
+    const totalRowNum = 5 + boqItems.length;
+    const totalRow = boqSheet.getRow(totalRowNum);
+    boqSheet.mergeCells(`A${totalRowNum}:E${totalRowNum}`);
+    totalRow.getCell(1).value = 'GRAND TOTAL';
+    totalRow.getCell(1).font = { size: 12, bold: true, color: { argb: HEADER_BG } };
+    totalRow.getCell(1).alignment = { horizontal: 'right', vertical: 'middle' };
+    totalRow.getCell(6).value = grandTotal;
+    totalRow.getCell(6).font = { size: 12, bold: true, color: { argb: HEADER_BG } };
+    totalRow.getCell(6).numFmt = '#,##0.00';
+    totalRow.getCell(6).alignment = { horizontal: 'right', vertical: 'middle' };
+    for (let c = 1; c <= 6; c++) {
+      totalRow.getCell(c).border = thinBorder();
+      totalRow.getCell(c).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'DBEAFE' } };
+    }
+    totalRow.height = 28;
+
+    // VAT row
+    const vatRowNum = totalRowNum + 1;
+    const vatRow = boqSheet.getRow(vatRowNum);
+    boqSheet.mergeCells(`A${vatRowNum}:E${vatRowNum}`);
+    vatRow.getCell(1).value = 'VAT (13%)';
+    vatRow.getCell(1).font = { size: 10, bold: true };
+    vatRow.getCell(1).alignment = { horizontal: 'right', vertical: 'middle' };
+    vatRow.getCell(6).value = grandTotal * 0.13;
+    vatRow.getCell(6).font = { size: 10, bold: true };
+    vatRow.getCell(6).numFmt = '#,##0.00';
+    vatRow.getCell(6).alignment = { horizontal: 'right', vertical: 'middle' };
+    for (let c = 1; c <= 6; c++) { vatRow.getCell(c).border = thinBorder(); }
+    vatRow.height = 22;
+
+    // Total with VAT
+    const totalVatRowNum = vatRowNum + 1;
+    const totalVatRow = boqSheet.getRow(totalVatRowNum);
+    boqSheet.mergeCells(`A${totalVatRowNum}:E${totalVatRowNum}`);
+    totalVatRow.getCell(1).value = 'TOTAL WITH VAT';
+    totalVatRow.getCell(1).font = { size: 12, bold: true, color: { argb: HEADER_BG } };
+    totalVatRow.getCell(1).alignment = { horizontal: 'right', vertical: 'middle' };
+    totalVatRow.getCell(6).value = grandTotal * 1.13;
+    totalVatRow.getCell(6).font = { size: 12, bold: true, color: { argb: HEADER_BG } };
+    totalVatRow.getCell(6).numFmt = '#,##0.00';
+    totalVatRow.getCell(6).alignment = { horizontal: 'right', vertical: 'middle' };
+    for (let c = 1; c <= 6; c++) {
+      totalVatRow.getCell(c).border = thinBorder();
+      totalVatRow.getCell(c).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'DBEAFE' } };
+    }
+    totalVatRow.height = 28;
+
+    // Auto-filter
+    boqSheet.autoFilter = { from: 'A4', to: `F${4 + boqItems.length}` };
+  }
+
+  // ─── Sheet 4: Editable Config ───
   const configSheet = wb.addWorksheet('Chart Settings', {
     properties: { defaultRowHeight: 22 },
   });
