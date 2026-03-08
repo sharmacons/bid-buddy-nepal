@@ -248,7 +248,8 @@ export default function BidDetail() {
 
   function generateAllDocuments() {
     const docs = [
-      { title: 'Letter of Bid', content: letterOfBidTemplate(profile, bid!) },
+      { title: 'Letter of Bid (Technical Envelope)', content: letterOfBidTemplate(profile, bid!) },
+      { title: 'Letter of Price Bid (Financial Envelope)', content: letterOfPriceBidTemplate(profile, bid!) },
       { title: 'Bid Security — Bank Guarantee', content: bidSecurityTemplate(profile, bid!) },
       { title: 'Power of Attorney', content: powerOfAttorneyTemplate(profile, bid!) },
       { title: 'Declaration of Undertaking', content: declarationTemplate(profile, bid!) },
