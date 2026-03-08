@@ -246,23 +246,23 @@ export default function BidDetail() {
 
   function generateAllDocuments() {
     const docs = [
-      { title: 'Letter of Bid (बोलपत्र पत्र)', content: letterOfBidTemplate(profile, bid!) },
-      { title: 'Bid Security — Bank Guarantee (बोलपत्र जमानत)', content: bidSecurityTemplate(profile, bid!) },
-      { title: 'Power of Attorney (अख्तियारनामा)', content: powerOfAttorneyTemplate(profile, bid!) },
-      { title: 'Declaration of Undertaking (घोषणा पत्र)', content: declarationTemplate(profile, bid!) },
+      { title: 'Letter of Bid', content: letterOfBidTemplate(profile, bid!) },
+      { title: 'Bid Security — Bank Guarantee', content: bidSecurityTemplate(profile, bid!) },
+      { title: 'Power of Attorney', content: powerOfAttorneyTemplate(profile, bid!) },
+      { title: 'Declaration of Undertaking', content: declarationTemplate(profile, bid!) },
       { title: 'Bidder Information — ELI-1', content: bidderInfoELI1Template(profile) },
       { title: 'Running Contracts — ELI-3', content: runningContractsELI3Template(bid!.runningContracts.map((c) => ({
         name: c.name, sourceOfFund: c.sourceOfFund, dateOfAcceptance: c.dateOfAcceptance,
         status: c.status, takingOverDate: c.takingOverDate,
       }))) },
-      { title: 'Method Statement (कार्यविधि)', content: methodStatementTemplate(bid!) },
-      { title: 'Site Organization (स्थलीय संगठन)', content: siteOrganizationTemplate(profile, bid!) },
-      { title: 'Mobilization Schedule (परिचालन तालिका)', content: mobilizationScheduleTemplate(bid!) },
+      { title: 'Method Statement', content: methodStatementTemplate(bid!) },
+      { title: 'Site Organization', content: siteOrganizationTemplate(profile, bid!) },
+      { title: 'Mobilization Schedule', content: mobilizationScheduleTemplate(bid!) },
     ];
 
     if (bid!.workSchedule.length > 0) {
       docs.push({
-        title: 'Construction Schedule (कार्य तालिका)',
+        title: 'Construction Schedule',
         content: constructionScheduleTemplate(bid!.workSchedule, bid!.totalDurationWeeks || 24),
       });
     }
@@ -288,11 +288,11 @@ export default function BidDetail() {
         });
       });
       docs.push({
-        title: 'Joint Venture Agreement (संयुक्त उपक्रम सम्झौता)',
+        title: 'Joint Venture Agreement',
         content: jvAgreementTemplate(profile, bid!.jvPartners, bid!),
       });
       docs.push({
-        title: 'JV Power of Attorney (संयुक्त उपक्रम अख्तियारनामा)',
+        title: 'JV Power of Attorney',
         content: jvPowerOfAttorneyTemplate(profile, bid!.jvPartners, bid!),
       });
     }

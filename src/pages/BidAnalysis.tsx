@@ -99,56 +99,35 @@ export default function BidAnalysis() {
   function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.type !== 'application/pdf') {
-      toast.error('Please upload a PDF file');
-      return;
-    }
     if (file.size > 20 * 1024 * 1024) {
       toast.error('File size must be under 20MB');
       return;
     }
     setUploadedFile({ name: file.name, size: file.size });
-    
-    // Try to read text content for AI extraction
-    const reader = new FileReader();
-    reader.onload = () => {
-      // Store raw text for potential AI extraction  
-      const text = reader.result as string;
-      // PDF is binary, so we store a note that it was uploaded
-      setUploadedText(`[PDF uploaded: ${file.name}, ${(file.size / 1024).toFixed(0)} KB]`);
-    };
-    reader.readAsText(file);
-    toast.success('Document uploaded! Use "AI Extract" to auto-fill fields or fill manually.');
+    toast.success('Document uploaded! Now paste the document text below for AI analysis.');
   }
 
   async function handleAIExtract() {
-    if (!uploadedFile) {
-      toast.error('Upload a PDF document first');
+    if (!uploadedText.trim()) {
+      toast.error('Please paste the bid document text in the text area below');
       return;
     }
     setIsExtracting(true);
-    toast.info('AI is analyzing the document...');
-    
-    // Since we can't read PDF binary directly, use any text user provides or file metadata
-    const promptText = `Bidding document: ${uploadedFile.name}. 
-Please extract typical PPMO bid information. The file name suggests: ${uploadedFile.name}. 
-${projectName ? `Project seems to be: ${projectName}` : ''}
-${employer ? `Employer: ${employer}` : ''}
-${uploadedText}`;
+    toast.info('AI is analyzing the document text...');
     
     try {
-      const result = await extractBidInfo(promptText);
+      const result = await extractBidInfo(uploadedText);
       if (result) {
-        if (result.projectName && !projectName) setProjectName(result.projectName);
-        if (result.employer && !employer) setEmployer(result.employer);
-        if (result.employerAddress && !employerAddress) setEmployerAddress(result.employerAddress);
-        if (result.ifbNumber && !ifbNumber) setIfbNumber(result.ifbNumber);
-        if (result.contractId && !contractId) setContractId(result.contractId);
-        if (result.submissionDeadline && !submissionDate) setSubmissionDate(result.submissionDeadline);
+        if (result.projectName) setProjectName(result.projectName);
+        if (result.employer) setEmployer(result.employer);
+        if (result.employerAddress) setEmployerAddress(result.employerAddress);
+        if (result.ifbNumber) setIfbNumber(result.ifbNumber);
+        if (result.contractId) setContractId(result.contractId);
+        if (result.submissionDeadline) setSubmissionDate(result.submissionDeadline);
         if (result.bidValidity) setBidValidity(result.bidValidity);
-        if (result.completionPeriod && !completionPeriodDays) setCompletionPeriodDays(result.completionPeriod);
-        if (result.bidSecurityAmount && !bidSecurityAmount) setBidSecurityAmount(result.bidSecurityAmount);
-        if (result.estimatedCost && !estimatedCost) setEstimatedCost(result.estimatedCost);
+        if (result.completionPeriod) setCompletionPeriodDays(result.completionPeriod);
+        if (result.bidSecurityAmount) setBidSecurityAmount(result.bidSecurityAmount);
+        if (result.estimatedCost) setEstimatedCost(result.estimatedCost);
         if (result.isJV !== undefined) setIsJV(result.isJV);
         
         if (result.boqItems && result.boqItems.length > 0) {
@@ -163,7 +142,7 @@ ${uploadedText}`;
           setBoqItems(prev => [...prev, ...newItems]);
         }
         
-        toast.success('AI extracted bid details! Review and adjust as needed.');
+        toast.success('AI extracted bid details! Check Details and BOQ tabs.');
       }
     } finally {
       setIsExtracting(false);
@@ -271,7 +250,7 @@ ${uploadedText}`;
         <FileText className="h-7 w-7 text-primary" />
         <div>
           <h1 className="text-2xl font-bold font-heading">Bid Document Analysis</h1>
-          <p className="text-sm text-muted-foreground">बोलपत्र कागजात विश्लेषण — Upload & extract key details</p>
+          <p className="text-sm text-muted-foreground">Upload & extract key details using AI</p>
         </div>
       </div>
 
@@ -289,68 +268,82 @@ ${uploadedText}`;
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
-                <Upload className="h-5 w-5" /> Upload Bidding Document
+                <Upload className="h-5 w-5" /> Upload & Analyze Bidding Document
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="border-2 border-dashed border-border rounded-xl p-8 text-center space-y-3">
-                <Upload className="h-12 w-12 text-muted-foreground mx-auto" />
+              {/* Step 1: Upload PDF for reference */}
+              <div className="border-2 border-dashed border-border rounded-xl p-6 text-center space-y-3">
+                <Upload className="h-10 w-10 text-muted-foreground mx-auto" />
                 <p className="text-sm text-muted-foreground">
-                  Upload your PPMO Standard Bidding Document (PDF) for reference.<br />
-                  You'll manually extract key fields from it.
+                  Upload your PPMO Standard Bidding Document (PDF) for reference
                 </p>
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept=".pdf"
+                  accept=".pdf,.doc,.docx"
                   className="hidden"
                   onChange={handleFileUpload}
                 />
                 <Button onClick={() => fileInputRef.current?.click()} variant="outline" className="gap-2">
-                  <Upload className="h-4 w-4" /> Choose PDF File
+                  <Upload className="h-4 w-4" /> Choose File
                 </Button>
               </div>
 
               {uploadedFile && (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                    <FileText className="h-5 w-5 text-primary" />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">{uploadedFile.name}</p>
-                      <p className="text-xs text-muted-foreground">{(uploadedFile.size / 1024).toFixed(0)} KB</p>
-                    </div>
-                    <Badge variant="outline" className="text-accent">Uploaded ✓</Badge>
+                <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                  <FileText className="h-5 w-5 text-primary" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">{uploadedFile.name}</p>
+                    <p className="text-xs text-muted-foreground">{(uploadedFile.size / 1024).toFixed(0)} KB</p>
                   </div>
-                  <Button 
-                    onClick={handleAIExtract} 
-                    disabled={isExtracting}
-                    className="w-full gap-2 bg-gradient-to-r from-primary to-primary/80"
-                  >
-                    {isExtracting ? (
-                      <><Loader2 className="h-4 w-4 animate-spin" /> AI Analyzing...</>
-                    ) : (
-                      <><Sparkles className="h-4 w-4" /> AI Extract — Auto-Fill Fields from Document</>
-                    )}
-                  </Button>
+                  <Badge variant="outline" className="text-accent">Uploaded</Badge>
                 </div>
               )}
 
-              <div className="bg-accent/30 p-4 rounded-lg space-y-2">
-                <p className="text-sm font-medium flex items-center gap-2">
-                  <Info className="h-4 w-4 text-primary" /> How to use:
+              {/* Step 2: Paste document text for AI analysis */}
+              <Separator />
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <Label className="text-sm font-semibold">AI Analysis — Paste Document Text</Label>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Open your bid document, select all text (Ctrl+A), copy it (Ctrl+C), and paste it below. 
+                  AI will extract project name, employer, IFB number, deadlines, bid security, BOQ items, and more.
                 </p>
-                <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
-                  <li>Upload your bid document PDF for reference</li>
-                  <li>Open the PDF alongside and fill in key fields in the <strong>Details</strong> tab</li>
-                  <li>Enter BOQ items from the document in the <strong>BOQ</strong> tab</li>
-                  <li>Calculate price adjustment multiplying factor in <strong>Price Adj.</strong> tab</li>
-                  <li>Click "Create Bid" to start preparing your submission</li>
-                </ol>
+                <textarea
+                  className="w-full min-h-[200px] p-3 rounded-lg border border-border bg-background text-sm font-mono resize-y focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  placeholder="Paste the full text content of your bidding document here...
+
+Example: Copy text from IFB page, Data Sheet (ITB), BOQ table, etc.
+
+The AI will automatically extract:
+• Project Name & Employer details
+• IFB Number & Contract ID
+• Submission deadline & bid validity
+• Bid security & completion period
+• BOQ items (if found)"
+                  value={uploadedText}
+                  onChange={(e) => setUploadedText(e.target.value)}
+                />
+                <Button 
+                  onClick={handleAIExtract} 
+                  disabled={isExtracting || !uploadedText.trim()}
+                  className="w-full gap-2"
+                  size="lg"
+                >
+                  {isExtracting ? (
+                    <><Loader2 className="h-4 w-4 animate-spin" /> AI Analyzing Document...</>
+                  ) : (
+                    <><Sparkles className="h-4 w-4" /> AI Extract — Auto-Fill All Fields</>
+                  )}
+                </Button>
               </div>
 
               {/* Quick identification */}
               <Separator />
-              <p className="text-sm font-medium">Quick Identification — बोलपत्र प्रकार पहिचान:</p>
+              <p className="text-sm font-medium">Bid Type Identification:</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {[
                   { type: 'ncb-single' as BidType, hint: 'All docs in ONE envelope, national bidding' },
@@ -385,7 +378,7 @@ ${uploadedText}`;
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>Project Name (परियोजनाको नाम) *</Label>
+                <Label>Project Name *</Label>
                 <Input value={projectName} onChange={e => setProjectName(e.target.value)}
                   placeholder="From IFB / Cover Page" />
               </div>
@@ -403,12 +396,12 @@ ${uploadedText}`;
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <Label>IFB Number (बोलपत्र नम्बर)</Label>
+                  <Label>IFB Number</Label>
                   <Input value={ifbNumber} onChange={e => setIfbNumber(e.target.value)}
                     placeholder="From Invitation for Bids" />
                 </div>
                 <div className="space-y-2">
-                  <Label>Contract ID (ठेक्का नम्बर)</Label>
+                  <Label>Contract ID</Label>
                   <Input value={contractId} onChange={e => setContractId(e.target.value)} />
                 </div>
               </div>
