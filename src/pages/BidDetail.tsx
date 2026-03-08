@@ -37,7 +37,15 @@ export default function BidDetail() {
       const migrated = {
         ...found,
         isJV: found.isJV ?? false,
-        jvPartners: found.jvPartners ?? [],
+        jvPartners: (found.jvPartners ?? []).map((p: any) => ({
+          ...p,
+          gender: p.gender ?? 'male',
+          fatherName: p.fatherName ?? '',
+          grandfatherName: p.grandfatherName ?? '',
+          panVatNumber: p.panVatNumber ?? '',
+          registrationNumber: p.registrationNumber ?? '',
+          designation: p.designation ?? '',
+        })),
         runningContracts: found.runningContracts ?? [],
         workSchedule: found.workSchedule ?? [],
       };
