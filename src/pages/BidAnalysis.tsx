@@ -638,6 +638,15 @@ export default function BidAnalysis() {
                           <div className="flex items-center gap-2">
                             <span className="text-xs font-medium text-muted-foreground">{field.label}</span>
                             {field.labelNe && <span className="text-[10px] text-muted-foreground/60">({field.labelNe})</span>}
+                            {showComparison && (
+                              <button
+                                type="button"
+                                className="text-[10px] text-primary hover:underline ml-auto"
+                                onClick={(e) => { e.stopPropagation(); findInDocument(editedValues[field.key] || field.value); }}
+                              >
+                                <Eye className="h-3 w-3 inline mr-0.5" />find
+                              </button>
+                            )}
                           </div>
                           <Input
                             className="h-8 text-sm mt-1 border-none bg-transparent px-0 focus:bg-background focus:px-2 focus:border"
