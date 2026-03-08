@@ -1,5 +1,6 @@
 import { NRB_PRICE_INDEX_DATA, PriceAdjustmentCoefficients, PriceAdjustmentResult, NRBPriceIndex } from './price-index';
 import { WorkScheduleItem } from './types';
+import { computeCriticalPath } from './critical-path';
 
 export function exportPriceAdjustmentPDF(params: {
   projectName: string;
@@ -255,6 +256,8 @@ const GANTT_COLORS = [
   '#be185d', '#7c3aed', '#0d9488', '#ca8a04',
 ];
 
+const CRITICAL_COLOR = '#dc2626';
+
 export function exportWorkSchedulePDF(params: {
   projectName: string;
   employer: string;
@@ -268,26 +271,34 @@ export function exportWorkSchedulePDF(params: {
   const maxWeek = Math.max(...workSchedule.map(i => i.startWeek + i.duration - 1), totalDurationWeeks, 1);
   const totalMonths = Math.ceil(maxWeek / 4);
 
+  // Compute critical path
+  const { criticalIds } = computeCriticalPath(workSchedule);
+
   const win = window.open('', '_blank');
   if (!win) return;
 
   // Build table rows
   const tableRows = workSchedule.map((item, idx) => {
+    const isCritical = criticalIds.has(item.id);
+    const color = isCritical ? CRITICAL_COLOR : GANTT_COLORS[idx % GANTT_COLORS.length];
     const monthCells = Array.from({ length: totalMonths }, (_, m) => {
       const mStart = m * 4 + 1;
       const mEnd = (m + 1) * 4;
       const actStart = item.startWeek;
       const actEnd = item.startWeek + item.duration - 1;
       const overlap = actStart <= mEnd && actEnd >= mStart;
-      const color = GANTT_COLORS[idx % GANTT_COLORS.length];
+      const barBorder = isCritical ? 'border:1.5px solid #991b1b;' : '';
       return `<td style="padding:0;position:relative;height:22px;">
-        ${overlap ? `<div style="background:${color};height:14px;margin:4px 1px;border-radius:2px;opacity:${item.isMajor ? '1' : '0.6'};"></div>` : ''}
+        ${overlap ? `<div style="background:${color};height:14px;margin:4px 1px;border-radius:2px;opacity:${isCritical ? '1' : item.isMajor ? '1' : '0.6'};${barBorder}"></div>` : ''}
       </td>`;
     }).join('');
 
-    return `<tr>
+    const criticalMarker = isCritical ? '⚡ ' : '';
+    const rowBg = isCritical ? 'background:#fef2f2;' : '';
+
+    return `<tr style="${rowBg}">
       <td style="text-align:center;padding:3px 4px;font-size:9px;">${idx + 1}</td>
-      <td style="padding:3px 6px;font-size:9px;white-space:nowrap;${item.isMajor ? 'font-weight:bold;' : ''}">${item.isMajor ? '● ' : ''}${item.activity}</td>
+      <td style="padding:3px 6px;font-size:9px;white-space:nowrap;${item.isMajor || isCritical ? 'font-weight:bold;' : ''}${isCritical ? 'color:#991b1b;' : ''}">${criticalMarker}${item.isMajor && !isCritical ? '● ' : ''}${item.activity}</td>
       <td style="text-align:center;padding:3px 4px;font-size:9px;">${item.startWeek}</td>
       <td style="text-align:center;padding:3px 4px;font-size:9px;">${item.duration}</td>
       <td style="text-align:center;padding:3px 4px;font-size:9px;">${item.startWeek + item.duration - 1}</td>
@@ -299,6 +310,8 @@ export function exportWorkSchedulePDF(params: {
   const monthHeaders = Array.from({ length: totalMonths }, (_, i) =>
     `<th style="padding:3px 2px;font-size:8px;min-width:28px;text-align:center;">M${i + 1}</th>`
   ).join('');
+
+  const criticalCount = criticalIds.size;
 
   win.document.write(`<!DOCTYPE html>
 <html>
@@ -319,7 +332,7 @@ export function exportWorkSchedulePDF(params: {
   th { background: #eef2f7; color: #1e3a5f; font-weight: 600; padding: 4px; font-size: 9px; }
   tr:nth-child(even) { background: #f9fafb; }
   .footer { margin-top: 16px; padding-top: 8px; border-top: 1px solid #ccc; font-size: 8px; color: #888; text-align: center; }
-  .legend { margin-top: 8px; font-size: 9px; color: #555; display: flex; gap: 16px; }
+  .legend { margin-top: 8px; font-size: 9px; color: #555; display: flex; gap: 16px; flex-wrap: wrap; }
   .legend span { display: flex; align-items: center; gap: 4px; }
   .legend .dot { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
   @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
@@ -328,7 +341,7 @@ export function exportWorkSchedulePDF(params: {
 <body>
   <div class="header">
     <h1>CONSTRUCTION WORK SCHEDULE / BAR CHART</h1>
-    <h2>निर्माण कार्य तालिका / बार चार्ट</h2>
+    <h2>Critical Path Method (CPM) Analysis</h2>
   </div>
 
   <div class="info-row">
@@ -337,6 +350,7 @@ export function exportWorkSchedulePDF(params: {
     <div class="info-item"><strong>IFB No:</strong> ${ifbNumber || '—'}</div>
     <div class="info-item"><strong>Contract ID:</strong> ${contractId || '—'}</div>
     <div class="info-item"><strong>Total Duration:</strong> ${maxWeek} weeks (${totalMonths} months)</div>
+    <div class="info-item"><strong>Critical Activities:</strong> ${criticalCount} of ${workSchedule.length}</div>
     <div class="info-item"><strong>Date:</strong> ${today}</div>
   </div>
 
@@ -357,13 +371,14 @@ export function exportWorkSchedulePDF(params: {
   </table>
 
   <div class="legend">
+    <span><span class="dot" style="background:${CRITICAL_COLOR};border:1.5px solid #991b1b;"></span> <strong>Critical Path (${criticalCount})</strong></span>
     <span><span class="dot" style="background:#1e3a5f;"></span> Major Item (● marked)</span>
     <span><span class="dot" style="background:#1e3a5f;opacity:0.5;"></span> Minor Item</span>
-    <span>Each column = 1 month (4 weeks)</span>
+    <span>⚡ = Zero float | Each column = 1 month (4 weeks)</span>
   </div>
 
   <div class="footer">
-    Generated by BidReady Nepal — बोलपत्र तयारी सहायक | ${today}<br>
+    Generated by BidReady Nepal | ${today}<br>
     This work schedule is indicative and subject to site conditions, weather, and resource availability.
   </div>
 </body>
