@@ -35,7 +35,7 @@ export default function CompanyProfile() {
   });
 
   function onSubmit(data: z.infer<typeof schema>) {
-    saveCompanyProfile(data);
+    saveCompanyProfile(data as import('@/lib/types').CompanyProfile);
     toast.success('Company profile saved!');
   }
 
