@@ -255,9 +255,9 @@ export default function BidDetail() {
         name: c.name, sourceOfFund: c.sourceOfFund, dateOfAcceptance: c.dateOfAcceptance,
         status: c.status, takingOverDate: c.takingOverDate,
       }))) },
-      { title: 'Method Statement (कार्यविधि)', content: methodStatementTemplate(bid!) },
-      { title: 'Site Organization (स्थलीय संगठन)', content: siteOrganizationTemplate(profile, bid!) },
-      { title: 'Mobilization Schedule (परिचालन तालिका)', content: mobilizationScheduleTemplate(bid!) },
+      { title: 'Method Statement', content: methodStatementTemplate(bid!) },
+      { title: 'Site Organization', content: siteOrganizationTemplate(profile, bid!) },
+      { title: 'Mobilization Schedule', content: mobilizationScheduleTemplate(bid!) },
     ];
 
     if (bid!.workSchedule.length > 0) {
