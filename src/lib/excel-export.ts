@@ -117,7 +117,7 @@ export async function exportWorkScheduleExcel(params: {
 
   // Header row
   const headerRow = dataSheet.getRow(4);
-  ['S.N.', 'Activity', 'Duration (wk)', 'Start Week', 'End Week', 'Predecessors', 'Major', 'Critical'].forEach((h, i) => {
+  ['S.N.', 'Activity', 'Duration (wk)', 'Start Week', 'End Week', 'Predecessors', 'Major', 'Critical', 'Status', 'Conflicts'].forEach((h, i) => {
     const cell = headerRow.getCell(i + 1);
     cell.value = h;
     cell.font = { size: 11, bold: true, color: { argb: HEADER_FG } };
@@ -126,6 +126,10 @@ export async function exportWorkScheduleExcel(params: {
     cell.border = thinBorder();
   });
   headerRow.height = 26;
+
+  // Merge header for project info
+  dataSheet.mergeCells('A1:J1');
+  dataSheet.mergeCells('A2:J2');
 
   // Data rows
   workSchedule.forEach((item, idx) => {
