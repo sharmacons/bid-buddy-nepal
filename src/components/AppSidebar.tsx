@@ -8,6 +8,7 @@ import {
   FolderArchive,
   FileSearch,
   Upload,
+  Calculator,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
