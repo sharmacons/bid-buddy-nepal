@@ -7,6 +7,7 @@ import {
   ClipboardList,
   FolderArchive,
   FileSearch,
+  Upload,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
