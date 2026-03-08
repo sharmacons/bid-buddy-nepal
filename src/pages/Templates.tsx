@@ -13,6 +13,7 @@ import {
   jvAgreementTemplate, jvPowerOfAttorneyTemplate, jvInfoELI2Template,
   constructionScheduleTemplate,
 } from '@/lib/templates';
+import { detectActivitiesFromBOQ, generateWorkSchedule } from '@/lib/work-schedule';
 import { generatePrintPackageHTML } from '@/lib/letterhead';
 import { toast } from 'sonner';
 import { FileText, Copy, Printer, AlertTriangle, FolderOpen } from 'lucide-react';
