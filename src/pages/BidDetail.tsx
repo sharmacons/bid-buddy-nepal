@@ -522,6 +522,29 @@ export default function BidDetail() {
                     </div>
                   </div>
                 ))}
+                {/* JV Share Validation */}
+                {bid.jvPartners.length > 0 && (() => {
+                  const totalPartnerShare = bid.jvPartners.reduce((s, p) => s + (p.sharePercentage || 0), 0);
+                  const hasMin40 = bid.jvPartners.some(p => p.sharePercentage >= 40) || totalPartnerShare <= 60; // Lead has ≥40%
+                  const allMin25 = bid.jvPartners.every(p => !p.sharePercentage || p.sharePercentage >= 25);
+                  const leadShare = 100 - totalPartnerShare;
+                  const warnings: string[] = [];
+                  if (totalPartnerShare > 0 && leadShare < 25) warnings.push(`Lead partner share (${leadShare}%) is below minimum 25%`);
+                  if (!allMin25) warnings.push('Each partner must have at least 25% share');
+                  if (leadShare < 40 && !bid.jvPartners.some(p => p.sharePercentage >= 40)) warnings.push('At least one partner must have 40% or more share');
+                  if (totalPartnerShare > 75) warnings.push(`Total partner share (${totalPartnerShare}%) exceeds 75%`);
+                  return warnings.length > 0 ? (
+                    <div className="p-3 rounded-lg border border-destructive/30 bg-destructive/5 space-y-1">
+                      <p className="text-xs font-semibold text-destructive">⚠️ JV Share Validation</p>
+                      {warnings.map((w, i) => <p key={i} className="text-xs text-destructive">{w}</p>)}
+                      <p className="text-[10px] text-muted-foreground">Lead Partner (your company): {leadShare}%</p>
+                    </div>
+                  ) : (
+                    <div className="p-3 rounded-lg border border-accent/30 bg-accent/5">
+                      <p className="text-xs text-accent">✅ JV shares valid — Lead: {leadShare}%, Partners: {bid.jvPartners.map(p => `${p.sharePercentage}%`).join(', ')}</p>
+                    </div>
+                  );
+                })()}
               </CardContent>
             </Card>
           </TabsContent>
