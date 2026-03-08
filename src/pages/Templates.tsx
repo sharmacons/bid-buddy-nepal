@@ -4,7 +4,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { getCompanyProfile } from '@/lib/storage';
 import {
   letterOfBidTemplate, bidSecurityTemplate, powerOfAttorneyTemplate,
-  bidderInfoELI1Template, runningContractsELI3Template,
+  declarationTemplate, bidderInfoELI1Template, runningContractsELI3Template,
   methodStatementTemplate, siteOrganizationTemplate, mobilizationScheduleTemplate,
 } from '@/lib/templates';
 import { generatePrintPackageHTML } from '@/lib/letterhead';
@@ -18,6 +18,7 @@ export default function Templates() {
     { title: 'Letter of Bid (बोलपत्र पत्र)', content: letterOfBidTemplate(profile) },
     { title: 'Bid Security — Bank Guarantee (बोलपत्र जमानत)', content: bidSecurityTemplate(profile) },
     { title: 'Power of Attorney (अख्तियारनामा)', content: powerOfAttorneyTemplate(profile) },
+    { title: 'Declaration of Undertaking (घोषणा पत्र)', content: declarationTemplate(profile) },
     { title: 'Bidder Information — ELI-1 (बोलपत्रदाता जानकारी)', content: bidderInfoELI1Template(profile) },
     { title: 'Running Contracts — ELI-3 (चालु ठेक्काहरू)', content: runningContractsELI3Template([]) },
     { title: 'Method Statement (कार्यविधि)', content: methodStatementTemplate() },

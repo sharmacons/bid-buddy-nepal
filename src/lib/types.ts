@@ -2,6 +2,8 @@ export type BidType = 'ncb-single' | 'ncb-double' | 'sealed-quotation' | 'icb';
 
 export type BidStatus = 'preparing' | 'submitted' | 'won' | 'lost';
 
+export type Gender = 'male' | 'female' | 'other';
+
 export interface JVPartner {
   id: string;
   legalName: string;
@@ -11,6 +13,9 @@ export interface JVPartner {
   panVatNumber: string;
   registrationNumber: string;
   authorizedRepresentative: string;
+  gender: Gender;
+  fatherName: string;
+  grandfatherName: string;
   designation: string; // MD, Proprietor, Partner, Director, etc.
   contactPhone: string;
   contactEmail: string;
@@ -40,10 +45,13 @@ export interface CompanyProfile {
   panVatNumber: string;
   registrationNumber: string;
   authorizedRepresentative: string;
+  gender: Gender;
+  fatherName: string;
+  grandfatherName: string;
   designation: string; // MD, Proprietor, Partner, Director, etc.
   contactPhone: string;
   contactEmail: string;
-  logoUrl?: string; // Optional company logo data URL
+  logoUrl?: string;
   yearOfConstitution?: string;
   country?: string;
 }

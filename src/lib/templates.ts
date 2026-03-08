@@ -1,15 +1,36 @@
-import { CompanyProfile, BidData, JVPartner } from './types';
+import { CompanyProfile, BidData, JVPartner, Gender } from './types';
 
 // ==========================================
 // PPMO STANDARD BIDDING DOCUMENT TEMPLATES
 // Based on SBD for Procurement of Works (NCB)
+// Matches real Nepal PPMO document formats
 // ==========================================
 
+function honorific(gender: Gender | undefined): string {
+  if (gender === 'female') return 'Mrs.';
+  if (gender === 'male') return 'Mr.';
+  return 'Mr./Mrs.';
+}
+
+function shortDesignation(designation: string): string {
+  if (designation.includes('Managing Director')) return 'M.D.';
+  if (designation.includes('Proprietor')) return 'Proprietor';
+  if (designation.includes('Partner')) return 'Partner';
+  if (designation.includes('Director')) return 'Director';
+  if (designation.includes('Chairman')) return 'Chairman';
+  if (designation.includes('General Manager')) return 'G.M.';
+  return designation || '[Designation]';
+}
+
+// ==========================================
+// LETTER OF BID
+// ==========================================
 export function letterOfBidTemplate(profile: CompanyProfile | null, bid?: Partial<BidData>): string {
   const co = profile?.companyName || '[Company Name / कम्पनीको नाम]';
   const addr = profile?.address || '[Address / ठेगाना]';
-  const rep = profile?.authorizedRepresentative || '[Authorized Representative / अधिकृत प्रतिनिधि]';
-  const designation = profile?.designation || '[Designation / पद]';
+  const rep = profile?.authorizedRepresentative || '[Authorized Representative]';
+  const title = honorific(profile?.gender);
+  const desig = shortDesignation(profile?.designation || '');
   const pan = profile?.panVatNumber || '[PAN/VAT]';
   const project = bid?.projectName || '[Name of Contract / परियोजनाको नाम]';
   const employer = bid?.employer || '[Employer Name / नियोक्ताको नाम]';
@@ -23,7 +44,6 @@ export function letterOfBidTemplate(profile: CompanyProfile | null, bid?: Partia
   const perfSecurity = bid?.performanceSecurityPercent || '____';
 
   return `LETTER OF BID (बोलपत्र पत्र)
-[On Bidder's Letterhead]
 
 Date: ${new Date().toLocaleDateString('en-GB')}
 
@@ -68,7 +88,7 @@ We, the undersigned, declare that:
 (o) We understand that you are not bound to accept the lowest evaluated bid or any other bid that you may receive; and
 
 (p) If awarded the contract, the person named below shall act as Contractor's Representative:
-    Name: ${rep}
+    Name: ${title} ${rep}
 
 (q) We agree to permit the Employer or its representative to inspect our accounts and records and other documents relating to the bid submission.
 
@@ -76,8 +96,8 @@ If our Bid is accepted, we undertake to commence the Works within ${commence} da
 
 If our Bid is accepted, we will obtain the guarantee of a bank in a sum equivalent to ${perfSecurity}% of the Accepted Contract Amount for the due performance of the Contract.
 
-Name: ${rep}
-In the capacity of: ${designation}
+Name: ${title} ${rep}
+In the capacity of: ${desig}
 Signed: ___________________________
 Duly authorized to sign the Bid for and on behalf of: ${co}
 Date: ${new Date().toLocaleDateString('en-GB')}
@@ -87,6 +107,9 @@ ${addr}
 PAN/VAT: ${pan}`;
 }
 
+// ==========================================
+// BID SECURITY
+// ==========================================
 export function bidSecurityTemplate(profile: CompanyProfile | null, bid?: Partial<BidData>): string {
   const co = profile?.companyName || '[Bidder Name / बोलपत्रदाताको नाम]';
   const employer = bid?.employer || '[Employer Name and Address]';
@@ -134,43 +157,103 @@ ___________________________
 [Bank Seal]`;
 }
 
+// ==========================================
+// POWER OF ATTORNEY — Based on PPMO format
+// ==========================================
 export function powerOfAttorneyTemplate(profile: CompanyProfile | null, bid?: Partial<BidData>): string {
-  const co = profile?.companyName || '[Company Name / कम्पनीको नाम]';
+  const co = profile?.companyName || '[Company Name]';
+  const addr = profile?.address || '[Address]';
   const rep = profile?.authorizedRepresentative || '[Name of Representative]';
-  const designation = profile?.designation || '[Designation]';
-  const project = bid?.projectName || '[Project Name]';
+  const title = honorific(profile?.gender);
+  const desig = shortDesignation(profile?.designation || '');
+  const phone = profile?.contactPhone || '[Phone]';
+  const email = profile?.contactEmail || '[Email]';
   const employer = bid?.employer || '[Employer Name]';
+  const employerAddr = bid?.employerAddress || '[Employer Address]';
 
-  return `POWER OF ATTORNEY (अख्तियारनामा)
+  return `${co}
+Vat : ${profile?.panVatNumber || '[PAN/VAT]'}
+${addr}
 
-Know all men by these presents, We ${co} do hereby irrevocably constitute, nominate, appoint, and authorize ${rep} (${designation}) as our true and lawful attorney (hereinafter referred to as the "Attorney") to do in our name and on our behalf, all such acts, deeds, and things as are necessary or required in connection with or incidental to submission of our bid for the ${project} proposed by ${employer} including but not limited to:
+Date : ${new Date().toLocaleDateString('en-GB')}
 
-1. Signing and submission of the Bid and all documents related thereto
-2. Attending the bid opening
-3. Providing clarifications and responding to queries
-4. Submission of information/documents as may be required
-5. Signing of the Contract Agreement upon award
+POWER OF ATTORNEY (अख्तियारनामा)
 
-IN WITNESS WHEREOF, we have executed this Power of Attorney on this _____ day of _________, 20___.
+To,
+Officer in chief
+${employer}
+${employerAddr}
 
-For ${co}
+Dear Sir,
 
-___________________________
-[Signature]
-[${rep}, ${designation}]
-[Company Seal]
+We the undersigned lawfully authorized to act on behalf of ${co} hereby delegates this Power of Attorney to ${title} ${rep} for above mentioned contract to do and execute all or any of the acts and things mentioned below in connection with above reference projects.
 
-Accepted:
-${rep}
-[Signature of Attorney]`;
+Attorney to ${title} ${rep}
+
+1. To purchase, fill, sign, modify, withdraw, substitute, submit pre-qualification (Technical & Financial) & along with other documents as may require time to time on behalf of ${co}.
+2. To deal and correspond with the employer or its representative in all matters, connected with the construction and execution of the contracts.
+3. To discuss, negotiate, finalize, sign the contracts agreement and execute the contract if contract is awarded for ${co}.
+4. To submit Running / final bill claim and VO if any to the projects.
+5. To receive advance/running/final bill / retention payments from the projects.
+
+Specimen signature of ${title} ${rep}
+
+${desig}
+
+${co}
+
+Contact : ${phone}
+E-mail : ${email}`;
 }
 
+// ==========================================
+// DECLARATION OF UNDERTAKING — PPMO format
+// ==========================================
+export function declarationTemplate(profile: CompanyProfile | null, bid?: Partial<BidData>): string {
+  const co = profile?.companyName || '[Company Name]';
+  const addr = profile?.address || '[Address]';
+  const rep = profile?.authorizedRepresentative || '[Representative Name]';
+  const title = honorific(profile?.gender);
+  const desig = shortDesignation(profile?.designation || '');
+  const phone = profile?.contactPhone || '[Phone]';
+  const email = profile?.contactEmail || '[Email]';
+
+  return `${co}
+${addr}
+
+Date : ${new Date().toLocaleDateString('en-GB')}
+
+Subject :- Declaration of Undertaking
+
+We underscore the importance of a free, fair and competitive procurement process that precludes fraudulent use. In this respect we have neither offered nor granted, directly or indirectly, any inadmissible advantages to any public servants or other persons in connection with our tender nor will we offer or grant any such incentives or conditions in the present procurement process or, in the event that we are awarded the contract, in the subsequent execution of the contract. We are not ineligible to participate in the bid; have no conflict of interest in the proposed bid procurement proceedings and have not been punished for the profession or business related offence.
+
+We also underscore the importance of adhering to minimum social standards ("core labour standard") in the implementation of the project. We undertake to comply with the Core Labour Standards ratified by the country of Nepal.
+
+We will inform our staff about their respective obligations and about their obligation to fulfill this declaration of undertaking and to obey the laws of the country Nepal.
+
+………………………..
+
+${title} ${rep}
+
+${desig}
+
+For and on behalf of ${co}
+
+Contact : ${phone}
+E-mail : ${email}`;
+}
+
+// ==========================================
+// ELI-1: BIDDER INFORMATION
+// ==========================================
 export function bidderInfoELI1Template(profile: CompanyProfile | null): string {
   const co = profile?.companyName || '[Bidder Legal Name]';
   const country = profile?.country || 'Nepal';
   const year = profile?.yearOfConstitution || '[Year]';
   const addr = profile?.address || '[Address]';
   const rep = profile?.authorizedRepresentative || '[Name]';
+  const title = honorific(profile?.gender);
+  const desig = shortDesignation(profile?.designation || '');
   const phone = profile?.contactPhone || '[Phone]';
   const email = profile?.contactEmail || '[Email]';
 
@@ -183,10 +266,11 @@ Bidder's year of constitution:          ${year}
 Bidder's legal address:                 ${addr}
 
 Bidder's authorized representative:
-  Name:      ${rep}
-  Address:   ${addr}
-  Phone:     ${phone}
-  Email:     ${email}
+  Name:         ${title} ${rep}
+  Designation:  ${desig}
+  Address:      ${addr}
+  Phone:        ${phone}
+  Email:        ${email}
 
 Attached are copies of the following original documents:
 
@@ -196,7 +280,13 @@ Attached are copies of the following original documents:
 4. □ In case of a government-owned entity, any additional documents required to comply with ITB 4.5.`;
 }
 
+// ==========================================
+// ELI-2: JV INFORMATION SHEET
+// ==========================================
 export function jvInfoELI2Template(partner: JVPartner, leadBidderName: string): string {
+  const title = honorific(partner.gender);
+  const desig = shortDesignation(partner.designation);
+
   return `FORM ELI-2: JV INFORMATION SHEET
 (संयुक्त उपक्रम जानकारी)
 Each member of a JV must fill in this form
@@ -212,8 +302,10 @@ JV Partner's Registration No:                 ${partner.registrationNumber || '[
 JV Partner's share in JV:                     ${partner.sharePercentage || '___'}%
 
 JV Partner's authorized representative:
-  Name:         ${partner.authorizedRepresentative || '[Name]'}
-  Designation:  ${partner.designation || '[MD/Proprietor/Partner]'}
+  Name:         ${title} ${partner.authorizedRepresentative || '[Name]'}
+  Designation:  ${desig}
+  Father:       ${partner.fatherName || '[Father Name]'}
+  Grandfather:  ${partner.grandfatherName || '[Grandfather Name]'}
   Phone:        ${partner.contactPhone || '[Phone]'}
   Email:        ${partner.contactEmail || '[Email]'}
 
@@ -224,6 +316,9 @@ Attached are copies of the following original documents:
 3. □ In case of government-owned entity, documents establishing legal and financial autonomy`;
 }
 
+// ==========================================
+// ELI-3: RUNNING CONTRACTS
+// ==========================================
 export function runningContractsELI3Template(contracts: Array<{name: string; sourceOfFund: string; dateOfAcceptance: string; status: string; takingOverDate?: string}>): string {
   let table = `FORM ELI-3: BIDDER'S RUNNING CONTRACTS
 (बोलपत्रदाताको चालु ठेक्काहरू)
@@ -254,71 +349,160 @@ c) Contracts running under all types of foreign assistance`;
   return table;
 }
 
+// ==========================================
+// JV AGREEMENT — Based on uploaded reference
+// ==========================================
 export function jvAgreementTemplate(profile: CompanyProfile | null, partners: JVPartner[], bid?: Partial<BidData>): string {
   const lead = profile?.companyName || '[Lead Partner Name]';
-  const leadDesignation = profile?.designation || '[Designation]';
+  const leadAddr = profile?.address || '[Address]';
+  const leadRep = profile?.authorizedRepresentative || '[Name]';
+  const leadTitle = honorific(profile?.gender);
+  const leadDesig = shortDesignation(profile?.designation || '');
   const project = bid?.projectName || '[Project Name]';
   const employer = bid?.employer || '[Employer Name]';
+  const employerAddr = bid?.employerAddress || '[Employer Address]';
+  const contractId = bid?.contractId || '[Contract ID]';
+  const ifb = bid?.ifbNumber || '[IFB Number]';
 
-  let partnersList = '';
+  // Build JV name
+  const partnerShortNames = [lead.split(' ')[0], ...partners.map(p => (p.legalName || 'Partner').split(' ')[0])];
+  const jvName = `M/S ${partnerShortNames.join('-')} Joint Venture`;
+  const jvEmail = partners[0]?.contactEmail || profile?.contactEmail || '[Email]';
+
+  // Partner introductions
+  let partnerIntros = `M/s ${lead} shortly known as "${lead.split(' ')[0]}" having its head office at ${leadAddr}, Nepal hereby called the first partner`;
   partners.forEach((p, i) => {
-    partnersList += `
-${i + 2}. Partner ${i + 2}: ${p.legalName || '[Partner Name]'}
-   Address: ${p.address || '[Address]'}
-   PAN/VAT: ${p.panVatNumber || '[PAN/VAT]'}
-   Registration No: ${p.registrationNumber || '[Reg. No.]'}
-   Share: ${p.sharePercentage || '___'}%`;
+    const shortName = (p.legalName || 'Partner').split(' ')[0];
+    partnerIntros += `, M/s ${p.legalName || '[Partner Name]'} shortly known as "${shortName}" having its head office at ${p.address || '[Address]'}, Nepal`;
+  });
+  partnerIntros += ` all duly organized and existing under the law of Nepal.`;
+
+  // Share distribution
+  let shareList = `- a) M/s ${lead} ____%`;
+  partners.forEach((p, i) => {
+    shareList += `\n- ${String.fromCharCode(98 + i)}) M/s ${p.legalName || '[Partner Name]'} ${p.sharePercentage || '____'}%`;
+  });
+
+  // Signature blocks
+  let signatures = `…………………………\n\n${leadTitle} ${leadRep}\n\n${leadDesig}\n\n${lead}`;
+  partners.forEach(p => {
+    const pTitle = honorific(p.gender);
+    const pDesig = shortDesignation(p.designation);
+    signatures += `\n\n…………………………\n\n${pTitle} ${p.authorizedRepresentative || '[Name]'}\n\n${pDesig}\n\n${p.legalName || '[Partner Name]'}`;
   });
 
   return `JOINT VENTURE AGREEMENT (संयुक्त उपक्रम सम्झौता)
 
-This Joint Venture Agreement is entered into on this _____ day of _________, 20___
+The Agreement is made on the _____ day of _________, 20___ Between ${partnerIntros}
 
-BETWEEN:
+Whereas the Government of Nepal, ${employer}, ${employerAddr} hereby called the "Employer" has invited Bid for the
 
-1. Lead Partner: ${lead}
-   Address: ${profile?.address || '[Address]'}
-   PAN/VAT: ${profile?.panVatNumber || '[PAN/VAT]'}
-   Share: ____%${partnersList}
+| SN | Work Description | Contract Identification Number |
+|----|-----------------|-------------------------------|
+| 1  | ${project} | ${contractId} |
 
-(hereinafter collectively referred to as "the Joint Venture")
+Now, WE UNDERSIGNED, responsible and authority representatives of joint venture partners namely Partner in charge and first partner DO AGREE as Follows
 
-FOR THE PURPOSE OF:
-Submitting a bid and, if successful, executing the contract for:
-Project: ${project}
-Employer: ${employer}
+1. The purpose of Joint Venture Agreement is to supplement and enhance the technical, financial and administrative capacity of the joint venturing partners in order to successfully participate in bidding process and to enter into contract agreement and execution of the works, in the case the contract is awarded.
 
-TERMS AND CONDITIONS:
+2. The application of the Bid shall be submitted in the name of joint venture, which shall be as follows: ${jvName}, Nepal, Email ID: ${jvEmail}. All correspondence, documents shall be addressed in this name.
 
-1. The Joint Venture partners agree to be jointly and severally liable for the execution of the Contract.
+3. The ratio of the participation of each individual joint venturing partner expressed as percentage of total contract value shall be as follows:
+${shareList}
 
-2. ${lead} shall be the Lead Partner and shall have the authority to conduct all business for and on behalf of any and all the partners of the Joint Venture during the bidding process and, in the event the JV is awarded the Contract, during contract execution.
+Nevertheless, all partners shall be liable joint and severally for the executing the works under the contract.
 
-3. The Lead Partner shall be authorized to incur liabilities, receive instructions and payments, and accept responsibility for and on behalf of the Joint Venture.
+4. M/S ${lead} is hereby designated as Partner In-Charge${partners.map((p, i) => `, ${p.legalName || '[Partner Name]'} hereby designated as ${i === 0 ? 'Second' : 'Third'} Partner`).join('')} of the Joint Venture. The Partner In-Charge shall have the exclusive authority to deal with the Employer and incur liabilities and receive instruction for and on behalf of any and all parties, including receive payment and incur expenses and shall be overall responsible for the entire execution of the contract.
 
-4. All partners of the Joint Venture shall be liable jointly and severally for the execution of the Contract in accordance with the Contract terms.
+5. This agreement will come into force from the date of signing of this agreement and shall be enforced till the date of issuance of Defect Liability Certificate, in case the contract is awarded to the Joint Venture.
 
-5. This agreement shall be governed by the laws of Nepal.
+IN WITNESS whereof, the parties thereto have caused this Agreement to be executed the day and years first before written.
 
-6. Maximum number of JV partners: 3 (three) as per BDS.
+SIGNED AND SEALED BY AUTHORIZED REPRESENTATIVES OF ALL JOINT VENTURING PARTIES
 
-SIGNED BY THE AUTHORIZED REPRESENTATIVES:
-
-For ${lead} (Lead Partner):
-Name: ${profile?.authorizedRepresentative || '[Name]'}
-Designation: ${leadDesignation}
-Signature: ___________________________
-Date: _______________
-[Seal]
-${partners.map((p, i) => `
-For ${p.legalName || `[Partner ${i + 2}]`}:
-Name: ${p.authorizedRepresentative || '[Name]'}
-Designation: ${p.designation || '[MD/Proprietor/Partner]'}
-Signature: ___________________________
-Date: _______________
-[Seal]`).join('\n')}`;
+${signatures}`;
 }
 
+// ==========================================
+// JV POWER OF ATTORNEY — Based on uploaded reference
+// ==========================================
+export function jvPowerOfAttorneyTemplate(profile: CompanyProfile | null, partners: JVPartner[], bid?: Partial<BidData>): string {
+  const lead = profile?.companyName || '[Lead Partner Name]';
+  const leadAddr = profile?.address || '[Address]';
+
+  // Build JV name
+  const partnerShortNames = [lead.split(' ')[0], ...partners.map(p => (p.legalName || 'Partner').split(' ')[0])];
+  const jvName = `${partnerShortNames.join('-')} Joint Venture`;
+  const project = bid?.projectName || '[Project Name]';
+  const contractId = bid?.contractId || '[Contract ID]';
+
+  // Use partner-in-charge representative (first partner with highest share or lead)
+  const allReps = [
+    { name: profile?.authorizedRepresentative || '[Name]', gender: profile?.gender, father: profile?.fatherName, grandfather: profile?.grandfatherName, desig: profile?.designation, company: lead },
+    ...partners.map(p => ({ name: p.authorizedRepresentative, gender: p.gender, father: p.fatherName, grandfather: p.grandfatherName, desig: p.designation, company: p.legalName })),
+  ];
+
+  // The POA is typically given to one person from the JV
+  const attorney = allReps[0]; // Lead partner representative
+  const attTitle = honorific(attorney.gender);
+  const attDesig = shortDesignation(attorney.desig || '');
+
+  // Signature blocks for all partners
+  let signatureBlocks = '';
+  signatureBlocks += `Name: ${honorific(profile?.gender)} ${profile?.authorizedRepresentative || '[Name]'}
+Signature of Partner In-Charge
+Designation: ${shortDesignation(profile?.designation || '')}
+${lead}`;
+
+  partners.forEach((p, i) => {
+    const pTitle = honorific(p.gender);
+    const pDesig = shortDesignation(p.designation);
+    signatureBlocks += `\n\nName: ${pTitle} ${p.authorizedRepresentative || '[Name]'}
+Signature of ${i === 0 ? 'Second' : 'Third'} Partner
+Designation: ${pDesig}
+${p.legalName || '[Partner Name]'}`;
+  });
+
+  return `${jvName}
+${leadAddr}
+
+POWER OF ATTORNEY (अख्तियारनामा)
+
+Date: ${new Date().toLocaleDateString('en-GB')}
+
+Sub: - To whom it may concern
+
+Dear Sir,
+
+We certify that Grand Son of ${attorney.grandfather || '[Grandfather Name]'}, Son of ${attorney.father || '[Father Name]'}, ${attTitle} ${attorney.name} is authorized to sign ${jvName} all the Contract Document after the award of contract.
+
+We further certify that on behalf of our firm that the information provided by ${attorney.gender === 'female' ? 'her' : 'him'} is true and complete. Here project is termed as contract no: ${contractId} (${project}).
+
+We hereby permit and authorize ${attorney.gender === 'female' ? 'her' : 'him'} for the following activity from start of project till the period of hand over of project:
+
+- To sign contract document and all other kind of document of project on behalf of ${jvName}.
+- To open bank account on behalf of ${jvName} and completely operate the account with Stamp and Signature.
+- To negotiate to all the parties which are concerned with ${jvName}.
+- Take all the decision of project on behalf of ${jvName}.
+- To appoint all the staff members.
+- To sign all the hire and purchase agreement.
+
+All the action in regarded will be accepted by the M/S ${jvName}. Specimen signature of ${attTitle} ${attorney.name} is attested below.
+
+Thanking you,
+
+Sincerely Yours,
+
+Specimen Signature of signatories
+
+Name Of Signatories: ${attTitle} ${attorney.name}
+
+${signatureBlocks}`;
+}
+
+// ==========================================
+// METHOD STATEMENT
+// ==========================================
 export function methodStatementTemplate(bid?: Partial<BidData>): string {
   const project = bid?.projectName || '[Project Name]';
   const methodology = bid?.methodology || '[Describe the construction methodology, approach, and technical solutions to be adopted for this project]';
@@ -353,6 +537,9 @@ ${methodology}
    - Environmental mitigation measures`;
 }
 
+// ==========================================
+// SITE ORGANIZATION
+// ==========================================
 export function siteOrganizationTemplate(profile: CompanyProfile | null, bid?: Partial<BidData>): string {
   const co = profile?.companyName || '[Company Name]';
   const project = bid?.projectName || '[Project Name]';
@@ -396,13 +583,15 @@ EQUIPMENT LIST:
 | 7    | Concrete Mixer     |          |     |              |`;
 }
 
+// ==========================================
+// CONSTRUCTION SCHEDULE (BAR CHART)
+// ==========================================
 export function constructionScheduleTemplate(items: Array<{activity: string; duration: number; startWeek: number}>, totalWeeks: number): string {
   const maxWeek = totalWeeks || 24;
   
   let header = '| S.N. | Activity                              | Duration |';
   let separator = '|------|---------------------------------------|----------|';
   
-  // Create week columns (grouped by month)
   const months = Math.ceil(maxWeek / 4);
   for (let m = 1; m <= months; m++) {
     header += ` Month ${m} |`;
@@ -442,6 +631,9 @@ Note: This schedule is indicative and subject to adjustment based on actual site
   return schedule;
 }
 
+// ==========================================
+// MOBILIZATION SCHEDULE
+// ==========================================
 export function mobilizationScheduleTemplate(bid?: Partial<BidData>): string {
   const project = bid?.projectName || '[Project Name]';
 

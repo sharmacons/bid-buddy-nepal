@@ -16,7 +16,8 @@ import { BID_TYPE_LABELS, BID_STATUS_LABELS, BidData, BidStatus, BOQItem, JVPart
 import {
   letterOfBidTemplate, bidSecurityTemplate, powerOfAttorneyTemplate,
   bidderInfoELI1Template, jvInfoELI2Template, runningContractsELI3Template,
-  jvAgreementTemplate, methodStatementTemplate, siteOrganizationTemplate,
+  jvAgreementTemplate, jvPowerOfAttorneyTemplate, declarationTemplate,
+  methodStatementTemplate, siteOrganizationTemplate,
   constructionScheduleTemplate, mobilizationScheduleTemplate,
 } from '@/lib/templates';
 import { generatePrintPackageHTML } from '@/lib/letterhead';
@@ -36,7 +37,15 @@ export default function BidDetail() {
       const migrated = {
         ...found,
         isJV: found.isJV ?? false,
-        jvPartners: found.jvPartners ?? [],
+        jvPartners: (found.jvPartners ?? []).map((p: any) => ({
+          ...p,
+          gender: p.gender ?? 'male',
+          fatherName: p.fatherName ?? '',
+          grandfatherName: p.grandfatherName ?? '',
+          panVatNumber: p.panVatNumber ?? '',
+          registrationNumber: p.registrationNumber ?? '',
+          designation: p.designation ?? '',
+        })),
         runningContracts: found.runningContracts ?? [],
         workSchedule: found.workSchedule ?? [],
       };
@@ -100,9 +109,14 @@ export default function BidDetail() {
 
   // JV functions
   function addJVPartner() {
+    if (bid!.jvPartners.length >= 2) {
+      toast.error('Maximum 3 JV partners allowed (including your company as Lead Partner)');
+      return;
+    }
     const partner: JVPartner = {
       id: crypto.randomUUID(), legalName: '', country: 'Nepal', yearOfConstitution: '',
       address: '', panVatNumber: '', registrationNumber: '', authorizedRepresentative: '',
+      gender: 'male' as const, fatherName: '', grandfatherName: '',
       designation: '', contactPhone: '', contactEmail: '', sharePercentage: 0,
     };
     save({ ...bid!, jvPartners: [...bid!.jvPartners, partner] });
@@ -192,26 +206,21 @@ export default function BidDetail() {
   }
 
   function generateAllDocuments() {
-    // Core documents for all bid types
     const docs = [
       { title: 'Letter of Bid (बोलपत्र पत्र)', content: letterOfBidTemplate(profile, bid!) },
       { title: 'Bid Security — Bank Guarantee (बोलपत्र जमानत)', content: bidSecurityTemplate(profile, bid!) },
       { title: 'Power of Attorney (अख्तियारनामा)', content: powerOfAttorneyTemplate(profile, bid!) },
+      { title: 'Declaration of Undertaking (घोषणा पत्र)', content: declarationTemplate(profile, bid!) },
       { title: 'Bidder Information — ELI-1', content: bidderInfoELI1Template(profile) },
       { title: 'Running Contracts — ELI-3', content: runningContractsELI3Template(bid!.runningContracts.map((c) => ({
         name: c.name, sourceOfFund: c.sourceOfFund, dateOfAcceptance: c.dateOfAcceptance,
         status: c.status, takingOverDate: c.takingOverDate,
       }))) },
-    ];
-
-    // Technical documents
-    docs.push(
       { title: 'Method Statement (कार्यविधि)', content: methodStatementTemplate(bid!) },
       { title: 'Site Organization (स्थलीय संगठन)', content: siteOrganizationTemplate(profile, bid!) },
       { title: 'Mobilization Schedule (परिचालन तालिका)', content: mobilizationScheduleTemplate(bid!) },
-    );
+    ];
 
-    // Work schedule (auto-linked from BOQ)
     if (bid!.workSchedule.length > 0) {
       docs.push({
         title: 'Construction Schedule (कार्य तालिका)',
@@ -219,17 +228,33 @@ export default function BidDetail() {
       });
     }
 
-    // JV-specific documents — auto-switch based on isJV flag
+    // JV-specific documents — auto-switch
     if (bid!.isJV && bid!.jvPartners.length > 0) {
+      // Each partner gets ELI-2 + Declaration
       bid!.jvPartners.forEach((p, i) => {
         docs.push({
           title: `JV Partner ${i + 1} — ELI-2: ${p.legalName || 'Partner'}`,
           content: jvInfoELI2Template(p, profile?.companyName || bid!.projectName),
         });
+        // Declaration for each partner
+        const partnerProfile = {
+          companyName: p.legalName, address: p.address, panVatNumber: p.panVatNumber,
+          registrationNumber: p.registrationNumber, authorizedRepresentative: p.authorizedRepresentative,
+          gender: p.gender, fatherName: p.fatherName, grandfatherName: p.grandfatherName,
+          designation: p.designation, contactPhone: p.contactPhone, contactEmail: p.contactEmail,
+        };
+        docs.push({
+          title: `Declaration — ${p.legalName || `Partner ${i + 1}`}`,
+          content: declarationTemplate(partnerProfile, bid!),
+        });
       });
       docs.push({
         title: 'Joint Venture Agreement (संयुक्त उपक्रम सम्झौता)',
         content: jvAgreementTemplate(profile, bid!.jvPartners, bid!),
+      });
+      docs.push({
+        title: 'JV Power of Attorney (संयुक्त उपक्रम अख्तियारनामा)',
+        content: jvPowerOfAttorneyTemplate(profile, bid!.jvPartners, bid!),
       });
     }
 
@@ -442,44 +467,92 @@ export default function BidDetail() {
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1">
-                        <Label className="text-xs">Legal Name</Label>
-                        <Input className="h-8 text-sm" value={partner.legalName} onChange={(e) => updateJVPartner(partner.id, 'legalName', e.target.value)} placeholder="Partner Company Name" />
+                        <Label className="text-xs">Company Legal Name *</Label>
+                        <Input className="h-8 text-sm" value={partner.legalName} onChange={(e) => updateJVPartner(partner.id, 'legalName', e.target.value)} placeholder="Blue Heights Construction Pvt. Ltd." />
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-xs">Share %</Label>
-                        <Input className="h-8 text-sm" type="number" value={partner.sharePercentage || ''} onChange={(e) => updateJVPartner(partner.id, 'sharePercentage', Number(e.target.value))} placeholder="40" />
+                        <Label className="text-xs">Share % (min 25%) *</Label>
+                        <Input className="h-8 text-sm" type="number" min={25} max={75} value={partner.sharePercentage || ''} onChange={(e) => updateJVPartner(partner.id, 'sharePercentage', Number(e.target.value))} placeholder="45" />
+                        {partner.sharePercentage > 0 && partner.sharePercentage < 25 && (
+                          <p className="text-[10px] text-destructive">Min 25% required</p>
+                        )}
                       </div>
                       <div className="space-y-1">
                         <Label className="text-xs">Address</Label>
-                        <Input className="h-8 text-sm" value={partner.address} onChange={(e) => updateJVPartner(partner.id, 'address', e.target.value)} />
+                        <Input className="h-8 text-sm" value={partner.address} onChange={(e) => updateJVPartner(partner.id, 'address', e.target.value)} placeholder="Tulshipur-16, Dang" />
                       </div>
                       <div className="space-y-1">
                         <Label className="text-xs">PAN/VAT Number</Label>
-                        <Input className="h-8 text-sm" value={partner.panVatNumber} onChange={(e) => updateJVPartner(partner.id, 'panVatNumber', e.target.value)} placeholder="123456789" />
+                        <Input className="h-8 text-sm" value={partner.panVatNumber} onChange={(e) => updateJVPartner(partner.id, 'panVatNumber', e.target.value)} placeholder="305284884" />
                       </div>
                       <div className="space-y-1">
                         <Label className="text-xs">Registration Number</Label>
                         <Input className="h-8 text-sm" value={partner.registrationNumber} onChange={(e) => updateJVPartner(partner.id, 'registrationNumber', e.target.value)} placeholder="REG-12345" />
                       </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs">Authorized Representative</Label>
-                        <Input className="h-8 text-sm" value={partner.authorizedRepresentative} onChange={(e) => updateJVPartner(partner.id, 'authorizedRepresentative', e.target.value)} />
+                      <div className="col-span-2 border-t pt-2 mt-1">
+                        <p className="text-xs font-semibold text-primary mb-2">👤 Representative Details</p>
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-xs">Designation (MD/Proprietor/Partner)</Label>
+                        <Label className="text-xs">Authorized Representative *</Label>
+                        <Input className="h-8 text-sm" value={partner.authorizedRepresentative} onChange={(e) => updateJVPartner(partner.id, 'authorizedRepresentative', e.target.value)} placeholder="Sushan Karki" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Gender (Mr./Mrs.)</Label>
+                        <Select value={partner.gender || 'male'} onValueChange={(v) => updateJVPartner(partner.id, 'gender', v)}>
+                          <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="male">Mr. (श्रीमान)</SelectItem>
+                            <SelectItem value="female">Mrs./Ms. (श्रीमती)</SelectItem>
+                            <SelectItem value="other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Father's Name (बुबाको नाम)</Label>
+                        <Input className="h-8 text-sm" value={partner.fatherName} onChange={(e) => updateJVPartner(partner.id, 'fatherName', e.target.value)} placeholder="Tribendra Singh" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Grandfather's Name (हजुरबुबाको नाम)</Label>
+                        <Input className="h-8 text-sm" value={partner.grandfatherName} onChange={(e) => updateJVPartner(partner.id, 'grandfatherName', e.target.value)} placeholder="Nim Bahadur" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Designation (MD/Proprietor)</Label>
                         <Input className="h-8 text-sm" value={partner.designation} onChange={(e) => updateJVPartner(partner.id, 'designation', e.target.value)} placeholder="Managing Director" />
                       </div>
                       <div className="space-y-1">
                         <Label className="text-xs">Phone</Label>
-                        <Input className="h-8 text-sm" value={partner.contactPhone} onChange={(e) => updateJVPartner(partner.id, 'contactPhone', e.target.value)} />
+                        <Input className="h-8 text-sm" value={partner.contactPhone} onChange={(e) => updateJVPartner(partner.id, 'contactPhone', e.target.value)} placeholder="9860774396" />
                       </div>
                       <div className="space-y-1">
                         <Label className="text-xs">Email</Label>
-                        <Input className="h-8 text-sm" value={partner.contactEmail} onChange={(e) => updateJVPartner(partner.id, 'contactEmail', e.target.value)} />
+                        <Input className="h-8 text-sm" value={partner.contactEmail} onChange={(e) => updateJVPartner(partner.id, 'contactEmail', e.target.value)} placeholder="company@gmail.com" />
                       </div>
                     </div>
                   </div>
                 ))}
+                {/* JV Share Validation */}
+                {bid.jvPartners.length > 0 && (() => {
+                  const totalPartnerShare = bid.jvPartners.reduce((s, p) => s + (p.sharePercentage || 0), 0);
+                  const hasMin40 = bid.jvPartners.some(p => p.sharePercentage >= 40) || totalPartnerShare <= 60; // Lead has ≥40%
+                  const allMin25 = bid.jvPartners.every(p => !p.sharePercentage || p.sharePercentage >= 25);
+                  const leadShare = 100 - totalPartnerShare;
+                  const warnings: string[] = [];
+                  if (totalPartnerShare > 0 && leadShare < 25) warnings.push(`Lead partner share (${leadShare}%) is below minimum 25%`);
+                  if (!allMin25) warnings.push('Each partner must have at least 25% share');
+                  if (leadShare < 40 && !bid.jvPartners.some(p => p.sharePercentage >= 40)) warnings.push('At least one partner must have 40% or more share');
+                  if (totalPartnerShare > 75) warnings.push(`Total partner share (${totalPartnerShare}%) exceeds 75%`);
+                  return warnings.length > 0 ? (
+                    <div className="p-3 rounded-lg border border-destructive/30 bg-destructive/5 space-y-1">
+                      <p className="text-xs font-semibold text-destructive">⚠️ JV Share Validation</p>
+                      {warnings.map((w, i) => <p key={i} className="text-xs text-destructive">{w}</p>)}
+                      <p className="text-[10px] text-muted-foreground">Lead Partner (your company): {leadShare}%</p>
+                    </div>
+                  ) : (
+                    <div className="p-3 rounded-lg border border-accent/30 bg-accent/5">
+                      <p className="text-xs text-accent">✅ JV shares valid — Lead: {leadShare}%, Partners: {bid.jvPartners.map(p => `${p.sharePercentage}%`).join(', ')}</p>
+                    </div>
+                  );
+                })()}
               </CardContent>
             </Card>
           </TabsContent>
