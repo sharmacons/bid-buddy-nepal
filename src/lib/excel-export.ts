@@ -330,9 +330,9 @@ export async function exportWorkScheduleExcel(params: {
 
   // Legend row
   const legendRowNum = 5 + workSchedule.length + 2;
-  ganttSheet.mergeCells(legendRowNum, 1, legendRowNum, 6);
+  ganttSheet.mergeCells(legendRowNum, 1, legendRowNum, 8);
   const legendCell = ganttSheet.getCell(legendRowNum, 1);
-  legendCell.value = '🔴 = Critical Path  |  ★ = Major Activity  |  Adjust row heights, column widths, and bar colors as needed';
+  legendCell.value = '🔴 = Critical Path  |  ⏰ = Overdue (extends beyond project duration)  |  🔄 = Resource Conflict  |  ★ = Major Activity';
   legendCell.font = { size: 9, italic: true, color: { argb: '666666' } };
 
   // ─── Sheet 3: Bill of Quantities ───
