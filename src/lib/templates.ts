@@ -3,16 +3,23 @@ import { CompanyProfile, BidData, JVPartner, Gender } from './types';
 // ==========================================
 // PPMO STANDARD BIDDING DOCUMENT TEMPLATES
 // Based on SBD for Procurement of Works (NCB)
-// Matches real Nepal PPMO document formats
 // ==========================================
 
 const STAMP_SEAL = `
 ┌─────────────────────────────┐
 │                             │
 │     Company Stamp / Seal    │
-│       कम्पनीको छाप          │
 │                             │
 └─────────────────────────────┘`;
+
+// Date helper - DD/MM/YYYY format
+function formatDate(date?: Date): string {
+  const d = date || new Date();
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = d.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
+}
 
 function honorific(gender: Gender | undefined): string {
   if (gender === 'female') return 'Mrs.';
@@ -34,14 +41,14 @@ function shortDesignation(designation: string): string {
 // LETTER OF BID
 // ==========================================
 export function letterOfBidTemplate(profile: CompanyProfile | null, bid?: Partial<BidData>): string {
-  const co = profile?.companyName || '[Company Name / कम्पनीको नाम]';
-  const addr = profile?.address || '[Address / ठेगाना]';
+  const co = profile?.companyName || '[Company Name]';
+  const addr = profile?.address || '[Address]';
   const rep = profile?.authorizedRepresentative || '[Authorized Representative]';
   const title = honorific(profile?.gender);
   const desig = shortDesignation(profile?.designation || '');
   const pan = profile?.panVatNumber || '[PAN/VAT]';
-  const project = bid?.projectName || '[Name of Contract / परियोजनाको नाम]';
-  const employer = bid?.employer || '[Employer Name / नियोक्ताको नाम]';
+  const project = bid?.projectName || '[Name of Contract]';
+  const employer = bid?.employer || '[Employer Name]';
   const employerAddr = bid?.employerAddress || '[Employer Address]';
   const ifb = bid?.ifbNumber || '[IFB Number]';
   const amount = bid?.bidAmount || '________________';
@@ -51,9 +58,9 @@ export function letterOfBidTemplate(profile: CompanyProfile | null, bid?: Partia
   const completion = bid?.completionPeriod || '______';
   const perfSecurity = bid?.performanceSecurityPercent || '____';
 
-  return `LETTER OF BID (बोलपत्र पत्र)
+  return `LETTER OF BID
 
-Date: ${new Date().toLocaleDateString('en-GB')}
+Date: ${formatDate()}
 
 Name of the Contract: ${project}
 Invitation for Bid No.: ${ifb}
@@ -108,7 +115,7 @@ Name: ${title} ${rep}
 In the capacity of: ${desig}
 Signed: ___________________________                ${STAMP_SEAL}
 Duly authorized to sign the Bid for and on behalf of: ${co}
-Date: ${new Date().toLocaleDateString('en-GB')}
+Date: ${formatDate()}
 
 ${co}
 ${addr}
@@ -119,14 +126,14 @@ PAN/VAT: ${pan}`;
 // BID SECURITY
 // ==========================================
 export function bidSecurityTemplate(profile: CompanyProfile | null, bid?: Partial<BidData>): string {
-  const co = profile?.companyName || '[Bidder Name / बोलपत्रदाताको नाम]';
+  const co = profile?.companyName || '[Bidder Name]';
   const employer = bid?.employer || '[Employer Name and Address]';
   const project = bid?.projectName || '[Name of Contract]';
   const ifb = bid?.ifbNumber || '[IFB Number]';
   const amount = bid?.bidSecurityAmount || '____________';
   const validity = bid?.bidValidity || '90';
 
-  return `BID SECURITY — BANK GUARANTEE (बोलपत्र जमानत)
+  return `BID SECURITY — BANK GUARANTEE
 [On Bank's Letterhead]
 
 Bank's Name and Address of Issuing Branch or Office:
@@ -166,7 +173,7 @@ ___________________________                        ${STAMP_SEAL}
 }
 
 // ==========================================
-// POWER OF ATTORNEY — Based on PPMO format
+// POWER OF ATTORNEY
 // ==========================================
 export function powerOfAttorneyTemplate(profile: CompanyProfile | null, bid?: Partial<BidData>): string {
   const co = profile?.companyName || '[Company Name]';
@@ -183,9 +190,9 @@ export function powerOfAttorneyTemplate(profile: CompanyProfile | null, bid?: Pa
 Vat : ${profile?.panVatNumber || '[PAN/VAT]'}
 ${addr}
 
-Date : ${new Date().toLocaleDateString('en-GB')}
+Date : ${formatDate()}
 
-POWER OF ATTORNEY (अख्तियारनामा)
+POWER OF ATTORNEY
 
 To,
 Officer in chief
@@ -216,7 +223,7 @@ ${STAMP_SEAL}`;
 }
 
 // ==========================================
-// DECLARATION OF UNDERTAKING — PPMO format
+// DECLARATION OF UNDERTAKING
 // ==========================================
 export function declarationTemplate(profile: CompanyProfile | null, bid?: Partial<BidData>): string {
   const co = profile?.companyName || '[Company Name]';
@@ -230,7 +237,7 @@ export function declarationTemplate(profile: CompanyProfile | null, bid?: Partia
   return `${co}
 ${addr}
 
-Date : ${new Date().toLocaleDateString('en-GB')}
+Date : ${formatDate()}
 
 Subject :- Declaration of Undertaking
 
@@ -268,7 +275,6 @@ export function bidderInfoELI1Template(profile: CompanyProfile | null): string {
   const email = profile?.contactEmail || '[Email]';
 
   return `FORM ELI-1: BIDDER'S INFORMATION SHEET
-(बोलपत्रदाताको जानकारी)
 
 Bidder's legal name:                    ${co}
 Bidder's country of constitution:       ${country}
@@ -301,7 +307,6 @@ export function jvInfoELI2Template(partner: JVPartner, leadBidderName: string): 
   const desig = shortDesignation(partner.designation);
 
   return `FORM ELI-2: JV INFORMATION SHEET
-(संयुक्त उपक्रम जानकारी)
 Each member of a JV must fill in this form
 
 Bidder's legal name:                          ${leadBidderName}
@@ -336,7 +341,6 @@ ${STAMP_SEAL}`;
 // ==========================================
 export function runningContractsELI3Template(contracts: Array<{name: string; sourceOfFund: string; dateOfAcceptance: string; status: string; takingOverDate?: string}>): string {
   let table = `FORM ELI-3: BIDDER'S RUNNING CONTRACTS
-(बोलपत्रदाताको चालु ठेक्काहरू)
 Each member of a JV must fill in this form
 
 | S.N. | Name of Contract | Source of Fund | Date of Letter of Acceptance | Status | Taking Over Date |
@@ -367,7 +371,7 @@ ${STAMP_SEAL}`;
 }
 
 // ==========================================
-// JV AGREEMENT — Based on uploaded reference
+// JV AGREEMENT
 // ==========================================
 export function jvAgreementTemplate(profile: CompanyProfile | null, partners: JVPartner[], bid?: Partial<BidData>): string {
   const lead = profile?.companyName || '[Lead Partner Name]';
@@ -379,28 +383,23 @@ export function jvAgreementTemplate(profile: CompanyProfile | null, partners: JV
   const employer = bid?.employer || '[Employer Name]';
   const employerAddr = bid?.employerAddress || '[Employer Address]';
   const contractId = bid?.contractId || '[Contract ID]';
-  const ifb = bid?.ifbNumber || '[IFB Number]';
 
-  // Build JV name
   const partnerShortNames = [lead.split(' ')[0], ...partners.map(p => (p.legalName || 'Partner').split(' ')[0])];
   const jvName = `M/S ${partnerShortNames.join('-')} Joint Venture`;
   const jvEmail = partners[0]?.contactEmail || profile?.contactEmail || '[Email]';
 
-  // Partner introductions
   let partnerIntros = `M/s ${lead} shortly known as "${lead.split(' ')[0]}" having its head office at ${leadAddr}, Nepal hereby called the first partner`;
-  partners.forEach((p, i) => {
+  partners.forEach((p) => {
     const shortName = (p.legalName || 'Partner').split(' ')[0];
     partnerIntros += `, M/s ${p.legalName || '[Partner Name]'} shortly known as "${shortName}" having its head office at ${p.address || '[Address]'}, Nepal`;
   });
   partnerIntros += ` all duly organized and existing under the law of Nepal.`;
 
-  // Share distribution
   let shareList = `- a) M/s ${lead} ____%`;
   partners.forEach((p, i) => {
     shareList += `\n- ${String.fromCharCode(98 + i)}) M/s ${p.legalName || '[Partner Name]'} ${p.sharePercentage || '____'}%`;
   });
 
-  // Signature blocks with stamp/seal
   let signatures = `…………………………                              ${STAMP_SEAL}
 
 ${leadTitle} ${leadRep}
@@ -423,7 +422,7 @@ ${pDesig}
 ${p.legalName || '[Partner Name]'}`;
   });
 
-  return `JOINT VENTURE AGREEMENT (संयुक्त उपक्रम सम्झौता)
+  return `JOINT VENTURE AGREEMENT
 
 The Agreement is made on the _____ day of _________, 20___ Between ${partnerIntros}
 
@@ -456,30 +455,26 @@ ${signatures}`;
 }
 
 // ==========================================
-// JV POWER OF ATTORNEY — Based on uploaded reference
+// JV POWER OF ATTORNEY
 // ==========================================
 export function jvPowerOfAttorneyTemplate(profile: CompanyProfile | null, partners: JVPartner[], bid?: Partial<BidData>): string {
   const lead = profile?.companyName || '[Lead Partner Name]';
   const leadAddr = profile?.address || '[Address]';
 
-  // Build JV name
   const partnerShortNames = [lead.split(' ')[0], ...partners.map(p => (p.legalName || 'Partner').split(' ')[0])];
   const jvName = `${partnerShortNames.join('-')} Joint Venture`;
   const project = bid?.projectName || '[Project Name]';
   const contractId = bid?.contractId || '[Contract ID]';
 
-  // Use partner-in-charge representative (first partner with highest share or lead)
   const allReps = [
     { name: profile?.authorizedRepresentative || '[Name]', gender: profile?.gender, father: profile?.fatherName, grandfather: profile?.grandfatherName, desig: profile?.designation, company: lead },
     ...partners.map(p => ({ name: p.authorizedRepresentative, gender: p.gender, father: p.fatherName, grandfather: p.grandfatherName, desig: p.designation, company: p.legalName })),
   ];
 
-  // The POA is typically given to one person from the JV
-  const attorney = allReps[0]; // Lead partner representative
+  const attorney = allReps[0];
   const attTitle = honorific(attorney.gender);
   const attDesig = shortDesignation(attorney.desig || '');
 
-  // Signature blocks for all partners with stamp/seal
   let signatureBlocks = '';
   signatureBlocks += `Name: ${honorific(profile?.gender)} ${profile?.authorizedRepresentative || '[Name]'}
 Signature of Partner In-Charge
@@ -502,9 +497,9 @@ ${STAMP_SEAL}`;
   return `${jvName}
 ${leadAddr}
 
-POWER OF ATTORNEY (अख्तियारनामा)
+POWER OF ATTORNEY
 
-Date: ${new Date().toLocaleDateString('en-GB')}
+Date: ${formatDate()}
 
 Sub: - To whom it may concern
 
@@ -543,7 +538,7 @@ export function methodStatementTemplate(bid?: Partial<BidData>): string {
   const project = bid?.projectName || '[Project Name]';
   const methodology = bid?.methodology || '[Describe the construction methodology, approach, and technical solutions to be adopted for this project]';
 
-  return `METHOD STATEMENT (कार्यविधि विवरण)
+  return `METHOD STATEMENT
 
 Project: ${project}
 
@@ -580,7 +575,7 @@ export function siteOrganizationTemplate(profile: CompanyProfile | null, bid?: P
   const co = profile?.companyName || '[Company Name]';
   const project = bid?.projectName || '[Project Name]';
 
-  return `SITE ORGANIZATION (स्थलीय संगठन)
+  return `SITE ORGANIZATION
 
 Project: ${project}
 Contractor: ${co}
@@ -634,7 +629,7 @@ export function constructionScheduleTemplate(items: Array<{activity: string; dur
     separator += '---------|';
   }
   
-  let schedule = `CONSTRUCTION SCHEDULE / BAR CHART (कार्य तालिका)
+  let schedule = `CONSTRUCTION SCHEDULE / BAR CHART
 
 ${header}
 ${separator}
@@ -673,7 +668,7 @@ Note: This schedule is indicative and subject to adjustment based on actual site
 export function mobilizationScheduleTemplate(bid?: Partial<BidData>): string {
   const project = bid?.projectName || '[Project Name]';
 
-  return `MOBILIZATION SCHEDULE (परिचालन तालिका)
+  return `MOBILIZATION SCHEDULE
 
 Project: ${project}
 

@@ -1,11 +1,12 @@
 import { CompanyProfile } from './types';
 
 /**
- * Generate centered international-format letterhead HTML
+ * Generate letterhead HTML — no logo, company name centered,
+ * PAN on right side, contact details in footer bold centered
  */
 export function generateLetterheadHTML(profile: CompanyProfile | null): string {
-  const co = profile?.companyName || '[Company Name / कम्पनीको नाम]';
-  const addr = profile?.address || '[Address / ठेगाना]';
+  const co = profile?.companyName || '[Company Name]';
+  const addr = profile?.address || '[Address]';
   const pan = profile?.panVatNumber || '[PAN/VAT]';
   const reg = profile?.registrationNumber || '[Reg. No.]';
   const phone = profile?.contactPhone || '[Phone]';
@@ -13,47 +14,62 @@ export function generateLetterheadHTML(profile: CompanyProfile | null): string {
 
   return `
     <div class="letterhead">
-      ${profile?.logoUrl 
-        ? `<img src="${profile.logoUrl}" alt="Logo" class="letterhead-logo-img" />`
-        : `<div class="letterhead-logo-placeholder">${co.charAt(0)}</div>`
-      }
-      <div class="letterhead-name">${co}</div>
-      <div class="letterhead-address">${addr}</div>
-      <div class="letterhead-meta">PAN/VAT: ${pan} &nbsp;|&nbsp; Reg. No: ${reg}</div>
-      <div class="letterhead-meta">Ph: ${phone} &nbsp;|&nbsp; Email: ${email}</div>
+      <div class="letterhead-top-row">
+        <div class="letterhead-left">Reg. No: ${reg}</div>
+        <div class="letterhead-center">
+          <div class="letterhead-name">${co}</div>
+          <div class="letterhead-address">${addr}</div>
+        </div>
+        <div class="letterhead-right">PAN/VAT: ${pan}</div>
+      </div>
     </div>
     <div class="letterhead-line"></div>
   `;
 }
 
 /**
- * CSS styles for centered international letterhead
+ * Generate footer HTML with contact details bold and centered
+ */
+function generateFooterHTML(profile: CompanyProfile | null): string {
+  const phone = profile?.contactPhone || '[Phone]';
+  const email = profile?.contactEmail || '[Email]';
+  const addr = profile?.address || '[Address]';
+
+  return `
+    <div class="page-footer">
+      <strong>Ph: ${phone} &nbsp;|&nbsp; Email: ${email} &nbsp;|&nbsp; ${addr}</strong>
+    </div>
+  `;
+}
+
+/**
+ * CSS styles for letterhead
  */
 export const LETTERHEAD_CSS = `
   .letterhead {
+    padding-bottom: 8px;
+  }
+  .letterhead-top-row {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+  }
+  .letterhead-left {
+    font-size: 9px;
+    color: #555;
+    min-width: 100px;
+    text-align: left;
+  }
+  .letterhead-center {
     text-align: center;
-    padding-bottom: 12px;
+    flex: 1;
   }
-  .letterhead-logo-placeholder {
-    width: 72px;
-    height: 72px;
-    background: #1e3a5f;
-    color: white;
-    border-radius: 10px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 32px;
-    font-weight: bold;
-    font-family: 'Mukta', sans-serif;
-    margin-bottom: 6px;
-  }
-  .letterhead-logo-img {
-    width: 72px;
-    height: 72px;
-    object-fit: contain;
-    border-radius: 6px;
-    margin-bottom: 6px;
+  .letterhead-right {
+    font-size: 9px;
+    color: #555;
+    min-width: 100px;
+    text-align: right;
+    font-weight: 600;
   }
   .letterhead-name {
     font-size: 22px;
@@ -71,20 +87,23 @@ export const LETTERHEAD_CSS = `
     margin-top: 3px;
     line-height: 1.4;
   }
-  .letterhead-meta {
-    font-size: 10px;
-    color: #666;
-    line-height: 1.5;
-  }
   .letterhead-line {
     border-bottom: 3px double #1e3a5f;
     margin-bottom: 18px;
     margin-top: 4px;
   }
+  .page-footer {
+    text-align: center;
+    font-size: 9px;
+    color: #333;
+    padding: 8px 0;
+    border-top: 1px solid #ccc;
+    margin-top: 30px;
+  }
 `;
 
 /**
- * Full A4 print document wrapper with centered letterhead
+ * Full A4 print document wrapper with letterhead and footer
  */
 export function wrapDocumentWithLetterhead(params: {
   profile: CompanyProfile | null;
@@ -94,6 +113,7 @@ export function wrapDocumentWithLetterhead(params: {
 }): string {
   const { profile, title, content, isLandscape } = params;
   const letterhead = generateLetterheadHTML(profile);
+  const footer = generateFooterHTML(profile);
 
   return `<!DOCTYPE html>
 <html>
@@ -110,7 +130,6 @@ export function wrapDocumentWithLetterhead(params: {
   table { width: 100%; border-collapse: collapse; margin: 10pt 0; }
   td, th { border: 1px solid #000; padding: 4pt 8pt; text-align: left; font-size: 11pt; }
   .page-break { page-break-before: always; }
-  .footer { position: fixed; bottom: 0; left: 0; right: 0; text-align: center; font-size: 8pt; color: #888; padding: 8px 15mm; }
   @media print {
     .no-print { display: none; }
     body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -121,6 +140,7 @@ export function wrapDocumentWithLetterhead(params: {
   ${letterhead}
   <h1 class="doc-title">${title}</h1>
   <pre>${content}</pre>
+  ${footer}
 </body>
 </html>`;
 }
@@ -271,7 +291,7 @@ function generateGanttChartHTML(
         <span><i style="background:#6b7280;"></i> Demobilization</span>
       </div>
       <div style="font-size:8px;color:#888;margin-top:4px;">
-        ● Bold rows = Major items &nbsp; | &nbsp; ▼ Arrow lines = Work flow sequence &nbsp; | &nbsp; Each column = 1 month (4 weeks)
+        Bold rows = Major items | Arrow lines = Work flow sequence | Each column = 1 month (4 weeks)
       </div>
     </div>
   `;
@@ -350,7 +370,7 @@ const GANTT_CSS = `
 
 /**
  * Generate multi-document print package — each document on separate A4 page
- * Includes proper Gantt work schedule and mobilization schedule
+ * with letterhead at top and contact footer at bottom
  */
 export function generatePrintPackageHTML(params: {
   profile: CompanyProfile | null;
@@ -366,6 +386,7 @@ export function generatePrintPackageHTML(params: {
     ? Math.ceil(Math.max(...workSchedule.map(i => i.startWeek + i.duration - 1), totalDurationWeeks || 24) / 4)
     : 0;
   const needsLandscape = ganttMonths > 6;
+  const footer = generateFooterHTML(profile);
 
   const pages = documents.map((doc, i) => {
     const letterhead = generateLetterheadHTML(profile);
@@ -374,6 +395,7 @@ export function generatePrintPackageHTML(params: {
       ${letterhead}
       <h1 class="doc-title">${doc.title}</h1>
       <pre>${doc.content}</pre>
+      ${footer}
     `;
   });
 
@@ -384,12 +406,13 @@ export function generatePrintPackageHTML(params: {
     pages.push(`
       <div class="page-break ${needsLandscape ? 'landscape-page' : ''}"></div>
       ${letterhead}
-      <h1 class="doc-title">CONSTRUCTION WORK SCHEDULE — BAR CHART<br><span style="font-size:11pt;font-weight:normal;">(निर्माण कार्य तालिका / बार चार्ट)</span></h1>
+      <h1 class="doc-title">CONSTRUCTION WORK SCHEDULE — BAR CHART</h1>
       <div style="font-size:10px;text-align:center;color:#555;margin-bottom:10px;">
         Project: <strong>${projectName}</strong> &nbsp;|&nbsp; Total Duration: <strong>${totalDurationWeeks || 24} weeks (${ganttMonths} months)</strong>
         ${needsLandscape ? '&nbsp;|&nbsp; <em>Landscape A4</em>' : ''}
       </div>
       ${ganttHTML}
+      ${footer}
     `);
   }
 
@@ -400,11 +423,12 @@ export function generatePrintPackageHTML(params: {
     pages.push(`
       <div class="page-break ${needsLandscape ? 'portrait-page' : ''}"></div>
       ${letterhead}
-      <h1 class="doc-title">MOBILIZATION SCHEDULE<br><span style="font-size:11pt;font-weight:normal;">(परिचालन तालिका)</span></h1>
+      <h1 class="doc-title">MOBILIZATION SCHEDULE</h1>
       <div style="font-size:10px;text-align:center;color:#555;margin-bottom:10px;">
         Project: <strong>${projectName}</strong>
       </div>
       ${mobHTML}
+      ${footer}
     `);
   }
 
@@ -438,7 +462,7 @@ export function generatePrintPackageHTML(params: {
 <body>
   <div class="no-print">
     <button onclick="window.print()" style="padding:14px 48px;font-size:14pt;cursor:pointer;background:#1e3a5f;color:white;border:none;border-radius:6px;font-weight:bold;">
-      🖨️ Print All Documents (${pages.length} pages)
+      Print All Documents (${pages.length} pages)
     </button>
     <p style="margin-top:8px;font-size:11px;color:#666;">Each document prints on a separate A4 page with company letterhead</p>
   </div>
