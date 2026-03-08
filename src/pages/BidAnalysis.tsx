@@ -25,6 +25,7 @@ import {
   PriceAdjustmentResult,
 } from '@/lib/price-index';
 import { exportPriceAdjustmentPDF, exportWorkSchedulePDF } from '@/lib/pdf-export';
+import { exportWorkScheduleExcel } from '@/lib/excel-export';
 import GanttChart from '@/components/GanttChart';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
