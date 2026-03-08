@@ -26,10 +26,11 @@ import {
 } from '@/lib/price-index';
 import { exportPriceAdjustmentPDF, exportWorkSchedulePDF } from '@/lib/pdf-export';
 import GanttChart from '@/components/GanttChart';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Upload, FileText, Calculator, Calendar, TrendingUp, AlertTriangle, CheckCircle,
   ArrowRight, ArrowLeft, Info, FileDown, Sparkles, Loader2, Cpu, BarChart3,
-  ClipboardList, Eye, EyeOff, ChevronDown, ChevronUp, Link2,
+  ClipboardList, Eye, EyeOff, ChevronDown, ChevronUp, Link2, Columns2, List,
 } from 'lucide-react';
 
 // Extracted info field for the selectable list
