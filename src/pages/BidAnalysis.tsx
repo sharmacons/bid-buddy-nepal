@@ -79,6 +79,9 @@ export default function BidAnalysis() {
 
   // Expanded sections
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['project', 'dates', 'financial', 'boq']));
+  // Comparison view
+  const [showComparison, setShowComparison] = useState(false);
+  const [highlightedField, setHighlightedField] = useState<string | null>(null);
 
   // File upload & auto-trigger analysis
   const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
