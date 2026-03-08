@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { getCompanyProfile, getBids } from '@/lib/storage';
 import { BidData } from '@/lib/types';
 import {
-  letterOfBidTemplate, bidSecurityTemplate, powerOfAttorneyTemplate,
+  letterOfBidTemplate, letterOfPriceBidTemplate, bidSecurityTemplate, powerOfAttorneyTemplate,
   declarationTemplate, bidderInfoELI1Template, runningContractsELI3Template,
   methodStatementTemplate, siteOrganizationTemplate, mobilizationScheduleTemplate,
   jvAgreementTemplate, jvPowerOfAttorneyTemplate, jvInfoELI2Template,
