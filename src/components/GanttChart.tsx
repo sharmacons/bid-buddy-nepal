@@ -130,6 +130,11 @@ export default function GanttChart({ items, totalWeeks }: GanttChartProps) {
                       <p className="text-muted-foreground">
                         Week {d.start + 1} → Week {d.endWeek} ({d.duration}w)
                       </p>
+                      <p className="text-muted-foreground mt-0.5">
+                        Total Float: <span className={d.float <= 0 ? 'text-destructive font-semibold' : 'text-primary font-medium'}>
+                          {d.float <= 0 ? '0 (Zero)' : `${d.float}w`}
+                        </span>
+                      </p>
                       {d.isCritical && (
                         <p className="text-destructive font-semibold mt-0.5">
                           ⚡ Critical Path — Zero Float
