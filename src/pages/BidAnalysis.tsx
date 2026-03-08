@@ -87,6 +87,9 @@ export default function BidAnalysis() {
   const [currentYear, setCurrentYear] = useState('2082/83');
   const [priceAdjResult, setPriceAdjResult] = useState<PriceAdjustmentResult | null>(null);
 
+  // Work schedule
+  const [workSchedule, setWorkSchedule] = useState<WorkScheduleItem[]>([]);
+  const [scheduleGenerated, setScheduleGenerated] = useState(false);
   // Handle file upload
   function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
