@@ -12,7 +12,8 @@ import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { saveBid } from '@/lib/storage';
 import { getChecklistForType } from '@/lib/checklists';
-import { BidType, BID_TYPE_LABELS, BOQItem } from '@/lib/types';
+import { BidType, BID_TYPE_LABELS, BOQItem, WorkScheduleItem } from '@/lib/types';
+import { detectActivitiesFromBOQ, generateWorkSchedule } from '@/lib/work-schedule';
 import {
   NRB_PRICE_INDEX_DATA,
   COEFFICIENT_PRESETS,
