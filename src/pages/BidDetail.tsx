@@ -159,23 +159,96 @@ export default function BidDetail() {
     save({ ...bid!, runningContracts: bid!.runningContracts.filter((c) => c.id !== cId) });
   }
 
-  // Work schedule
+  // Work schedule — standard auto-generate
   function autoGenerateSchedule() {
-    let startWeek = 1;
-    const items: WorkScheduleItem[] = COMMON_ROAD_WORK_ITEMS.map((item) => {
-      const ws: WorkScheduleItem = {
-        id: crypto.randomUUID(),
-        activity: item.activity,
-        duration: item.defaultDuration,
-        startWeek,
-        isMajor: item.isMajor,
-      };
-      startWeek += Math.ceil(item.defaultDuration * 0.6); // Overlap activities
-      return ws;
-    });
-    const total = Math.max(...items.map((i) => i.startWeek + i.duration));
-    save({ ...bid!, workSchedule: items, totalDurationWeeks: total });
-    toast.success('Work schedule auto-generated from standard road construction items!');
+    if (bid!.boqItems.length > 0) {
+      // Use BOQ-based detection
+      const detected = detectActivitiesFromBOQ(bid!.boqItems);
+      const schedule = generateWorkSchedule(detected, bid!.totalDurationWeeks || 24);
+      const total = schedule.length > 0 ? Math.max(...schedule.map((i) => i.startWeek + i.duration)) : 24;
+      save({ ...bid!, workSchedule: schedule, totalDurationWeeks: total });
+      toast.success(`${schedule.length} activities generated from ${bid!.boqItems.length} BOQ items`);
+    } else {
+      // Fallback to common road items
+      let startWeek = 1;
+      const items: WorkScheduleItem[] = COMMON_ROAD_WORK_ITEMS.map((item, idx) => {
+        const ws: WorkScheduleItem = {
+          id: crypto.randomUUID(),
+          activity: item.activity,
+          duration: item.defaultDuration,
+          startWeek,
+          isMajor: item.isMajor,
+          dependencies: idx > 0 ? [items[idx - 1]?.id].filter(Boolean) : [],
+        };
+        startWeek += Math.ceil(item.defaultDuration * 0.6);
+        return ws;
+      });
+      const total = Math.max(...items.map((i) => i.startWeek + i.duration));
+      save({ ...bid!, workSchedule: items, totalDurationWeeks: total });
+      toast.success('Work schedule auto-generated from standard road construction items!');
+    }
+  }
+
+  // AI-powered schedule generation
+  async function aiGenerateSchedule() {
+    if (bid!.boqItems.length === 0) {
+      toast.error('Add BOQ items first — AI needs them to generate a proper schedule');
+      return;
+    }
+    setAiLoading('schedule');
+    try {
+      const result = await generateAISchedule(bid!.boqItems, {
+        projectName: bid!.projectName,
+        totalDurationWeeks: bid!.totalDurationWeeks || 24,
+      });
+      if (result && result.activities.length > 0) {
+        // Convert AI activities to WorkScheduleItem with proper dependencies
+        const idMap: string[] = [];
+        let currentWeek = 1;
+        
+        const schedule: WorkScheduleItem[] = result.activities.map((act, idx) => {
+          const itemId = crypto.randomUUID();
+          idMap.push(itemId);
+          
+          // Calculate start week from predecessors
+          const predIds: string[] = [];
+          if (act.predecessors && act.predecessors.length > 0) {
+            let maxEnd = 0;
+            for (const predIdx of act.predecessors) {
+              if (predIdx >= 0 && predIdx < idx) {
+                predIds.push(idMap[predIdx]);
+                // Find predecessor's end
+                const pred = result.activities[predIdx];
+                const predStart = schedule[predIdx]?.startWeek || 1;
+                const predEnd = predStart + (pred?.duration || 0);
+                const lag = act.lag || 0;
+                maxEnd = Math.max(maxEnd, predEnd + lag);
+              }
+            }
+            if (maxEnd > 0) currentWeek = maxEnd;
+          }
+
+          const ws: WorkScheduleItem = {
+            id: itemId,
+            activity: act.name,
+            duration: Math.max(1, act.duration),
+            startWeek: Math.max(1, currentWeek),
+            isMajor: act.isMajor,
+            dependencies: predIds,
+          };
+          return ws;
+        });
+
+        const total = schedule.length > 0 ? Math.max(...schedule.map(i => i.startWeek + i.duration)) : 24;
+        save({ ...bid!, workSchedule: schedule, totalDurationWeeks: total });
+        toast.success(`AI generated ${schedule.length} activities with proper linkages! ${result.summary || ''}`);
+      } else {
+        toast.error('AI returned no activities. Falling back to auto-generate.');
+        autoGenerateSchedule();
+      }
+    } finally {
+      setAiLoading(null);
+    }
   }
 
   function addScheduleItem() {
