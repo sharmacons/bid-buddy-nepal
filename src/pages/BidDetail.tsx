@@ -192,6 +192,7 @@ export default function BidDetail() {
   }
 
   function generateAllDocuments() {
+    // Core documents for all bid types
     const docs = [
       { title: 'Letter of Bid (बोलपत्र पत्र)', content: letterOfBidTemplate(profile, bid!) },
       { title: 'Bid Security — Bank Guarantee (बोलपत्र जमानत)', content: bidSecurityTemplate(profile, bid!) },
@@ -201,11 +202,16 @@ export default function BidDetail() {
         name: c.name, sourceOfFund: c.sourceOfFund, dateOfAcceptance: c.dateOfAcceptance,
         status: c.status, takingOverDate: c.takingOverDate,
       }))) },
+    ];
+
+    // Technical documents
+    docs.push(
       { title: 'Method Statement (कार्यविधि)', content: methodStatementTemplate(bid!) },
       { title: 'Site Organization (स्थलीय संगठन)', content: siteOrganizationTemplate(profile, bid!) },
       { title: 'Mobilization Schedule (परिचालन तालिका)', content: mobilizationScheduleTemplate(bid!) },
-    ];
+    );
 
+    // Work schedule (auto-linked from BOQ)
     if (bid!.workSchedule.length > 0) {
       docs.push({
         title: 'Construction Schedule (कार्य तालिका)',
@@ -213,6 +219,7 @@ export default function BidDetail() {
       });
     }
 
+    // JV-specific documents — auto-switch based on isJV flag
     if (bid!.isJV && bid!.jvPartners.length > 0) {
       bid!.jvPartners.forEach((p, i) => {
         docs.push({
