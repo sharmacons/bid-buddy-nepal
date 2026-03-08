@@ -479,7 +479,255 @@ export default function BidAnalysis() {
           </Card>
         </TabsContent>
 
-        {/* TAB 4: Price Adjustment */}
+        {/* TAB 4: Work Schedule */}
+        <TabsContent value="schedule">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Calendar className="h-5 w-5" /> Auto-Generated Work Schedule
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {boqItems.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p className="text-sm">Add BOQ items first in the BOQ tab to auto-generate a work schedule.</p>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 space-y-1">
+                      <Label className="text-xs">Total Project Duration (weeks)</Label>
+                      <Input
+                        type="number"
+                        value={completionPeriodDays ? Math.round(parseInt(completionPeriodDays) / 7) : ''}
+                        onChange={e => setCompletionPeriodDays(String(parseInt(e.target.value || '0') * 7))}
+                        placeholder="e.g., 52"
+                        className="text-sm"
+                      />
+                    </div>
+                    <div className="pt-5">
+                      <Button
+                        onClick={() => {
+                          const totalWeeks = completionPeriodDays ? Math.round(parseInt(completionPeriodDays) / 7) : 52;
+                          const detected = detectActivitiesFromBOQ(boqItems);
+                          const schedule = generateWorkSchedule(detected, totalWeeks);
+                          setWorkSchedule(schedule);
+                          setScheduleGenerated(true);
+                          toast.success(`Generated ${schedule.length} activities from ${boqItems.length} BOQ items`);
+                        }}
+                        className="gap-2"
+                      >
+                        <Calculator className="h-4 w-4" /> Auto-Generate Schedule
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Detected activities summary */}
+                  {scheduleGenerated && workSchedule.length > 0 && (
+                    <>
+                      <Separator />
+                      <p className="text-sm font-semibold">Detected Activities ({workSchedule.length})</p>
+
+                      {/* Editable table */}
+                      <div className="border rounded-lg overflow-hidden">
+                        <table className="w-full text-sm">
+                          <thead className="bg-muted/50">
+                            <tr>
+                              <th className="text-left px-3 py-2 font-medium w-8">#</th>
+                              <th className="text-left px-3 py-2 font-medium">Activity</th>
+                              <th className="text-center px-3 py-2 font-medium w-20">Major</th>
+                              <th className="text-center px-3 py-2 font-medium w-24">Start (wk)</th>
+                              <th className="text-center px-3 py-2 font-medium w-24">Duration (wk)</th>
+                              <th className="text-center px-3 py-2 font-medium w-24">End (wk)</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {workSchedule.map((item, idx) => (
+                              <tr key={item.id} className={`border-t ${item.isMajor ? 'bg-primary/5 font-medium' : ''}`}>
+                                <td className="px-3 py-1.5 text-muted-foreground">{idx + 1}</td>
+                                <td className="px-3 py-1.5">
+                                  <Input
+                                    value={item.activity}
+                                    onChange={e => {
+                                      const updated = [...workSchedule];
+                                      updated[idx] = { ...item, activity: e.target.value };
+                                      setWorkSchedule(updated);
+                                    }}
+                                    className="h-7 text-sm border-none shadow-none px-0"
+                                  />
+                                </td>
+                                <td className="px-3 py-1.5 text-center">
+                                  <input
+                                    type="checkbox"
+                                    checked={item.isMajor}
+                                    onChange={e => {
+                                      const updated = [...workSchedule];
+                                      updated[idx] = { ...item, isMajor: e.target.checked };
+                                      setWorkSchedule(updated);
+                                    }}
+                                    className="accent-primary"
+                                  />
+                                </td>
+                                <td className="px-3 py-1.5">
+                                  <Input
+                                    type="number"
+                                    value={item.startWeek}
+                                    onChange={e => {
+                                      const updated = [...workSchedule];
+                                      updated[idx] = { ...item, startWeek: parseInt(e.target.value) || 1 };
+                                      setWorkSchedule(updated);
+                                    }}
+                                    className="h-7 text-sm text-center"
+                                    min={1}
+                                  />
+                                </td>
+                                <td className="px-3 py-1.5">
+                                  <Input
+                                    type="number"
+                                    value={item.duration}
+                                    onChange={e => {
+                                      const updated = [...workSchedule];
+                                      updated[idx] = { ...item, duration: parseInt(e.target.value) || 1 };
+                                      setWorkSchedule(updated);
+                                    }}
+                                    className="h-7 text-sm text-center"
+                                    min={1}
+                                  />
+                                </td>
+                                <td className="px-3 py-1.5 text-center text-muted-foreground">
+                                  {item.startWeek + item.duration - 1}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* Gantt Bar Chart */}
+                      <Separator />
+                      <p className="text-sm font-semibold">📊 Bar Chart (Gantt View)</p>
+                      {(() => {
+                        const maxWeek = Math.max(...workSchedule.map(i => i.startWeek + i.duration - 1), 1);
+                        const monthMarkers: number[] = [];
+                        for (let w = 4; w <= maxWeek; w += 4) monthMarkers.push(w);
+
+                        return (
+                          <div className="border rounded-lg p-3 overflow-x-auto">
+                            {/* Month headers */}
+                            <div className="flex items-center mb-1" style={{ marginLeft: '180px' }}>
+                              {monthMarkers.map(w => (
+                                <div
+                                  key={w}
+                                  className="text-[9px] text-muted-foreground"
+                                  style={{
+                                    position: 'absolute' as const,
+                                    left: `${180 + ((w - 1) / maxWeek) * 600}px`,
+                                  }}
+                                >
+                                  M{Math.ceil(w / 4)}
+                                </div>
+                              ))}
+                            </div>
+
+                            <div className="relative" style={{ minWidth: `${780}px` }}>
+                              {/* Week scale header */}
+                              <div className="flex items-center h-5 mb-1">
+                                <div className="w-[180px] shrink-0 text-[9px] text-muted-foreground font-medium pr-2 text-right">
+                                  Activity
+                                </div>
+                                <div className="flex-1 relative h-full border-b border-border">
+                                  {Array.from({ length: Math.ceil(maxWeek / 4) }, (_, i) => (
+                                    <div
+                                      key={i}
+                                      className="absolute text-[8px] text-muted-foreground"
+                                      style={{ left: `${(i * 4 / maxWeek) * 100}%` }}
+                                    >
+                                      {i * 4 + 1}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+
+                              {/* Bars */}
+                              {workSchedule.map((item, idx) => {
+                                const left = ((item.startWeek - 1) / maxWeek) * 100;
+                                const width = (item.duration / maxWeek) * 100;
+                                const color = BAR_COLORS[idx % BAR_COLORS.length];
+
+                                return (
+                                  <div key={item.id} className="flex items-center h-7 group">
+                                    <div className="w-[180px] shrink-0 text-[10px] pr-2 text-right truncate" title={item.activity}>
+                                      {item.isMajor && <span className="text-primary mr-1">●</span>}
+                                      {item.activity}
+                                    </div>
+                                    <div className="flex-1 relative h-5 bg-muted/30 rounded-sm">
+                                      {/* Grid lines every 4 weeks */}
+                                      {Array.from({ length: Math.ceil(maxWeek / 4) }, (_, i) => (
+                                        <div
+                                          key={i}
+                                          className="absolute top-0 bottom-0 border-l border-border/30"
+                                          style={{ left: `${(i * 4 / maxWeek) * 100}%` }}
+                                        />
+                                      ))}
+                                      <div
+                                        className="absolute top-0.5 bottom-0.5 rounded-sm transition-all group-hover:brightness-110"
+                                        style={{
+                                          left: `${left}%`,
+                                          width: `${Math.max(width, 1)}%`,
+                                          backgroundColor: color,
+                                          opacity: item.isMajor ? 1 : 0.7,
+                                        }}
+                                      />
+                                    </div>
+                                  </div>
+                                );
+                              })}
+
+                              {/* Legend */}
+                              <div className="flex items-center gap-4 mt-3 text-[10px] text-muted-foreground">
+                                <span className="flex items-center gap-1">
+                                  <span className="text-primary">●</span> Major Item
+                                </span>
+                                <span>Total: {Math.max(...workSchedule.map(i => i.startWeek + i.duration - 1))} weeks</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+
+                      {/* Add/Remove buttons */}
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setWorkSchedule([...workSchedule, {
+                            id: crypto.randomUUID(),
+                            activity: 'New Activity',
+                            duration: 2,
+                            startWeek: workSchedule.length > 0 ? Math.max(...workSchedule.map(i => i.startWeek + i.duration)) : 1,
+                            isMajor: false,
+                          }])}
+                        >
+                          + Add Activity
+                        </Button>
+                        {workSchedule.length > 0 && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setWorkSchedule(workSchedule.slice(0, -1))}
+                          >
+                            Remove Last
+                          </Button>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="price-adj">
           <div className="space-y-4">
             <Card>
