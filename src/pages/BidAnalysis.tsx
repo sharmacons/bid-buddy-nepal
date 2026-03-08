@@ -657,6 +657,27 @@ export default function BidAnalysis() {
                           </p>
                         </div>
                       )}
+
+                      <Separator />
+
+                      <Button
+                        onClick={() => exportPriceAdjustmentPDF({
+                          projectName,
+                          employer,
+                          ifbNumber,
+                          contractId,
+                          baseYear,
+                          currentYear,
+                          coefficients,
+                          coeffPresetLabel: COEFFICIENT_PRESETS[coeffPreset]?.label || coeffPreset,
+                          result: priceAdjResult,
+                          originalAmount: parseFloat(estimatedCost) || totalBoq,
+                        })}
+                        variant="outline"
+                        className="w-full gap-2"
+                      >
+                        <FileDown className="h-4 w-4" /> Export Price Adjustment Report (PDF)
+                      </Button>
                     </CardContent>
                   </Card>
                 )}
