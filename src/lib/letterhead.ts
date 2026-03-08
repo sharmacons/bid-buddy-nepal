@@ -360,7 +360,13 @@ export function generatePrintPackageHTML(params: {
   totalDurationWeeks?: number;
 }): string {
   const { profile, projectName, documents, workSchedule, totalDurationWeeks } = params;
-  
+
+  // Determine if Gantt needs landscape (>6 months)
+  const ganttMonths = workSchedule && workSchedule.length > 0
+    ? Math.ceil(Math.max(...workSchedule.map(i => i.startWeek + i.duration - 1), totalDurationWeeks || 24) / 4)
+    : 0;
+  const needsLandscape = ganttMonths > 6;
+
   const pages = documents.map((doc, i) => {
     const letterhead = generateLetterheadHTML(profile);
     return `
@@ -376,22 +382,23 @@ export function generatePrintPackageHTML(params: {
     const letterhead = generateLetterheadHTML(profile);
     const ganttHTML = generateGanttChartHTML(workSchedule, totalDurationWeeks || 24);
     pages.push(`
-      <div class="page-break"></div>
+      <div class="page-break ${needsLandscape ? 'landscape-page' : ''}"></div>
       ${letterhead}
       <h1 class="doc-title">CONSTRUCTION WORK SCHEDULE — BAR CHART<br><span style="font-size:11pt;font-weight:normal;">(निर्माण कार्य तालिका / बार चार्ट)</span></h1>
       <div style="font-size:10px;text-align:center;color:#555;margin-bottom:10px;">
-        Project: <strong>${projectName}</strong> &nbsp;|&nbsp; Total Duration: <strong>${totalDurationWeeks || 24} weeks (${Math.ceil((totalDurationWeeks || 24) / 4)} months)</strong>
+        Project: <strong>${projectName}</strong> &nbsp;|&nbsp; Total Duration: <strong>${totalDurationWeeks || 24} weeks (${ganttMonths} months)</strong>
+        ${needsLandscape ? '&nbsp;|&nbsp; <em>Landscape A4</em>' : ''}
       </div>
       ${ganttHTML}
     `);
   }
 
-  // Add mobilization schedule page
+  // Add mobilization schedule page (revert to portrait)
   {
     const letterhead = generateLetterheadHTML(profile);
     const mobHTML = generateMobilizationGanttHTML();
     pages.push(`
-      <div class="page-break"></div>
+      <div class="page-break ${needsLandscape ? 'portrait-page' : ''}"></div>
       ${letterhead}
       <h1 class="doc-title">MOBILIZATION SCHEDULE<br><span style="font-size:11pt;font-weight:normal;">(परिचालन तालिका)</span></h1>
       <div style="font-size:10px;text-align:center;color:#555;margin-bottom:10px;">
@@ -408,7 +415,11 @@ export function generatePrintPackageHTML(params: {
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Mukta:wght@400;600;700;800&display=swap');
   @page { size: A4; margin: 20mm 15mm; }
+  @page landscape { size: A4 landscape; margin: 12mm 10mm; }
+  @page portrait { size: A4; margin: 20mm 15mm; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
+  .landscape-page { page: landscape; }
+  .portrait-page { page: portrait; }
   body { font-family: 'Times New Roman', serif; font-size: 12pt; line-height: 1.6; color: #000; }
   ${LETTERHEAD_CSS}
   ${GANTT_CSS}
