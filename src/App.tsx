@@ -11,6 +11,7 @@ import BidDetail from "./pages/BidDetail";
 import Templates from "./pages/Templates";
 import BidTracker from "./pages/BidTracker";
 import Documents from "./pages/Documents";
+import BidAnalysis from "./pages/BidAnalysis";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
