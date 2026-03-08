@@ -16,7 +16,8 @@ import { BID_TYPE_LABELS, BID_STATUS_LABELS, BidData, BidStatus, BOQItem, JVPart
 import {
   letterOfBidTemplate, bidSecurityTemplate, powerOfAttorneyTemplate,
   bidderInfoELI1Template, jvInfoELI2Template, runningContractsELI3Template,
-  jvAgreementTemplate, methodStatementTemplate, siteOrganizationTemplate,
+  jvAgreementTemplate, jvPowerOfAttorneyTemplate, declarationTemplate,
+  methodStatementTemplate, siteOrganizationTemplate,
   constructionScheduleTemplate, mobilizationScheduleTemplate,
 } from '@/lib/templates';
 import { generatePrintPackageHTML } from '@/lib/letterhead';
