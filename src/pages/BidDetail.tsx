@@ -99,7 +99,8 @@ export default function BidDetail() {
   function addJVPartner() {
     const partner: JVPartner = {
       id: crypto.randomUUID(), legalName: '', country: 'Nepal', yearOfConstitution: '',
-      address: '', authorizedRepresentative: '', contactPhone: '', contactEmail: '', sharePercentage: 0,
+      address: '', panVatNumber: '', registrationNumber: '', authorizedRepresentative: '',
+      designation: '', contactPhone: '', contactEmail: '', sharePercentage: 0,
     };
     save({ ...bid!, jvPartners: [...bid!.jvPartners, partner] });
   }
