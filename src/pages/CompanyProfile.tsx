@@ -1,7 +1,7 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { getCompanyProfile, saveCompanyProfile } from '@/lib/storage';
 import { CompanyProfile as CompanyProfileType } from '@/lib/types';
 import { toast } from 'sonner';
-import { Building2, Save, Users, User } from 'lucide-react';
+import { Building2, Save, Users, User, Upload, X, Image } from 'lucide-react';
 
 const DESIGNATION_OPTIONS = [
   'Managing Director (व्यवस्थापन सञ्चालक)',
@@ -111,6 +111,32 @@ function RepresentativeFields({ form, prefix, label }: { form: any; prefix: stri
 export default function CompanyProfile() {
   const existing = getCompanyProfile();
   const [bidMode, setBidMode] = useState<'single' | 'jv'>(existing?.bidMode || 'single');
+  const [logoUrl, setLogoUrl] = useState<string>(existing?.logoUrl || '');
+  const logoInputRef = useRef<HTMLInputElement>(null);
+
+  function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 500 * 1024) {
+      toast.error('Logo must be under 500KB');
+      return;
+    }
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setLogoUrl(reader.result as string);
+      toast.success('Logo uploaded! Save profile to keep it.');
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function removeLogo() {
+    setLogoUrl('');
+    if (logoInputRef.current) logoInputRef.current.value = '';
+  }
 
   const singleForm = useForm<z.infer<typeof singleSchema>>({
     resolver: zodResolver(singleSchema),
@@ -162,6 +188,7 @@ export default function CompanyProfile() {
       designation: data.designation,
       contactPhone: data.contactPhone,
       contactEmail: data.contactEmail,
+      logoUrl: logoUrl || undefined,
     });
     toast.success('Company profile saved!');
   }
@@ -181,6 +208,7 @@ export default function CompanyProfile() {
       contactPhone: data.jvLeadPhone,
       contactEmail: data.jvLeadEmail,
       ...data,
+      logoUrl: logoUrl || undefined,
     };
     saveCompanyProfile(profile);
     toast.success('JV profile saved!');
@@ -195,6 +223,37 @@ export default function CompanyProfile() {
           <p className="text-sm text-muted-foreground">कम्पनी विवरण — saved to your browser</p>
         </div>
       </div>
+
+      {/* Logo Upload */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Image className="h-4 w-4 text-primary" />
+            <p className="text-sm font-semibold">Company Logo (कम्पनी लोगो)</p>
+          </div>
+          <div className="flex items-center gap-4">
+            {logoUrl ? (
+              <div className="relative">
+                <img src={logoUrl} alt="Company Logo" className="h-16 w-16 object-contain rounded-lg border bg-background p-1" />
+                <button type="button" onClick={removeLogo} className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center">
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ) : (
+              <div className="h-16 w-16 rounded-lg border-2 border-dashed border-muted-foreground/30 flex items-center justify-center">
+                <Image className="h-6 w-6 text-muted-foreground/40" />
+              </div>
+            )}
+            <div className="flex-1">
+              <input ref={logoInputRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+              <Button type="button" variant="outline" size="sm" className="gap-2" onClick={() => logoInputRef.current?.click()}>
+                <Upload className="h-3 w-3" /> {logoUrl ? 'Change Logo' : 'Upload Logo'}
+              </Button>
+              <p className="text-[10px] text-muted-foreground mt-1">Max 500KB. Appears on letterhead for all printed documents.</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Mode Selector */}
       <Card className="border-primary/30">
