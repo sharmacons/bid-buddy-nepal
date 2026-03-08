@@ -174,6 +174,81 @@ Return activities with proper sequencing, dependencies (predecessor indices), an
         },
       });
       tool_choice = { type: "function", function: { name: "generate_work_schedule" } };
+    } else if (type === "full-analysis") {
+      systemPrompt = `You are a Nepal PPMO Standard Bidding Document expert. Analyze the complete bid document text and extract ALL available information comprehensively.
+
+Extract everything you can find:
+1. Project identification (name, IFB number, contract ID, lot number)
+2. Employer/Procuring Entity details (name, address, district)
+3. All dates (submission deadline, bid opening, pre-bid meeting, site visit)
+4. Financial details (estimated cost, bid security amount, performance security %, earnest money)
+5. Bid conditions (validity days, completion period days, commencement days, defect liability period)
+6. Eligibility (JV allowed?, max partners, minimum experience years, minimum turnover)
+7. All BOQ items with SN, description, unit, quantity, rate, amount
+8. Special conditions or notes
+9. Bid type identification (NCB single/double envelope, sealed quotation, ICB)
+10. Source of fund (GON, ADB, WB, etc.)
+
+All monetary amounts in NPR. Dates in YYYY-MM-DD format. Be thorough.`;
+      userPrompt = `Analyze this complete bidding document and extract ALL information:\n\n${text}`;
+      tools.push({
+        type: "function",
+        function: {
+          name: "full_bid_analysis",
+          description: "Return comprehensive analysis of the entire bidding document",
+          parameters: {
+            type: "object",
+            properties: {
+              projectName: { type: "string" },
+              employer: { type: "string" },
+              employerAddress: { type: "string" },
+              district: { type: "string" },
+              ifbNumber: { type: "string" },
+              contractId: { type: "string" },
+              lotNumber: { type: "string" },
+              sourceOfFund: { type: "string" },
+              bidType: { type: "string", enum: ["ncb-single", "ncb-double", "sealed-quotation", "icb"] },
+              submissionDeadline: { type: "string" },
+              bidOpeningDate: { type: "string" },
+              preBidMeetingDate: { type: "string" },
+              siteVisitDate: { type: "string" },
+              estimatedCost: { type: "string" },
+              bidSecurityAmount: { type: "string" },
+              bidValidity: { type: "string" },
+              completionPeriod: { type: "string" },
+              commencementDays: { type: "string" },
+              performanceSecurityPercent: { type: "string" },
+              defectLiabilityPeriod: { type: "string" },
+              isJV: { type: "boolean" },
+              maxJVPartners: { type: "number" },
+              minimumExperienceYears: { type: "number" },
+              minimumTurnover: { type: "string" },
+              earnestMoney: { type: "string" },
+              boqItems: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    sn: { type: "string" },
+                    description: { type: "string" },
+                    unit: { type: "string" },
+                    quantity: { type: "number" },
+                    rate: { type: "number" },
+                    amount: { type: "number" },
+                  },
+                  required: ["description"],
+                  additionalProperties: false,
+                },
+              },
+              specialConditions: { type: "array", items: { type: "string" } },
+              summary: { type: "string", description: "Brief summary of the bid opportunity" },
+            },
+            required: ["projectName", "summary"],
+            additionalProperties: false,
+          },
+        },
+      });
+      tool_choice = { type: "function", function: { name: "full_bid_analysis" } };
     } else {
       return new Response(JSON.stringify({ error: "Unknown type" }), {
         status: 400,
@@ -227,7 +302,7 @@ Return activities with proper sequencing, dependencies (predecessor indices), an
     const data = await response.json();
 
     // Handle tool call responses
-    if (type === "extract-bid-info" || type === "parse-boq" || type === "generate-schedule") {
+    if (type === "extract-bid-info" || type === "parse-boq" || type === "generate-schedule" || type === "full-analysis") {
       const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
       if (toolCall) {
         const extracted = JSON.parse(toolCall.function.arguments);

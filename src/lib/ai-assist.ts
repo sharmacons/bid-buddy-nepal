@@ -34,6 +34,37 @@ export interface AIScheduleResult {
   summary: string;
 }
 
+export interface FullAnalysisResult {
+  projectName?: string;
+  employer?: string;
+  employerAddress?: string;
+  district?: string;
+  ifbNumber?: string;
+  contractId?: string;
+  lotNumber?: string;
+  sourceOfFund?: string;
+  bidType?: string;
+  submissionDeadline?: string;
+  bidOpeningDate?: string;
+  preBidMeetingDate?: string;
+  siteVisitDate?: string;
+  estimatedCost?: string;
+  bidSecurityAmount?: string;
+  bidValidity?: string;
+  completionPeriod?: string;
+  commencementDays?: string;
+  performanceSecurityPercent?: string;
+  defectLiabilityPeriod?: string;
+  isJV?: boolean;
+  maxJVPartners?: number;
+  minimumExperienceYears?: number;
+  minimumTurnover?: string;
+  earnestMoney?: string;
+  boqItems?: Array<{ sn?: string; description: string; unit?: string; quantity?: number; rate?: number; amount?: number }>;
+  specialConditions?: string[];
+  summary?: string;
+}
+
 export async function extractBidInfo(text: string): Promise<ExtractedBidInfo | null> {
   try {
     const { data, error } = await supabase.functions.invoke('ai-assist', {
@@ -81,6 +112,24 @@ export async function generateAISchedule(
   } catch (e: any) {
     console.error('AI schedule error:', e);
     toast.error('AI schedule generation failed. Using manual generation.');
+    return null;
+  }
+}
+
+export async function fullBidAnalysis(text: string): Promise<FullAnalysisResult | null> {
+  try {
+    const { data, error } = await supabase.functions.invoke('ai-assist', {
+      body: { type: 'full-analysis', text },
+    });
+    if (error) throw error;
+    if (data?.error) {
+      toast.error(data.error);
+      return null;
+    }
+    return data?.result || null;
+  } catch (e: any) {
+    console.error('Full analysis error:', e);
+    toast.error('AI analysis failed. Please try again or enter details manually.');
     return null;
   }
 }
