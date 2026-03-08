@@ -16,6 +16,7 @@ import {
 import { detectActivitiesFromBOQ, generateWorkSchedule } from '@/lib/work-schedule';
 import { generatePrintPackageHTML } from '@/lib/letterhead';
 import { exportWorkSchedulePDF } from '@/lib/pdf-export';
+import { exportWorkScheduleExcel } from '@/lib/excel-export';
 import GanttChart from '@/components/GanttChart';
 import { WorkScheduleItem } from '@/lib/types';
 import { toast } from 'sonner';
