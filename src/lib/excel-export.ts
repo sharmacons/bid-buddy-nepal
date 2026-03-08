@@ -83,6 +83,8 @@ export async function exportWorkScheduleExcel(params: {
   });
 
   const { criticalIds } = computeCriticalPath(workSchedule);
+  const overdueIds = detectOverdue(workSchedule, totalDurationWeeks);
+  const conflictMap = detectResourceConflicts(workSchedule);
 
   // Project header rows
   dataSheet.mergeCells('A1:H1');
