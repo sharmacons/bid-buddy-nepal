@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { getCompanyProfile, saveCompanyProfile } from '@/lib/storage';
 import { CompanyProfile as CompanyProfileType } from '@/lib/types';
 import { toast } from 'sonner';
-import { Building2, Save, Users, User } from 'lucide-react';
+import { Building2, Save, Users, User, Upload, X, Image } from 'lucide-react';
 
 const DESIGNATION_OPTIONS = [
   'Managing Director (व्यवस्थापन सञ्चालक)',
