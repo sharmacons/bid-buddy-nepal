@@ -492,12 +492,21 @@ export default function BidAnalysis() {
           )}
 
           {/* Selection controls */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <p className="text-sm font-medium">
               <span className="text-primary">{selectedFieldCount}</span> of {extractedFields.length} fields selected
               {boqItems.length > 0 && <> · <span className="text-primary">{selectedBoqCount}</span> of {boqItems.length} BOQ items</>}
             </p>
             <div className="flex gap-2">
+              <Button
+                variant={showComparison ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setShowComparison(!showComparison)}
+                className="gap-1.5"
+              >
+                <Columns2 className="h-3.5 w-3.5" />
+                {showComparison ? 'Hide Original' : 'Compare with Original'}
+              </Button>
               <Button variant="outline" size="sm" onClick={() => setExtractedFields(prev => prev.map(f => ({ ...f, selected: true })))}>
                 Select All Fields
               </Button>
@@ -506,6 +515,34 @@ export default function BidAnalysis() {
               </Button>
             </div>
           </div>
+
+          {/* Main content: comparison split or single column */}
+          <div className={showComparison ? 'grid grid-cols-1 lg:grid-cols-2 gap-4' : ''}>
+            {/* Left panel: Original Document (only shown in comparison mode) */}
+            {showComparison && (
+              <div className="space-y-2 lg:sticky lg:top-4 lg:self-start">
+                <Card className="h-full">
+                  <CardHeader className="py-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-primary" />
+                      Original Document Text
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <ScrollArea className="h-[calc(100vh-220px)] rounded-lg border border-border bg-muted/20 p-0">
+                      <OriginalDocumentView
+                        text={uploadedText}
+                        highlightValues={getHighlightedText()}
+                        activeHighlight={highlightedField}
+                      />
+                    </ScrollArea>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {/* Right panel: Extracted data */}
+            <div className="space-y-4">
 
           {/* Categorized fields */}
           {categories.map(cat => {
