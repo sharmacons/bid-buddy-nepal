@@ -30,6 +30,9 @@ export default function BidDetail() {
   const navigate = useNavigate();
   const [bid, setBid] = useState<BidData | null>(null);
   const printRef = useRef<HTMLDivElement>(null);
+  const bidDocRef = useRef<HTMLInputElement>(null);
+  const [bidDocument, setBidDocument] = useState<{ name: string; size: number } | null>(null);
+  const [aiLoading, setAiLoading] = useState<string | null>(null);
 
   useEffect(() => {
     const found = getBids().find((b) => b.id === id);
