@@ -12,6 +12,7 @@ import Templates from "./pages/Templates";
 import BidTracker from "./pages/BidTracker";
 import Documents from "./pages/Documents";
 import BidAnalysis from "./pages/BidAnalysis";
+import BoqWizard from "./pages/BoqWizard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="/tracker" element={<BidTracker />} />
             <Route path="/documents" element={<Documents />} />
             <Route path="/analyze" element={<BidAnalysis />} />
+            <Route path="/boq-wizard" element={<BoqWizard />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

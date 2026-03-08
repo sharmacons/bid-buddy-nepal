@@ -10,7 +10,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { type, text, projectContext } = await req.json();
+    const { type, text, projectContext, projectName } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
@@ -81,6 +81,43 @@ qualifications, and equipment list appropriate for the project type.`;
       systemPrompt = `You are a Nepal construction bid preparation expert. Generate a mobilization schedule 
 and plan for Nepal PPMO standard bidding documents. Include week-by-week mobilization activities.`;
       userPrompt = `Generate mobilization plan for:\n\nProject: ${projectContext?.projectName || "Road Construction"}\nCommencement Period: ${projectContext?.commencementDays || "14"} days\n\nContext: ${text || "Standard road construction"}`;
+    } else if (type === "parse-boq") {
+      systemPrompt = `You are a Nepal construction BoQ (Bill of Quantities) parser expert. Parse the provided BoQ data and return structured items. 
+Categorize each item into one of: Earthwork, Pavement, Drainage, Structure, Bridge, Protection, Furniture, Mobilization, General.
+Extract: SN, description, unit, quantity, rate, amount. If rate/amount are missing, set to 0.`;
+      userPrompt = `Parse this BoQ data for project "${projectName || 'Construction Project'}":\n\n${text}`;
+      tools.push({
+        type: "function",
+        function: {
+          name: "parse_boq_items",
+          description: "Return parsed and categorized BoQ items",
+          parameters: {
+            type: "object",
+            properties: {
+              items: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    sn: { type: "string" },
+                    description: { type: "string" },
+                    unit: { type: "string" },
+                    quantity: { type: "number" },
+                    rate: { type: "number" },
+                    amount: { type: "number" },
+                    category: { type: "string", enum: ["Earthwork", "Pavement", "Drainage", "Structure", "Bridge", "Protection", "Furniture", "Mobilization", "General"] },
+                  },
+                  required: ["sn", "description", "unit", "quantity"],
+                  additionalProperties: false,
+                },
+              },
+            },
+            required: ["items"],
+            additionalProperties: false,
+          },
+        },
+      });
+      tool_choice = { type: "function", function: { name: "parse_boq_items" } };
     } else {
       return new Response(JSON.stringify({ error: "Unknown type" }), {
         status: 400,
@@ -133,12 +170,13 @@ and plan for Nepal PPMO standard bidding documents. Include week-by-week mobiliz
 
     const data = await response.json();
 
-    // Handle tool call response for extraction
-    if (type === "extract-bid-info") {
+    // Handle tool call responses
+    if (type === "extract-bid-info" || type === "parse-boq") {
       const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
       if (toolCall) {
         const extracted = JSON.parse(toolCall.function.arguments);
-        return new Response(JSON.stringify({ result: extracted }), {
+        const result = type === "parse-boq" ? extracted.items : extracted;
+        return new Response(JSON.stringify({ result }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
