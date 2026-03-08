@@ -252,6 +252,7 @@ export default function Templates() {
                   contractId: selectedBid?.contractId || '',
                   workSchedule: workScheduleItems,
                   totalDurationWeeks: selectedBid?.totalDurationWeeks || 24,
+                  boqItems: selectedBid?.boqItems,
                 });
               }}>
                 <Download className="h-3 w-3" /> Export Excel (.xlsx)

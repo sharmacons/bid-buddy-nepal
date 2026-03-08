@@ -910,6 +910,7 @@ export default function BidDetail() {
                           contractId: bid.contractId,
                           workSchedule: bid.workSchedule,
                           totalDurationWeeks: bid.totalDurationWeeks || 24,
+                          boqItems: bid.boqItems,
                         });
                       }}>
                         <Download className="h-3 w-3" /> Export Excel (.xlsx)

@@ -872,6 +872,7 @@ export default function BidAnalysis() {
                     contractId: editedValues.contractId || '',
                     workSchedule,
                     totalDurationWeeks: editedValues.completionPeriod ? Math.round(parseInt(editedValues.completionPeriod) / 7) : 24,
+                    boqItems: boqItems.length > 0 ? boqItems : undefined,
                   })}>
                     <FileDown className="h-3 w-3" /> Export Excel (.xlsx)
                   </Button>
