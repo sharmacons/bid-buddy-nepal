@@ -287,7 +287,10 @@ Attached are copies of the following original documents:
 1. □ Articles of incorporation or constitution of the legal entity named above, in accordance with ITB 4.1 and 4.2.
 2. □ Authorization to represent the firm named above, in accordance with ITB 17.2.
 3. □ In case of JV, letter of intent to form JV or JV agreement, in accordance with ITB 4.1.
-4. □ In case of a government-owned entity, any additional documents required to comply with ITB 4.5.`;
+4. □ In case of a government-owned entity, any additional documents required to comply with ITB 4.5.
+
+Signature: ___________________________
+${STAMP_SEAL}`;
 }
 
 // ==========================================
