@@ -28,8 +28,9 @@ export async function exportWorkScheduleExcel(params: {
   contractId?: string;
   workSchedule: WorkScheduleItem[];
   totalDurationWeeks: number;
+  boqItems?: BOQItem[];
 }) {
-  const { projectName, employer, ifbNumber, contractId, workSchedule, totalDurationWeeks } = params;
+  const { projectName, employer, ifbNumber, contractId, workSchedule, totalDurationWeeks, boqItems } = params;
   const wb = new ExcelJS.Workbook();
   wb.creator = 'BidReady Nepal';
   wb.created = new Date();
