@@ -47,11 +47,20 @@ export default function Templates() {
       { title: 'Mobilization Schedule (परिचालन तालिका)', content: mobilizationScheduleTemplate(bid || undefined) },
     ];
 
-    // Work schedule if available
-    if (bid?.workSchedule && bid.workSchedule.length > 0) {
+    // Work schedule — auto-generate from BOQ if not manually set
+    const workSchedule = (() => {
+      if (bid?.workSchedule && bid.workSchedule.length > 0) return bid.workSchedule;
+      if (bid?.boqItems && bid.boqItems.length > 0) {
+        const detected = detectActivitiesFromBOQ(bid.boqItems);
+        return generateWorkSchedule(detected, bid.totalDurationWeeks || 24);
+      }
+      return [];
+    })();
+
+    if (workSchedule.length > 0) {
       docs.push({
-        title: 'Construction Schedule (कार्य तालिका)',
-        content: constructionScheduleTemplate(bid.workSchedule, bid.totalDurationWeeks || 24),
+        title: 'Construction Schedule / Bar Chart',
+        content: constructionScheduleTemplate(workSchedule, bid?.totalDurationWeeks || 24),
       });
     }
 
