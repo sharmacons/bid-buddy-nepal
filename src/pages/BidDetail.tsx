@@ -21,8 +21,9 @@ import {
   constructionScheduleTemplate, mobilizationScheduleTemplate,
 } from '@/lib/templates';
 import { generatePrintPackageHTML } from '@/lib/letterhead';
+import { suggestContent } from '@/lib/ai-assist';
 import { toast } from 'sonner';
-import { Trash2, Save, FileText, CheckCircle2, Printer, Plus, Users, Calendar } from 'lucide-react';
+import { Trash2, Save, FileText, CheckCircle2, Printer, Plus, Users, Calendar, Upload, Sparkles, Loader2 } from 'lucide-react';
 
 export default function BidDetail() {
   const { id } = useParams<{ id: string }>();
