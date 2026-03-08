@@ -1,5 +1,7 @@
 import { NRB_PRICE_INDEX_DATA, PriceAdjustmentCoefficients, PriceAdjustmentResult, NRBPriceIndex } from './price-index';
 import { WorkScheduleItem } from './types';
+import { computeCriticalPath } from './critical-path';
+import { WorkScheduleItem } from './types';
 
 export function exportPriceAdjustmentPDF(params: {
   projectName: string;
