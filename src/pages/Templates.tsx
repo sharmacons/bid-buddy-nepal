@@ -215,6 +215,8 @@ export default function Templates() {
             </Button>
           </CardContent>
         </Card>
+      ))}
+
       {/* Visual Gantt Chart */}
       {workScheduleItems.length > 0 && (
         <Card>
