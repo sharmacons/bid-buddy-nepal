@@ -38,7 +38,8 @@ function shortDesignation(designation: string): string {
 }
 
 // ==========================================
-// LETTER OF BID
+// LETTER OF BID (Technical Envelope)
+// PPMO SBD NCB Two-Envelope System
 // ==========================================
 export function letterOfBidTemplate(profile: CompanyProfile | null, bid?: Partial<BidData>): string {
   const co = profile?.companyName || '[Company Name]';
@@ -51,14 +52,13 @@ export function letterOfBidTemplate(profile: CompanyProfile | null, bid?: Partia
   const employer = bid?.employer || '[Employer Name]';
   const employerAddr = bid?.employerAddress || '[Employer Address]';
   const ifb = bid?.ifbNumber || '[IFB Number]';
-  const amount = bid?.bidAmount || '________________';
-  const amountWords = bid?.bidAmountWords || '________________________________';
   const validity = bid?.bidValidity || '90';
   const commence = bid?.commencementDays || '______';
   const completion = bid?.completionPeriod || '______';
   const perfSecurity = bid?.performanceSecurityPercent || '____';
 
   return `LETTER OF BID
+(Technical Envelope)
 
 Date: ${formatDate()}
 
@@ -72,40 +72,34 @@ We, the undersigned, declare that:
 
 (a) We have examined and have no reservations to the Bidding Documents, including Addenda issued in accordance with Instructions to Bidders (ITB) Clause 8;
 
-(b) We offer to execute in conformity with the Bidding Documents the following Works: ${project}
+(b) We offer to execute in conformity with the Bidding Documents the following Works: ${project};
 
-(c) The total price of our Bid, excluding any discounts offered in item (d) below is:
-    NPR ${amount} (in figures)
-    (Nepali Rupees ${amountWords} only) (in words)
+(c) Our bid shall be valid for a period of ${validity} days from the date fixed for the bid submission deadline in accordance with the Bidding Documents, and it shall remain binding upon us and may be accepted at any time before the expiration of that period;
 
-(d) The discounts offered and the methodology for their application are: ______________________
+(d) If our bid is accepted, we commit to obtain a performance security in accordance with the Bidding Document;
 
-(e) Our bid shall be valid for a period of ${validity} days from the date fixed for the bid submission deadline in accordance with the Bidding Documents, and it shall remain binding upon us and may be accepted at any time before the expiration of that period;
+(e) Our firm, including any subcontractors or suppliers for any part of the Contract, have nationalities from Nepal;
 
-(f) If our bid is accepted, we commit to obtain a performance security in accordance with the Bidding Document;
+(f) We, including any subcontractors or suppliers for any part of the contract, do not have any conflict of interest in accordance with ITB 4.3;
 
-(g) Our firm, including any subcontractors or suppliers for any part of the Contract, have nationalities from Nepal;
+(g) We are not participating, as a Bidder or as a subcontractor, in more than one bid in this bidding process in accordance with ITB 4.3(a) unless otherwise allowed under ITB 4.3(a);
 
-(h) We, including any subcontractors or suppliers for any part of the contract, do not have any conflict of interest in accordance with ITB 4.3;
+(h) Our firm, its affiliates or subsidiaries, including any Subcontractors or Suppliers for any part of the contract, has not been declared ineligible under the Employer's country laws or official regulations or by an act of compliance with a decision of the United Nations Security Council;
 
-(i) We are not participating, as a Bidder or as a subcontractor, in more than one bid in this bidding process in accordance with ITB 4.3;
+(i) We are not a government owned entity;
 
-(j) Our firm, its affiliates or subsidiaries, including any Subcontractors or Suppliers for any part of the contract, has not been declared ineligible;
+(j) We understand that this bid, together with your written acceptance thereof included in your notification of award, shall constitute a binding contract between us, until a formal contract is prepared and executed;
 
-(k) We are not a government owned entity;
+(k) We declare that we have not been blacklisted as per ITB 3.4 and no conflict of interest in the proposed procurement proceedings;
 
-(l) We understand that this bid, together with your written acceptance thereof included in your notification of award, shall constitute a binding contract between us, until a formal contract is prepared and executed;
+(l) We declare that we have not running contracts more than five (5) in accordance with ITB 4.8;
 
-(m) We declare that we have not been blacklisted as per ITB 3.4 and no conflict of interest in the proposed procurement proceedings;
+(m) We understand that you are not bound to accept the lowest evaluated bid or any other bid that you may receive; and
 
-(n) We declare that we have not running contracts more than five (5) in accordance with ITB 4.8;
-
-(o) We understand that you are not bound to accept the lowest evaluated bid or any other bid that you may receive; and
-
-(p) If awarded the contract, the person named below shall act as Contractor's Representative:
+(n) If awarded the contract, the person named below shall act as Contractor's Representative:
     Name: ${title} ${rep}
 
-(q) We agree to permit the Employer or its representative to inspect our accounts and records and other documents relating to the bid submission.
+(o) We agree to permit the Employer or its representative to inspect our accounts and records and other documents relating to the bid submission.
 
 If our Bid is accepted, we undertake to commence the Works within ${commence} days and to complete the whole of the Works within ${completion} days from the date of receipt of the Letter of Acceptance.
 
@@ -115,6 +109,58 @@ Name: ${title} ${rep}
 In the capacity of: ${desig}
 Signed: ___________________________                ${STAMP_SEAL}
 Duly authorized to sign the Bid for and on behalf of: ${co}
+Date: ${formatDate()}
+
+${co}
+${addr}
+PAN/VAT: ${pan}`;
+}
+
+// ==========================================
+// LETTER OF PRICE BID (Financial Envelope)
+// PPMO SBD NCB Two-Envelope System
+// ==========================================
+export function letterOfPriceBidTemplate(profile: CompanyProfile | null, bid?: Partial<BidData>): string {
+  const co = profile?.companyName || '[Company Name]';
+  const addr = profile?.address || '[Address]';
+  const rep = profile?.authorizedRepresentative || '[Authorized Representative]';
+  const title = honorific(profile?.gender);
+  const desig = shortDesignation(profile?.designation || '');
+  const pan = profile?.panVatNumber || '[PAN/VAT]';
+  const project = bid?.projectName || '[Name of Contract]';
+  const employer = bid?.employer || '[Employer Name]';
+  const employerAddr = bid?.employerAddress || '[Employer Address]';
+  const ifb = bid?.ifbNumber || '[IFB Number]';
+  const amount = bid?.bidAmount || '________________';
+  const amountWords = bid?.bidAmountWords || '________________________________';
+
+  return `LETTER OF PRICE BID
+(Financial Envelope)
+
+Date: ${formatDate()}
+
+Name of the Contract: ${project}
+Invitation for Bid No.: ${ifb}
+
+To: ${employer}
+    ${employerAddr}
+
+We, the undersigned, offer to execute the Works described above in the attached Letter of Bid in conformity with the Bidding Documents and the following amounts:
+
+(a) The total price of our Bid, excluding any discounts offered in item (b) below is:
+
+    NPR ${amount} (in figures)
+    (Nepali Rupees ${amountWords} only) (in words)
+
+    The above amounts are in accordance with the Price Schedules attached herewith and are made part of this Price Bid.
+
+(b) The discounts offered and the methodology for their application are:
+    ______________________
+
+Name: ${title} ${rep}
+In the capacity of: ${desig}
+Signed: ___________________________                ${STAMP_SEAL}
+Duly authorized to sign the Price Bid for and on behalf of: ${co}
 Date: ${formatDate()}
 
 ${co}

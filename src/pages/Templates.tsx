@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { getCompanyProfile, getBids } from '@/lib/storage';
 import { BidData } from '@/lib/types';
 import {
-  letterOfBidTemplate, bidSecurityTemplate, powerOfAttorneyTemplate,
+  letterOfBidTemplate, letterOfPriceBidTemplate, bidSecurityTemplate, powerOfAttorneyTemplate,
   declarationTemplate, bidderInfoELI1Template, runningContractsELI3Template,
   methodStatementTemplate, siteOrganizationTemplate, mobilizationScheduleTemplate,
   jvAgreementTemplate, jvPowerOfAttorneyTemplate, jvInfoELI2Template,
@@ -42,7 +42,8 @@ export default function Templates() {
   const templates = useMemo(() => {
     const bid = selectedBid;
     const docs: { title: string; content: string }[] = [
-      { title: 'Letter of Bid', content: letterOfBidTemplate(profile, bid || undefined) },
+      { title: 'Letter of Bid (Technical Envelope)', content: letterOfBidTemplate(profile, bid || undefined) },
+      { title: 'Letter of Price Bid (Financial Envelope)', content: letterOfPriceBidTemplate(profile, bid || undefined) },
       { title: 'Bid Security — Bank Guarantee', content: bidSecurityTemplate(profile, bid || undefined) },
       { title: 'Power of Attorney', content: powerOfAttorneyTemplate(profile, bid || undefined) },
       { title: 'Declaration of Undertaking', content: declarationTemplate(profile, bid || undefined) },
