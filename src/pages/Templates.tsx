@@ -215,7 +215,20 @@ export default function Templates() {
             </Button>
           </CardContent>
         </Card>
-      ))}
+      {/* Visual Gantt Chart */}
+      {workScheduleItems.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-primary" />
+              Construction Schedule — Gantt Chart
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <GanttChart items={workScheduleItems} totalWeeks={selectedBid?.totalDurationWeeks || 24} />
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
