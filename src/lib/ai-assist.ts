@@ -116,6 +116,24 @@ export async function generateAISchedule(
   }
 }
 
+export async function fullBidAnalysis(text: string): Promise<FullAnalysisResult | null> {
+  try {
+    const { data, error } = await supabase.functions.invoke('ai-assist', {
+      body: { type: 'full-analysis', text },
+    });
+    if (error) throw error;
+    if (data?.error) {
+      toast.error(data.error);
+      return null;
+    }
+    return data?.result || null;
+  } catch (e: any) {
+    console.error('Full analysis error:', e);
+    toast.error('AI analysis failed. Please try again or enter details manually.');
+    return null;
+  }
+}
+
 export async function suggestContent(
   type: 'suggest-methodology' | 'suggest-site-organization' | 'suggest-mobilization',
   text: string,
