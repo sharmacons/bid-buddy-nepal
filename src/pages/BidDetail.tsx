@@ -22,6 +22,7 @@ import {
 } from '@/lib/templates';
 import { generatePrintPackageHTML } from '@/lib/letterhead';
 import { exportWorkSchedulePDF } from '@/lib/pdf-export';
+import { exportWorkScheduleExcel } from '@/lib/excel-export';
 import { suggestContent, generateAISchedule } from '@/lib/ai-assist';
 import { detectActivitiesFromBOQ, generateWorkSchedule } from '@/lib/work-schedule';
 import { toast } from 'sonner';
