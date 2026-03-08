@@ -401,7 +401,7 @@ The AI will automatically extract:
                     placeholder="From Invitation for Bids" />
                 </div>
                 <div className="space-y-2">
-                  <Label>Contract ID (ठेक्का नम्बर)</Label>
+                  <Label>Contract ID</Label>
                   <Input value={contractId} onChange={e => setContractId(e.target.value)} />
                 </div>
               </div>
