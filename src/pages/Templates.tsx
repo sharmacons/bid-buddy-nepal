@@ -27,16 +27,27 @@ export default function Templates() {
 
   const selectedBid = useMemo(() => bids.find(b => b.id === selectedBidId) || null, [bids, selectedBidId]);
 
+  // Compute work schedule separately for Gantt chart
+  const workScheduleItems: WorkScheduleItem[] = useMemo(() => {
+    const bid = selectedBid;
+    if (bid?.workSchedule && bid.workSchedule.length > 0) return bid.workSchedule;
+    if (bid?.boqItems && bid.boqItems.length > 0) {
+      const detected = detectActivitiesFromBOQ(bid.boqItems);
+      return generateWorkSchedule(detected, bid.totalDurationWeeks || 24);
+    }
+    return [];
+  }, [selectedBid]);
+
   const templates = useMemo(() => {
     const bid = selectedBid;
     const docs: { title: string; content: string }[] = [
-      { title: 'Letter of Bid (बोलपत्र पत्र)', content: letterOfBidTemplate(profile, bid || undefined) },
-      { title: 'Bid Security — Bank Guarantee (बोलपत्र जमानत)', content: bidSecurityTemplate(profile, bid || undefined) },
-      { title: 'Power of Attorney (अख्तियारनामा)', content: powerOfAttorneyTemplate(profile, bid || undefined) },
-      { title: 'Declaration of Undertaking (घोषणा पत्र)', content: declarationTemplate(profile, bid || undefined) },
-      { title: 'Bidder Information — ELI-1 (बोलपत्रदाता जानकारी)', content: bidderInfoELI1Template(profile) },
+      { title: 'Letter of Bid', content: letterOfBidTemplate(profile, bid || undefined) },
+      { title: 'Bid Security — Bank Guarantee', content: bidSecurityTemplate(profile, bid || undefined) },
+      { title: 'Power of Attorney', content: powerOfAttorneyTemplate(profile, bid || undefined) },
+      { title: 'Declaration of Undertaking', content: declarationTemplate(profile, bid || undefined) },
+      { title: 'Bidder Information — ELI-1', content: bidderInfoELI1Template(profile) },
       {
-        title: 'Running Contracts — ELI-3 (चालु ठेक्काहरू)',
+        title: 'Running Contracts — ELI-3',
         content: runningContractsELI3Template(
           bid?.runningContracts?.map(c => ({
             name: c.name, sourceOfFund: c.sourceOfFund, dateOfAcceptance: c.dateOfAcceptance,
@@ -44,25 +55,15 @@ export default function Templates() {
           })) || []
         ),
       },
-      { title: 'Method Statement (कार्यविधि)', content: methodStatementTemplate(bid || undefined) },
-      { title: 'Site Organization (स्थलीय संगठन)', content: siteOrganizationTemplate(profile, bid || undefined) },
-      { title: 'Mobilization Schedule (परिचालन तालिका)', content: mobilizationScheduleTemplate(bid || undefined) },
+      { title: 'Method Statement', content: methodStatementTemplate(bid || undefined) },
+      { title: 'Site Organization', content: siteOrganizationTemplate(profile, bid || undefined) },
+      { title: 'Mobilization Schedule', content: mobilizationScheduleTemplate(bid || undefined) },
     ];
 
-    // Work schedule — auto-generate from BOQ if not manually set
-    const workSchedule = (() => {
-      if (bid?.workSchedule && bid.workSchedule.length > 0) return bid.workSchedule;
-      if (bid?.boqItems && bid.boqItems.length > 0) {
-        const detected = detectActivitiesFromBOQ(bid.boqItems);
-        return generateWorkSchedule(detected, bid.totalDurationWeeks || 24);
-      }
-      return [];
-    })();
-
-    if (workSchedule.length > 0) {
+    if (workScheduleItems.length > 0) {
       docs.push({
         title: 'Construction Schedule / Bar Chart',
-        content: constructionScheduleTemplate(workSchedule, bid?.totalDurationWeeks || 24),
+        content: constructionScheduleTemplate(workScheduleItems, bid?.totalDurationWeeks || 24),
       });
     }
 
@@ -85,17 +86,17 @@ export default function Templates() {
         });
       });
       docs.push({
-        title: 'Joint Venture Agreement (संयुक्त उपक्रम सम्झौता)',
+        title: 'Joint Venture Agreement',
         content: jvAgreementTemplate(profile, bid.jvPartners, bid),
       });
       docs.push({
-        title: 'JV Power of Attorney (संयुक्त उपक्रम अख्तियारनामा)',
+        title: 'JV Power of Attorney',
         content: jvPowerOfAttorneyTemplate(profile, bid.jvPartners, bid),
       });
     }
 
     return docs;
-  }, [profile, selectedBid]);
+  }, [profile, selectedBid, workScheduleItems]);
 
   function handlePrintAll() {
     // Auto-generate work schedule for print if needed
