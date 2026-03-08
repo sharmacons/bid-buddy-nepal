@@ -102,13 +102,21 @@ export function generateWorkSchedule(
   for (let i = 0; i < detectedActivities.length; i++) {
     const act = detectedActivities[i];
     const scaledDuration = Math.max(1, Math.round(act.durationWeeks * scaleFactor));
+    const itemId = crypto.randomUUID();
+
+    // Each activity depends on its predecessor (sequential chain)
+    const dependencies: string[] = [];
+    if (i > 0) {
+      dependencies.push(schedule[i - 1].id);
+    }
 
     schedule.push({
-      id: crypto.randomUUID(),
+      id: itemId,
       activity: act.activity,
       duration: scaledDuration,
       startWeek: currentWeek,
       isMajor: act.isMajor,
+      dependencies,
     });
 
     // Overlap: next activity starts at ~60% of current for parallel work

@@ -37,6 +37,7 @@ export interface WorkScheduleItem {
   duration: number; // in weeks
   startWeek: number;
   isMajor: boolean;
+  dependencies?: string[]; // ids of predecessor activities
 }
 
 export interface CompanyProfile {
