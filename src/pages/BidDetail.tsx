@@ -262,7 +262,7 @@ export default function BidDetail() {
 
     if (bid!.workSchedule.length > 0) {
       docs.push({
-        title: 'Construction Schedule (कार्य तालिका)',
+        title: 'Construction Schedule',
         content: constructionScheduleTemplate(bid!.workSchedule, bid!.totalDurationWeeks || 24),
       });
     }
