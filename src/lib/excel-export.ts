@@ -87,14 +87,14 @@ export async function exportWorkScheduleExcel(params: {
   const conflictMap = detectResourceConflicts(workSchedule);
 
   // Project header rows
-  dataSheet.mergeCells('A1:H1');
+  dataSheet.mergeCells('A1:J1');
   const titleCell = dataSheet.getCell('A1');
   titleCell.value = projectName || 'Work Schedule';
   titleCell.font = { size: 16, bold: true, color: { argb: HEADER_BG } };
   titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
   dataSheet.getRow(1).height = 30;
 
-  dataSheet.mergeCells('A2:H2');
+  dataSheet.mergeCells('A2:J2');
   const subCell = dataSheet.getCell('A2');
   subCell.value = `Employer: ${employer || '—'}  |  IFB: ${ifbNumber || '—'}  |  Contract: ${contractId || '—'}`;
   subCell.font = { size: 10, color: { argb: '666666' } };
