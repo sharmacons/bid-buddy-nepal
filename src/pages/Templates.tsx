@@ -15,10 +15,11 @@ import {
 } from '@/lib/templates';
 import { detectActivitiesFromBOQ, generateWorkSchedule } from '@/lib/work-schedule';
 import { generatePrintPackageHTML } from '@/lib/letterhead';
+import { exportWorkSchedulePDF } from '@/lib/pdf-export';
 import GanttChart from '@/components/GanttChart';
 import { WorkScheduleItem } from '@/lib/types';
 import { toast } from 'sonner';
-import { FileText, Copy, Printer, AlertTriangle, FolderOpen, Calendar } from 'lucide-react';
+import { FileText, Copy, Printer, AlertTriangle, FolderOpen, Calendar, Download } from 'lucide-react';
 
 export default function Templates() {
   const profile = getCompanyProfile();
