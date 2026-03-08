@@ -111,6 +111,32 @@ function RepresentativeFields({ form, prefix, label }: { form: any; prefix: stri
 export default function CompanyProfile() {
   const existing = getCompanyProfile();
   const [bidMode, setBidMode] = useState<'single' | 'jv'>(existing?.bidMode || 'single');
+  const [logoUrl, setLogoUrl] = useState<string>(existing?.logoUrl || '');
+  const logoInputRef = useRef<HTMLInputElement>(null);
+
+  function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 500 * 1024) {
+      toast.error('Logo must be under 500KB');
+      return;
+    }
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setLogoUrl(reader.result as string);
+      toast.success('Logo uploaded! Save profile to keep it.');
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function removeLogo() {
+    setLogoUrl('');
+    if (logoInputRef.current) logoInputRef.current.value = '';
+  }
 
   const singleForm = useForm<z.infer<typeof singleSchema>>({
     resolver: zodResolver(singleSchema),
