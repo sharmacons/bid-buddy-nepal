@@ -155,13 +155,15 @@ export default function BidAnalysis() {
     toast.success(`Multiplying Factor: ${result.multiplyingFactor}`);
   }
 
-  // Create bid from analysis
+  // Create bid from analysis — cascades all data
   function handleCreateBid() {
     if (!projectName || !employer || !submissionDate) {
       toast.error('Project Name, Employer, and Submission Date are required');
       return;
     }
     const id = crypto.randomUUID();
+    const boqTotal = boqItems.reduce((s, i) => s + i.amount, 0);
+    
     saveBid({
       id,
       projectName,
@@ -177,13 +179,18 @@ export default function BidAnalysis() {
       jvPartners: [],
       runningContracts: [],
       workSchedule,
+      totalDurationWeeks: completionPeriodDays ? Math.round(parseInt(completionPeriodDays) / 7) : undefined,
       ifbNumber,
       contractId,
       bidSecurityAmount,
       bidValidity,
-      completionPeriod: completionPeriodDays ? `${completionPeriodDays} days` : undefined,
+      completionPeriod: completionPeriodDays ? `${completionPeriodDays}` : undefined,
+      commencementDays: '14',
+      bidAmount: boqTotal > 0 ? boqTotal.toFixed(2) : undefined,
+      bidAmountWords: '',
+      performanceSecurityPercent: '5',
     });
-    toast.success('Bid created from analysis!');
+    toast.success('Bid created with all analysis data — BOQ, schedule & details linked!');
     navigate(`/bid/${id}`);
   }
 

@@ -7,6 +7,7 @@ import {
   bidderInfoELI1Template, runningContractsELI3Template,
   methodStatementTemplate, siteOrganizationTemplate, mobilizationScheduleTemplate,
 } from '@/lib/templates';
+import { generatePrintPackageHTML } from '@/lib/letterhead';
 import { toast } from 'sonner';
 import { FileText, Copy, Printer } from 'lucide-react';
 
@@ -27,22 +28,11 @@ export default function Templates() {
   function handlePrintAll() {
     const printWindow = window.open('', '_blank');
     if (!printWindow) { toast.error('Please allow popups'); return; }
-    printWindow.document.write(`
-      <!DOCTYPE html><html><head><title>PPMO Standard Templates</title>
-      <style>
-        @page { margin: 2cm; size: A4; }
-        body { font-family: 'Times New Roman', serif; font-size: 12pt; line-height: 1.6; }
-        .page-break { page-break-before: always; }
-        pre { white-space: pre-wrap; font-family: 'Times New Roman', serif; font-size: 12pt; line-height: 1.6; }
-        h1 { text-align: center; font-size: 16pt; margin-bottom: 20pt; }
-        @media print { .no-print { display: none; } }
-      </style></head><body>
-      <div class="no-print" style="text-align:center;padding:20px;background:#f0f0f0;margin-bottom:20px;">
-        <button onclick="window.print()" style="padding:10px 30px;font-size:14pt;cursor:pointer;">🖨️ Print All Templates</button>
-      </div>
-      ${templates.map((t, i) => `${i > 0 ? '<div class="page-break"></div>' : ''}<h1>${t.title}</h1><pre>${t.content}</pre>`).join('')}
-      </body></html>
-    `);
+    printWindow.document.write(generatePrintPackageHTML({
+      profile,
+      projectName: 'PPMO Standard Templates',
+      documents: templates,
+    }));
     printWindow.document.close();
   }
 

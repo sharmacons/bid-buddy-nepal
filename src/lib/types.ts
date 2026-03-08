@@ -8,7 +8,10 @@ export interface JVPartner {
   country: string;
   yearOfConstitution: string;
   address: string;
+  panVatNumber: string;
+  registrationNumber: string;
   authorizedRepresentative: string;
+  designation: string; // MD, Proprietor, Partner, Director, etc.
   contactPhone: string;
   contactEmail: string;
   sharePercentage: number;
@@ -37,8 +40,10 @@ export interface CompanyProfile {
   panVatNumber: string;
   registrationNumber: string;
   authorizedRepresentative: string;
+  designation: string; // MD, Proprietor, Partner, Director, etc.
   contactPhone: string;
   contactEmail: string;
+  logoUrl?: string; // Optional company logo data URL
   yearOfConstitution?: string;
   country?: string;
 }

@@ -9,6 +9,8 @@ export function letterOfBidTemplate(profile: CompanyProfile | null, bid?: Partia
   const co = profile?.companyName || '[Company Name / कम्पनीको नाम]';
   const addr = profile?.address || '[Address / ठेगाना]';
   const rep = profile?.authorizedRepresentative || '[Authorized Representative / अधिकृत प्रतिनिधि]';
+  const designation = profile?.designation || '[Designation / पद]';
+  const pan = profile?.panVatNumber || '[PAN/VAT]';
   const project = bid?.projectName || '[Name of Contract / परियोजनाको नाम]';
   const employer = bid?.employer || '[Employer Name / नियोक्ताको नाम]';
   const employerAddr = bid?.employerAddress || '[Employer Address]';
@@ -75,13 +77,14 @@ If our Bid is accepted, we undertake to commence the Works within ${commence} da
 If our Bid is accepted, we will obtain the guarantee of a bank in a sum equivalent to ${perfSecurity}% of the Accepted Contract Amount for the due performance of the Contract.
 
 Name: ${rep}
-In the capacity of: Authorized Representative
+In the capacity of: ${designation}
 Signed: ___________________________
 Duly authorized to sign the Bid for and on behalf of: ${co}
 Date: ${new Date().toLocaleDateString('en-GB')}
 
 ${co}
-${addr}`;
+${addr}
+PAN/VAT: ${pan}`;
 }
 
 export function bidSecurityTemplate(profile: CompanyProfile | null, bid?: Partial<BidData>): string {
@@ -134,12 +137,13 @@ ___________________________
 export function powerOfAttorneyTemplate(profile: CompanyProfile | null, bid?: Partial<BidData>): string {
   const co = profile?.companyName || '[Company Name / कम्पनीको नाम]';
   const rep = profile?.authorizedRepresentative || '[Name of Representative]';
+  const designation = profile?.designation || '[Designation]';
   const project = bid?.projectName || '[Project Name]';
   const employer = bid?.employer || '[Employer Name]';
 
   return `POWER OF ATTORNEY (अख्तियारनामा)
 
-Know all men by these presents, We ${co} do hereby irrevocably constitute, nominate, appoint, and authorize ${rep} as our true and lawful attorney (hereinafter referred to as the "Attorney") to do in our name and on our behalf, all such acts, deeds, and things as are necessary or required in connection with or incidental to submission of our bid for the ${project} proposed by ${employer} including but not limited to:
+Know all men by these presents, We ${co} do hereby irrevocably constitute, nominate, appoint, and authorize ${rep} (${designation}) as our true and lawful attorney (hereinafter referred to as the "Attorney") to do in our name and on our behalf, all such acts, deeds, and things as are necessary or required in connection with or incidental to submission of our bid for the ${project} proposed by ${employer} including but not limited to:
 
 1. Signing and submission of the Bid and all documents related thereto
 2. Attending the bid opening
@@ -153,7 +157,7 @@ For ${co}
 
 ___________________________
 [Signature]
-[Name, Designation]
+[${rep}, ${designation}]
 [Company Seal]
 
 Accepted:
@@ -203,12 +207,15 @@ JV Partner's legal name:                      ${partner.legalName || '[Partner N
 JV Partner's country of constitution:         ${partner.country || 'Nepal'}
 JV Partner's year of constitution:            ${partner.yearOfConstitution || '[Year]'}
 JV Partner's legal address:                   ${partner.address || '[Address]'}
+JV Partner's PAN/VAT:                         ${partner.panVatNumber || '[PAN/VAT]'}
+JV Partner's Registration No:                 ${partner.registrationNumber || '[Reg. No.]'}
 JV Partner's share in JV:                     ${partner.sharePercentage || '___'}%
 
 JV Partner's authorized representative:
-  Name:      ${partner.authorizedRepresentative || '[Name]'}
-  Phone:     ${partner.contactPhone || '[Phone]'}
-  Email:     ${partner.contactEmail || '[Email]'}
+  Name:         ${partner.authorizedRepresentative || '[Name]'}
+  Designation:  ${partner.designation || '[MD/Proprietor/Partner]'}
+  Phone:        ${partner.contactPhone || '[Phone]'}
+  Email:        ${partner.contactEmail || '[Email]'}
 
 Attached are copies of the following original documents:
 
@@ -249,6 +256,7 @@ c) Contracts running under all types of foreign assistance`;
 
 export function jvAgreementTemplate(profile: CompanyProfile | null, partners: JVPartner[], bid?: Partial<BidData>): string {
   const lead = profile?.companyName || '[Lead Partner Name]';
+  const leadDesignation = profile?.designation || '[Designation]';
   const project = bid?.projectName || '[Project Name]';
   const employer = bid?.employer || '[Employer Name]';
 
@@ -257,6 +265,8 @@ export function jvAgreementTemplate(profile: CompanyProfile | null, partners: JV
     partnersList += `
 ${i + 2}. Partner ${i + 2}: ${p.legalName || '[Partner Name]'}
    Address: ${p.address || '[Address]'}
+   PAN/VAT: ${p.panVatNumber || '[PAN/VAT]'}
+   Registration No: ${p.registrationNumber || '[Reg. No.]'}
    Share: ${p.sharePercentage || '___'}%`;
   });
 
@@ -268,6 +278,7 @@ BETWEEN:
 
 1. Lead Partner: ${lead}
    Address: ${profile?.address || '[Address]'}
+   PAN/VAT: ${profile?.panVatNumber || '[PAN/VAT]'}
    Share: ____%${partnersList}
 
 (hereinafter collectively referred to as "the Joint Venture")
@@ -295,12 +306,14 @@ SIGNED BY THE AUTHORIZED REPRESENTATIVES:
 
 For ${lead} (Lead Partner):
 Name: ${profile?.authorizedRepresentative || '[Name]'}
+Designation: ${leadDesignation}
 Signature: ___________________________
 Date: _______________
 [Seal]
 ${partners.map((p, i) => `
 For ${p.legalName || `[Partner ${i + 2}]`}:
 Name: ${p.authorizedRepresentative || '[Name]'}
+Designation: ${p.designation || '[MD/Proprietor/Partner]'}
 Signature: ___________________________
 Date: _______________
 [Seal]`).join('\n')}`;

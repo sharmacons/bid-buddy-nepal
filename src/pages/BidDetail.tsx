@@ -19,6 +19,7 @@ import {
   jvAgreementTemplate, methodStatementTemplate, siteOrganizationTemplate,
   constructionScheduleTemplate, mobilizationScheduleTemplate,
 } from '@/lib/templates';
+import { generatePrintPackageHTML } from '@/lib/letterhead';
 import { toast } from 'sonner';
 import { Trash2, Save, FileText, CheckCircle2, Printer, Plus, Users, Calendar } from 'lucide-react';
 
@@ -88,7 +89,9 @@ export default function BidDetail() {
       if (field === 'quantity' || field === 'rate') updated.amount = Number(updated.quantity) * Number(updated.rate);
       return updated;
     });
-    save({ ...bid!, boqItems: items });
+    // Auto-sync bid amount from BOQ total
+    const total = items.reduce((s, i) => s + i.amount, 0);
+    save({ ...bid!, boqItems: items, bidAmount: total > 0 ? total.toFixed(2) : bid!.bidAmount });
   }
 
   function removeBoqItem(itemId: string) {
@@ -99,7 +102,8 @@ export default function BidDetail() {
   function addJVPartner() {
     const partner: JVPartner = {
       id: crypto.randomUUID(), legalName: '', country: 'Nepal', yearOfConstitution: '',
-      address: '', authorizedRepresentative: '', contactPhone: '', contactEmail: '', sharePercentage: 0,
+      address: '', panVatNumber: '', registrationNumber: '', authorizedRepresentative: '',
+      designation: '', contactPhone: '', contactEmail: '', sharePercentage: 0,
     };
     save({ ...bid!, jvPartners: [...bid!.jvPartners, partner] });
   }
@@ -174,38 +178,21 @@ export default function BidDetail() {
     save({ ...bid!, workSchedule: bid!.workSchedule.filter((i) => i.id !== itemId) });
   }
 
-  // Print all documents
+  // Print all documents with letterhead
   function handlePrint() {
     const allDocs = generateAllDocuments();
     const printWindow = window.open('', '_blank');
     if (!printWindow) { toast.error('Please allow popups'); return; }
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html><head><title>Bid Documents - ${bid!.projectName}</title>
-      <style>
-        @page { margin: 2cm; size: A4; }
-        body { font-family: 'Times New Roman', serif; font-size: 12pt; line-height: 1.6; color: #000; }
-        .page-break { page-break-before: always; }
-        pre { white-space: pre-wrap; font-family: 'Times New Roman', serif; font-size: 12pt; line-height: 1.6; }
-        h1 { text-align: center; font-size: 16pt; margin-bottom: 20pt; }
-        table { width: 100%; border-collapse: collapse; margin: 10pt 0; }
-        td, th { border: 1px solid #000; padding: 4pt 8pt; text-align: left; font-size: 11pt; }
-        @media print { .no-print { display: none; } }
-      </style></head><body>
-      <div class="no-print" style="text-align:center;padding:20px;background:#f0f0f0;margin-bottom:20px;">
-        <button onclick="window.print()" style="padding:10px 30px;font-size:14pt;cursor:pointer;">🖨️ Print All Documents</button>
-      </div>
-      ${allDocs.map((doc, i) => `
-        ${i > 0 ? '<div class="page-break"></div>' : ''}
-        <h1>${doc.title}</h1>
-        <pre>${doc.content}</pre>
-      `).join('')}
-      </body></html>
-    `);
+    printWindow.document.write(generatePrintPackageHTML({
+      profile,
+      projectName: bid!.projectName,
+      documents: allDocs,
+    }));
     printWindow.document.close();
   }
 
   function generateAllDocuments() {
+    // Core documents for all bid types
     const docs = [
       { title: 'Letter of Bid (बोलपत्र पत्र)', content: letterOfBidTemplate(profile, bid!) },
       { title: 'Bid Security — Bank Guarantee (बोलपत्र जमानत)', content: bidSecurityTemplate(profile, bid!) },
@@ -215,11 +202,16 @@ export default function BidDetail() {
         name: c.name, sourceOfFund: c.sourceOfFund, dateOfAcceptance: c.dateOfAcceptance,
         status: c.status, takingOverDate: c.takingOverDate,
       }))) },
+    ];
+
+    // Technical documents
+    docs.push(
       { title: 'Method Statement (कार्यविधि)', content: methodStatementTemplate(bid!) },
       { title: 'Site Organization (स्थलीय संगठन)', content: siteOrganizationTemplate(profile, bid!) },
       { title: 'Mobilization Schedule (परिचालन तालिका)', content: mobilizationScheduleTemplate(bid!) },
-    ];
+    );
 
+    // Work schedule (auto-linked from BOQ)
     if (bid!.workSchedule.length > 0) {
       docs.push({
         title: 'Construction Schedule (कार्य तालिका)',
@@ -227,6 +219,7 @@ export default function BidDetail() {
       });
     }
 
+    // JV-specific documents — auto-switch based on isJV flag
     if (bid!.isJV && bid!.jvPartners.length > 0) {
       bid!.jvPartners.forEach((p, i) => {
         docs.push({
@@ -461,8 +454,20 @@ export default function BidDetail() {
                         <Input className="h-8 text-sm" value={partner.address} onChange={(e) => updateJVPartner(partner.id, 'address', e.target.value)} />
                       </div>
                       <div className="space-y-1">
+                        <Label className="text-xs">PAN/VAT Number</Label>
+                        <Input className="h-8 text-sm" value={partner.panVatNumber} onChange={(e) => updateJVPartner(partner.id, 'panVatNumber', e.target.value)} placeholder="123456789" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Registration Number</Label>
+                        <Input className="h-8 text-sm" value={partner.registrationNumber} onChange={(e) => updateJVPartner(partner.id, 'registrationNumber', e.target.value)} placeholder="REG-12345" />
+                      </div>
+                      <div className="space-y-1">
                         <Label className="text-xs">Authorized Representative</Label>
                         <Input className="h-8 text-sm" value={partner.authorizedRepresentative} onChange={(e) => updateJVPartner(partner.id, 'authorizedRepresentative', e.target.value)} />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Designation (MD/Proprietor/Partner)</Label>
+                        <Input className="h-8 text-sm" value={partner.designation} onChange={(e) => updateJVPartner(partner.id, 'designation', e.target.value)} placeholder="Managing Director" />
                       </div>
                       <div className="space-y-1">
                         <Label className="text-xs">Phone</Label>

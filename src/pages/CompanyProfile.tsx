@@ -5,9 +5,20 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getCompanyProfile, saveCompanyProfile } from '@/lib/storage';
 import { toast } from 'sonner';
 import { Building2, Save } from 'lucide-react';
+
+const DESIGNATION_OPTIONS = [
+  'Managing Director (व्यवस्थापन सञ्चालक)',
+  'Proprietor (प्रोप्राइटर)',
+  'Partner (साझेदार)',
+  'Director (सञ्चालक)',
+  'Chairman (अध्यक्ष)',
+  'General Manager (महाप्रबन्धक)',
+  'Other',
+];
 
 const schema = z.object({
   companyName: z.string().min(1, 'Required'),
@@ -15,6 +26,7 @@ const schema = z.object({
   panVatNumber: z.string().min(1, 'Required'),
   registrationNumber: z.string().min(1, 'Required'),
   authorizedRepresentative: z.string().min(1, 'Required'),
+  designation: z.string().min(1, 'Required'),
   contactPhone: z.string().min(1, 'Required'),
   contactEmail: z.string().email('Invalid email'),
 });
@@ -29,6 +41,7 @@ export default function CompanyProfile() {
       panVatNumber: '',
       registrationNumber: '',
       authorizedRepresentative: '',
+      designation: '',
       contactPhone: '',
       contactEmail: '',
     },
@@ -39,7 +52,7 @@ export default function CompanyProfile() {
     toast.success('Company profile saved!');
   }
 
-  const fields = [
+  const textFields = [
     { name: 'companyName' as const, label: 'Company Name (कम्पनीको नाम)', placeholder: 'ABC Construction Pvt. Ltd.' },
     { name: 'address' as const, label: 'Address (ठेगाना)', placeholder: 'Kathmandu, Nepal' },
     { name: 'panVatNumber' as const, label: 'PAN/VAT Number (प्यान/भ्याट नम्बर)', placeholder: '123456789' },
@@ -62,12 +75,12 @@ export default function CompanyProfile() {
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Company Details</CardTitle>
-          <CardDescription>These details auto-fill your bid templates</CardDescription>
+          <CardDescription>These details auto-fill your bid templates and letterhead</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              {fields.map((f) => (
+              {textFields.map((f) => (
                 <FormField
                   key={f.name}
                   control={form.control}
@@ -83,6 +96,29 @@ export default function CompanyProfile() {
                   )}
                 />
               ))}
+              {/* Designation dropdown */}
+              <FormField
+                control={form.control}
+                name="designation"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Designation / पद (MD, Proprietor, Partner, etc.)</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select designation" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {DESIGNATION_OPTIONS.map((opt) => (
+                          <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <Button type="submit" className="w-full gap-2">
                 <Save className="h-4 w-4" /> Save Profile
               </Button>
