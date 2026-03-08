@@ -18,7 +18,7 @@ import { generatePrintPackageHTML } from '@/lib/letterhead';
 import GanttChart from '@/components/GanttChart';
 import { WorkScheduleItem } from '@/lib/types';
 import { toast } from 'sonner';
-import { FileText, Copy, Printer, AlertTriangle, FolderOpen } from 'lucide-react';
+import { FileText, Copy, Printer, AlertTriangle, FolderOpen, Calendar } from 'lucide-react';
 
 export default function Templates() {
   const profile = getCompanyProfile();
