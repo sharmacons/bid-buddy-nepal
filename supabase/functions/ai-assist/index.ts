@@ -118,6 +118,62 @@ Extract: SN, description, unit, quantity, rate, amount. If rate/amount are missi
         },
       });
       tool_choice = { type: "function", function: { name: "parse_boq_items" } };
+    } else if (type === "generate-schedule") {
+      systemPrompt = `You are a Nepal construction project scheduling expert (CPM/PERT). Given a list of BOQ items with descriptions, quantities, and amounts, generate a proper construction work schedule.
+
+Rules for scheduling:
+1. Group related BOQ items into logical construction activities (e.g., all earthwork items → "Earthwork - Excavation & Fill")
+2. Assign realistic durations in weeks based on quantities and Nepal construction standards
+3. Define proper predecessor dependencies using Finish-to-Start (FS) relationships
+4. Activities should follow logical construction sequence: mobilization → earthwork → subbase → base → surfacing → structures → finishing
+5. Allow parallel activities where realistic (e.g., drainage can run parallel to earthwork)
+6. Mark activities with high amounts (>10% of total) as major/critical
+7. Total schedule should fit within the given total project duration
+8. Each activity needs: name, duration (weeks), predecessors (by index), and whether it's a major item
+9. Use standard Nepal DoR/PPMO activity naming conventions`;
+
+      const boqList = Array.isArray(text) ? text : [];
+      const totalWeeks = projectContext?.totalDurationWeeks || 24;
+      userPrompt = `Generate a construction work schedule for project "${projectContext?.projectName || 'Road Construction'}" with total duration ${totalWeeks} weeks.
+
+BOQ Items:
+${boqList.map((item: any, i: number) => `${i + 1}. ${item.description} | Unit: ${item.unit} | Qty: ${item.quantity} | Amount: NPR ${item.amount}`).join('\n')}
+
+Return activities with proper sequencing, dependencies (predecessor indices), and realistic durations that fit within ${totalWeeks} weeks total.`;
+
+      tools.push({
+        type: "function",
+        function: {
+          name: "generate_work_schedule",
+          description: "Generate a construction work schedule with activities, durations, and dependencies",
+          parameters: {
+            type: "object",
+            properties: {
+              activities: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    name: { type: "string", description: "Activity name in standard format" },
+                    duration: { type: "number", description: "Duration in weeks" },
+                    predecessors: { type: "array", items: { type: "number" }, description: "0-based indices of predecessor activities" },
+                    isMajor: { type: "boolean", description: "Whether this is a major/critical activity" },
+                    linkType: { type: "string", enum: ["FS", "SS", "FF", "SF"], description: "Dependency type (default FS)" },
+                    lag: { type: "number", description: "Lag in weeks (0 if none)" },
+                    boqItemIndices: { type: "array", items: { type: "number" }, description: "Which BOQ items this activity covers" },
+                  },
+                  required: ["name", "duration", "predecessors", "isMajor"],
+                  additionalProperties: false,
+                },
+              },
+              summary: { type: "string", description: "Brief summary of the scheduling logic" },
+            },
+            required: ["activities", "summary"],
+            additionalProperties: false,
+          },
+        },
+      });
+      tool_choice = { type: "function", function: { name: "generate_work_schedule" } };
     } else {
       return new Response(JSON.stringify({ error: "Unknown type" }), {
         status: 400,
@@ -171,11 +227,14 @@ Extract: SN, description, unit, quantity, rate, amount. If rate/amount are missi
     const data = await response.json();
 
     // Handle tool call responses
-    if (type === "extract-bid-info" || type === "parse-boq") {
+    if (type === "extract-bid-info" || type === "parse-boq" || type === "generate-schedule") {
       const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
       if (toolCall) {
         const extracted = JSON.parse(toolCall.function.arguments);
-        const result = type === "parse-boq" ? extracted.items : extracted;
+        let result;
+        if (type === "parse-boq") result = extracted.items;
+        else if (type === "generate-schedule") result = extracted;
+        else result = extracted;
         return new Response(JSON.stringify({ result }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });

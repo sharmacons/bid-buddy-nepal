@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { BOQItem } from './types';
 
 export interface ExtractedBidInfo {
   projectName?: string;
@@ -18,6 +19,21 @@ export interface ExtractedBidInfo {
   boqItems?: Array<{ description: string; unit?: string; quantity?: number }>;
 }
 
+export interface AIScheduleActivity {
+  name: string;
+  duration: number;
+  predecessors: number[];
+  isMajor: boolean;
+  linkType?: 'FS' | 'SS' | 'FF' | 'SF';
+  lag?: number;
+  boqItemIndices?: number[];
+}
+
+export interface AIScheduleResult {
+  activities: AIScheduleActivity[];
+  summary: string;
+}
+
 export async function extractBidInfo(text: string): Promise<ExtractedBidInfo | null> {
   try {
     const { data, error } = await supabase.functions.invoke('ai-assist', {
@@ -32,6 +48,39 @@ export async function extractBidInfo(text: string): Promise<ExtractedBidInfo | n
   } catch (e: any) {
     console.error('AI extract error:', e);
     toast.error('AI extraction failed. Please fill fields manually.');
+    return null;
+  }
+}
+
+export async function generateAISchedule(
+  boqItems: BOQItem[],
+  projectContext: { projectName?: string; totalDurationWeeks?: number }
+): Promise<AIScheduleResult | null> {
+  try {
+    const { data, error } = await supabase.functions.invoke('ai-assist', {
+      body: {
+        type: 'generate-schedule',
+        text: boqItems.map(item => ({
+          description: item.description,
+          unit: item.unit,
+          quantity: item.quantity,
+          amount: item.amount,
+        })),
+        projectContext: {
+          projectName: projectContext.projectName,
+          totalDurationWeeks: projectContext.totalDurationWeeks || 24,
+        },
+      },
+    });
+    if (error) throw error;
+    if (data?.error) {
+      toast.error(data.error);
+      return null;
+    }
+    return data?.result || null;
+  } catch (e: any) {
+    console.error('AI schedule error:', e);
+    toast.error('AI schedule generation failed. Using manual generation.');
     return null;
   }
 }

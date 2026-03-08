@@ -22,9 +22,10 @@ import {
 } from '@/lib/templates';
 import { generatePrintPackageHTML } from '@/lib/letterhead';
 import { exportWorkSchedulePDF } from '@/lib/pdf-export';
-import { suggestContent } from '@/lib/ai-assist';
+import { suggestContent, generateAISchedule } from '@/lib/ai-assist';
+import { detectActivitiesFromBOQ, generateWorkSchedule } from '@/lib/work-schedule';
 import { toast } from 'sonner';
-import { Trash2, Save, FileText, CheckCircle2, Printer, Plus, Users, Calendar, Upload, Sparkles, Loader2, Download } from 'lucide-react';
+import { Trash2, Save, FileText, CheckCircle2, Printer, Plus, Users, Calendar, Upload, Sparkles, Loader2, Download, Link2, Cpu } from 'lucide-react';
 import GanttChart from '@/components/GanttChart';
 
 export default function BidDetail() {
@@ -158,23 +159,96 @@ export default function BidDetail() {
     save({ ...bid!, runningContracts: bid!.runningContracts.filter((c) => c.id !== cId) });
   }
 
-  // Work schedule
+  // Work schedule — standard auto-generate
   function autoGenerateSchedule() {
-    let startWeek = 1;
-    const items: WorkScheduleItem[] = COMMON_ROAD_WORK_ITEMS.map((item) => {
-      const ws: WorkScheduleItem = {
-        id: crypto.randomUUID(),
-        activity: item.activity,
-        duration: item.defaultDuration,
-        startWeek,
-        isMajor: item.isMajor,
-      };
-      startWeek += Math.ceil(item.defaultDuration * 0.6); // Overlap activities
-      return ws;
-    });
-    const total = Math.max(...items.map((i) => i.startWeek + i.duration));
-    save({ ...bid!, workSchedule: items, totalDurationWeeks: total });
-    toast.success('Work schedule auto-generated from standard road construction items!');
+    if (bid!.boqItems.length > 0) {
+      // Use BOQ-based detection
+      const detected = detectActivitiesFromBOQ(bid!.boqItems);
+      const schedule = generateWorkSchedule(detected, bid!.totalDurationWeeks || 24);
+      const total = schedule.length > 0 ? Math.max(...schedule.map((i) => i.startWeek + i.duration)) : 24;
+      save({ ...bid!, workSchedule: schedule, totalDurationWeeks: total });
+      toast.success(`${schedule.length} activities generated from ${bid!.boqItems.length} BOQ items`);
+    } else {
+      // Fallback to common road items
+      let startWeek = 1;
+      const items: WorkScheduleItem[] = COMMON_ROAD_WORK_ITEMS.map((item, idx) => {
+        const ws: WorkScheduleItem = {
+          id: crypto.randomUUID(),
+          activity: item.activity,
+          duration: item.defaultDuration,
+          startWeek,
+          isMajor: item.isMajor,
+          dependencies: idx > 0 ? [items[idx - 1]?.id].filter(Boolean) : [],
+        };
+        startWeek += Math.ceil(item.defaultDuration * 0.6);
+        return ws;
+      });
+      const total = Math.max(...items.map((i) => i.startWeek + i.duration));
+      save({ ...bid!, workSchedule: items, totalDurationWeeks: total });
+      toast.success('Work schedule auto-generated from standard road construction items!');
+    }
+  }
+
+  // AI-powered schedule generation
+  async function aiGenerateSchedule() {
+    if (bid!.boqItems.length === 0) {
+      toast.error('Add BOQ items first — AI needs them to generate a proper schedule');
+      return;
+    }
+    setAiLoading('schedule');
+    try {
+      const result = await generateAISchedule(bid!.boqItems, {
+        projectName: bid!.projectName,
+        totalDurationWeeks: bid!.totalDurationWeeks || 24,
+      });
+      if (result && result.activities.length > 0) {
+        // Convert AI activities to WorkScheduleItem with proper dependencies
+        const idMap: string[] = [];
+        let currentWeek = 1;
+        
+        const schedule: WorkScheduleItem[] = result.activities.map((act, idx) => {
+          const itemId = crypto.randomUUID();
+          idMap.push(itemId);
+          
+          // Calculate start week from predecessors
+          const predIds: string[] = [];
+          if (act.predecessors && act.predecessors.length > 0) {
+            let maxEnd = 0;
+            for (const predIdx of act.predecessors) {
+              if (predIdx >= 0 && predIdx < idx) {
+                predIds.push(idMap[predIdx]);
+                // Find predecessor's end
+                const pred = result.activities[predIdx];
+                const predStart = schedule[predIdx]?.startWeek || 1;
+                const predEnd = predStart + (pred?.duration || 0);
+                const lag = act.lag || 0;
+                maxEnd = Math.max(maxEnd, predEnd + lag);
+              }
+            }
+            if (maxEnd > 0) currentWeek = maxEnd;
+          }
+
+          const ws: WorkScheduleItem = {
+            id: itemId,
+            activity: act.name,
+            duration: Math.max(1, act.duration),
+            startWeek: Math.max(1, currentWeek),
+            isMajor: act.isMajor,
+            dependencies: predIds,
+          };
+          return ws;
+        });
+
+        const total = schedule.length > 0 ? Math.max(...schedule.map(i => i.startWeek + i.duration)) : 24;
+        save({ ...bid!, workSchedule: schedule, totalDurationWeeks: total });
+        toast.success(`AI generated ${schedule.length} activities with proper linkages! ${result.summary || ''}`);
+      } else {
+        toast.error('AI returned no activities. Falling back to auto-generate.');
+        autoGenerateSchedule();
+      }
+    } finally {
+      setAiLoading(null);
+    }
   }
 
   function addScheduleItem() {
@@ -654,53 +728,165 @@ export default function BidDetail() {
         {/* Work Schedule */}
         <TabsContent value="schedule" className="mt-4 space-y-4">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-2">
               <CardTitle className="text-lg flex items-center gap-2">
                 <Calendar className="h-5 w-5" /> Construction Schedule (कार्य तालिका)
               </CardTitle>
-              <div className="flex gap-2">
-                <Button size="sm" variant="outline" onClick={autoGenerateSchedule}>
-                  ⚡ Auto-Generate (Road)
+              <div className="flex gap-2 flex-wrap">
+                <Button
+                  size="sm"
+                  variant="default"
+                  onClick={aiGenerateSchedule}
+                  disabled={aiLoading === 'schedule' || bid.boqItems.length === 0}
+                  className="gap-1"
+                >
+                  {aiLoading === 'schedule' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Cpu className="h-4 w-4" />}
+                  AI Schedule from BOQ
                 </Button>
-                <Button size="sm" onClick={addScheduleItem}>
+                <Button size="sm" variant="outline" onClick={autoGenerateSchedule}>
+                  ⚡ Auto-Generate
+                </Button>
+                <Button size="sm" variant="outline" onClick={addScheduleItem}>
                   <Plus className="h-4 w-4 mr-1" /> Add Item
                 </Button>
               </div>
             </CardHeader>
-            <CardContent>
-              <p className="text-xs text-muted-foreground mb-3">
-                Click "Auto-Generate" for standard road construction activities, then customize as needed.
-              </p>
+            <CardContent className="space-y-4">
+              {/* Duration control */}
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Label className="text-xs whitespace-nowrap">Total Duration:</Label>
+                  <Input
+                    className="h-8 w-20 text-sm"
+                    type="number"
+                    min={4}
+                    value={bid.totalDurationWeeks || 24}
+                    onChange={(e) => save({ ...bid, totalDurationWeeks: Number(e.target.value) || 24 })}
+                  />
+                  <span className="text-xs text-muted-foreground">weeks</span>
+                </div>
+                {bid.boqItems.length === 0 && (
+                  <p className="text-xs text-amber-600">⚠️ Add BOQ items first for AI-powered scheduling</p>
+                )}
+              </div>
+
               {bid.workSchedule.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-8">
-                  No schedule yet. Auto-generate from standard items or add manually.
-                </p>
+                <div className="text-center py-10 space-y-3">
+                  <Calendar className="h-10 w-10 text-muted-foreground mx-auto" />
+                  <p className="text-sm text-muted-foreground">
+                    No schedule yet. Use <strong>AI Schedule from BOQ</strong> for intelligent scheduling with proper dependencies.
+                  </p>
+                </div>
               ) : (
-                <div className="space-y-3">
-                  <div className="grid grid-cols-12 gap-2 text-xs font-semibold text-muted-foreground px-1">
-                    <div className="col-span-5">Activity</div>
-                    <div className="col-span-2">Duration (wk)</div>
-                    <div className="col-span-2">Start Week</div>
-                    <div className="col-span-2">Major?</div>
-                    <div className="col-span-1"></div>
-                  </div>
-                  {bid.workSchedule.map((item) => (
-                    <div key={item.id} className="grid grid-cols-12 gap-2 items-center">
-                      <Input className="col-span-5 h-8 text-sm" value={item.activity} onChange={(e) => updateScheduleItem(item.id, 'activity', e.target.value)} />
-                      <Input className="col-span-2 h-8 text-sm" type="number" value={item.duration} onChange={(e) => updateScheduleItem(item.id, 'duration', Number(e.target.value))} />
-                      <Input className="col-span-2 h-8 text-sm" type="number" value={item.startWeek} onChange={(e) => updateScheduleItem(item.id, 'startWeek', Number(e.target.value))} />
-                      <div className="col-span-2 flex items-center">
-                        <Checkbox checked={item.isMajor} onCheckedChange={(v) => updateScheduleItem(item.id, 'isMajor', !!v)} />
-                        <span className="text-xs ml-1">Major</span>
-                      </div>
-                      <Button variant="ghost" size="icon" className="col-span-1 h-8 w-8" onClick={() => removeScheduleItem(item.id)}>
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
+                <div className="space-y-4">
+                  {/* Schedule table with dependencies */}
+                  <div className="border rounded-lg overflow-hidden">
+                    <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-muted/60 sticky top-0">
+                          <tr>
+                            <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-8">#</th>
+                            <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground min-w-[200px]">Activity</th>
+                            <th className="px-2 py-2 text-center text-xs font-semibold text-muted-foreground w-20">Duration</th>
+                            <th className="px-2 py-2 text-center text-xs font-semibold text-muted-foreground w-20">Start Wk</th>
+                            <th className="px-2 py-2 text-center text-xs font-semibold text-muted-foreground w-20">End Wk</th>
+                            <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground w-32">
+                              <span className="flex items-center gap-1"><Link2 className="h-3 w-3" /> Predecessors</span>
+                            </th>
+                            <th className="px-2 py-2 text-center text-xs font-semibold text-muted-foreground w-16">Major</th>
+                            <th className="px-2 py-2 w-8"></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {bid.workSchedule.map((item, idx) => {
+                            const endWeek = item.startWeek + item.duration - 1;
+                            // Find predecessor names
+                            const predNames = (item.dependencies || [])
+                              .map(depId => {
+                                const predIdx = bid.workSchedule.findIndex(w => w.id === depId);
+                                return predIdx >= 0 ? `${predIdx + 1}` : null;
+                              })
+                              .filter(Boolean);
+
+                            return (
+                              <tr key={item.id} className={`border-t border-border ${item.isMajor ? 'bg-primary/5' : ''}`}>
+                                <td className="px-2 py-1.5 text-xs text-muted-foreground font-mono">{idx + 1}</td>
+                                <td className="px-2 py-1.5">
+                                  <Input
+                                    className="h-7 text-xs border-none bg-transparent px-1 focus:bg-background"
+                                    value={item.activity}
+                                    onChange={(e) => updateScheduleItem(item.id, 'activity', e.target.value)}
+                                  />
+                                </td>
+                                <td className="px-2 py-1.5">
+                                  <Input
+                                    className="h-7 text-xs text-center w-16 mx-auto"
+                                    type="number"
+                                    min={1}
+                                    value={item.duration}
+                                    onChange={(e) => updateScheduleItem(item.id, 'duration', Number(e.target.value))}
+                                  />
+                                </td>
+                                <td className="px-2 py-1.5">
+                                  <Input
+                                    className="h-7 text-xs text-center w-16 mx-auto"
+                                    type="number"
+                                    min={1}
+                                    value={item.startWeek}
+                                    onChange={(e) => updateScheduleItem(item.id, 'startWeek', Number(e.target.value))}
+                                  />
+                                </td>
+                                <td className="px-2 py-1.5 text-center text-xs tabular-nums text-muted-foreground">
+                                  Wk {endWeek}
+                                </td>
+                                <td className="px-2 py-1.5">
+                                  {predNames.length > 0 ? (
+                                    <div className="flex gap-1 flex-wrap">
+                                      {predNames.map((p, pi) => (
+                                        <Badge key={pi} variant="outline" className="text-[10px] h-5 px-1.5">
+                                          {p}FS
+                                        </Badge>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <span className="text-[10px] text-muted-foreground/50">—</span>
+                                  )}
+                                </td>
+                                <td className="px-2 py-1.5 text-center">
+                                  <Checkbox
+                                    checked={item.isMajor}
+                                    onCheckedChange={(v) => updateScheduleItem(item.id, 'isMajor', !!v)}
+                                  />
+                                </td>
+                                <td className="px-2 py-1.5">
+                                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeScheduleItem(item.id)}>
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
                     </div>
-                  ))}
-                  {/* Visual Gantt Chart */}
-                  <div className="mt-4">
-                    <h4 className="text-xs font-semibold mb-2">Gantt Chart</h4>
+                  </div>
+
+                  {/* Summary stats */}
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground px-1 flex-wrap">
+                    <span>{bid.workSchedule.length} activities</span>
+                    <span>•</span>
+                    <span>{bid.workSchedule.filter(i => i.isMajor).length} major items</span>
+                    <span>•</span>
+                    <span>{bid.workSchedule.filter(i => (i.dependencies?.length || 0) > 0).length} with dependencies</span>
+                    <span>•</span>
+                    <span>Project span: Wk 1 → Wk {Math.max(...bid.workSchedule.map(i => i.startWeek + i.duration - 1))}</span>
+                  </div>
+
+                  {/* Gantt Chart */}
+                  <div className="mt-2 pt-4 border-t">
+                    <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                      📊 Gantt Chart with Critical Path & Timeline
+                    </h4>
                     <GanttChart items={bid.workSchedule} totalWeeks={bid.totalDurationWeeks || 24} />
                     <Button variant="outline" size="sm" className="mt-3 gap-2" onClick={() => {
                       exportWorkSchedulePDF({
