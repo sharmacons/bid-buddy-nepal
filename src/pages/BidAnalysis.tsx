@@ -56,6 +56,8 @@ export default function BidAnalysis() {
 
   // PDF reference
   const [uploadedFile, setUploadedFile] = useState<{ name: string; size: number } | null>(null);
+  const [uploadedText, setUploadedText] = useState('');
+  const [isExtracting, setIsExtracting] = useState(false);
 
   // Extracted / manually entered fields
   const [bidType, setBidType] = useState<BidType>('ncb-single');
