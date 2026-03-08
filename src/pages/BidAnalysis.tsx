@@ -422,8 +422,8 @@ export default function BidAnalysis() {
   };
 
   // Build highlighted original text
-  const getHighlightedText = useCallback(() => {
-    if (!uploadedText) return uploadedText;
+  const getHighlightedText = useCallback((): string[] => {
+    if (!uploadedText) return [];
     const allValues = extractedFields
       .filter(f => f.selected)
       .map(f => editedValues[f.key] || f.value)
