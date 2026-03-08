@@ -396,7 +396,7 @@ The AI will automatically extract:
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <Label>IFB Number (बोलपत्र नम्बर)</Label>
+                  <Label>IFB Number</Label>
                   <Input value={ifbNumber} onChange={e => setIfbNumber(e.target.value)}
                     placeholder="From Invitation for Bids" />
                 </div>
