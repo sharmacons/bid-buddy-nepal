@@ -30,7 +30,7 @@ export default function GanttChart({ items, totalWeeks }: GanttChartProps) {
     const maxWeek = totalWeeks || Math.max(...items.map(i => i.startWeek + i.duration - 1), 24);
     const months = Math.ceil(maxWeek / 4);
 
-    const { criticalIds } = computeCriticalPath(items);
+    const { criticalIds, totalFloat } = computeCriticalPath(items);
 
     const data = items.map((item, i) => ({
       id: item.id,
@@ -40,6 +40,7 @@ export default function GanttChart({ items, totalWeeks }: GanttChartProps) {
       duration: item.duration,
       isMajor: item.isMajor,
       isCritical: criticalIds.has(item.id),
+      float: totalFloat.get(item.id) ?? 0,
       colorIndex: i % GANTT_COLORS.length,
       endWeek: item.startWeek + item.duration - 1,
       deps: item.dependencies?.length || 0,
@@ -128,6 +129,11 @@ export default function GanttChart({ items, totalWeeks }: GanttChartProps) {
                       <p className="font-semibold text-popover-foreground">{d.fullName}</p>
                       <p className="text-muted-foreground">
                         Week {d.start + 1} → Week {d.endWeek} ({d.duration}w)
+                      </p>
+                      <p className="text-muted-foreground mt-0.5">
+                        Total Float: <span className={d.float <= 0 ? 'text-destructive font-semibold' : 'text-primary font-medium'}>
+                          {d.float <= 0 ? '0 (Zero)' : `${d.float}w`}
+                        </span>
                       </p>
                       {d.isCritical && (
                         <p className="text-destructive font-semibold mt-0.5">
