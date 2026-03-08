@@ -170,12 +170,13 @@ Extract: SN, description, unit, quantity, rate, amount. If rate/amount are missi
 
     const data = await response.json();
 
-    // Handle tool call response for extraction
-    if (type === "extract-bid-info") {
+    // Handle tool call responses
+    if (type === "extract-bid-info" || type === "parse-boq") {
       const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
       if (toolCall) {
         const extracted = JSON.parse(toolCall.function.arguments);
-        return new Response(JSON.stringify({ result: extracted }), {
+        const result = type === "parse-boq" ? extracted.items : extracted;
+        return new Response(JSON.stringify({ result }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
