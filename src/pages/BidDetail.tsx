@@ -292,7 +292,7 @@ export default function BidDetail() {
         content: jvAgreementTemplate(profile, bid!.jvPartners, bid!),
       });
       docs.push({
-        title: 'JV Power of Attorney (संयुक्त उपक्रम अख्तियारनामा)',
+        title: 'JV Power of Attorney',
         content: jvPowerOfAttorneyTemplate(profile, bid!.jvPartners, bid!),
       });
     }
