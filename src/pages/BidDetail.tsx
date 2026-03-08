@@ -100,9 +100,14 @@ export default function BidDetail() {
 
   // JV functions
   function addJVPartner() {
+    if (bid!.jvPartners.length >= 2) {
+      toast.error('Maximum 3 JV partners allowed (including your company as Lead Partner)');
+      return;
+    }
     const partner: JVPartner = {
       id: crypto.randomUUID(), legalName: '', country: 'Nepal', yearOfConstitution: '',
       address: '', panVatNumber: '', registrationNumber: '', authorizedRepresentative: '',
+      gender: 'male' as const, fatherName: '', grandfatherName: '',
       designation: '', contactPhone: '', contactEmail: '', sharePercentage: 0,
     };
     save({ ...bid!, jvPartners: [...bid!.jvPartners, partner] });
