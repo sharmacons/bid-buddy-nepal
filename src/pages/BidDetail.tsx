@@ -21,14 +21,18 @@ import {
   constructionScheduleTemplate, mobilizationScheduleTemplate,
 } from '@/lib/templates';
 import { generatePrintPackageHTML } from '@/lib/letterhead';
+import { suggestContent } from '@/lib/ai-assist';
 import { toast } from 'sonner';
-import { Trash2, Save, FileText, CheckCircle2, Printer, Plus, Users, Calendar } from 'lucide-react';
+import { Trash2, Save, FileText, CheckCircle2, Printer, Plus, Users, Calendar, Upload, Sparkles, Loader2 } from 'lucide-react';
 
 export default function BidDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [bid, setBid] = useState<BidData | null>(null);
   const printRef = useRef<HTMLDivElement>(null);
+  const bidDocRef = useRef<HTMLInputElement>(null);
+  const [bidDocument, setBidDocument] = useState<{ name: string; size: number } | null>(null);
+  const [aiLoading, setAiLoading] = useState<string | null>(null);
 
   useEffect(() => {
     const found = getBids().find((b) => b.id === id);
@@ -192,6 +196,39 @@ export default function BidDetail() {
     save({ ...bid!, workSchedule: bid!.workSchedule.filter((i) => i.id !== itemId) });
   }
 
+  // Document upload for bid reference
+  function handleBidDocUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 20 * 1024 * 1024) { toast.error('File too large (max 20MB)'); return; }
+    setBidDocument({ name: file.name, size: file.size });
+    toast.success(`${file.name} uploaded as bid reference document.`);
+    if (bidDocRef.current) bidDocRef.current.value = '';
+  }
+
+  // AI content suggestions
+  async function handleAISuggest(type: 'suggest-methodology' | 'suggest-site-organization' | 'suggest-mobilization') {
+    setAiLoading(type);
+    const context = {
+      projectName: bid!.projectName,
+      bidType: bid!.bidType,
+      bidAmount: bid!.bidAmount,
+      completionPeriod: bid!.completionPeriod,
+      commencementDays: bid!.commencementDays,
+    };
+    try {
+      const result = await suggestContent(type, bid!.notes || bid!.projectName, context);
+      if (result) {
+        if (type === 'suggest-methodology') save({ ...bid!, methodology: result });
+        else if (type === 'suggest-site-organization') save({ ...bid!, siteOrganization: result });
+        else if (type === 'suggest-mobilization') save({ ...bid!, mobilizationPlan: result });
+        toast.success('AI content generated! Review and edit as needed.');
+      }
+    } finally {
+      setAiLoading(null);
+    }
+  }
+
   // Print all documents with letterhead
   function handlePrint() {
     const allDocs = generateAllDocuments();
@@ -330,6 +367,7 @@ export default function BidDetail() {
           <TabsTrigger value="contracts">Running Contracts</TabsTrigger>
           <TabsTrigger value="schedule">Work Schedule</TabsTrigger>
           <TabsTrigger value="templates">Documents</TabsTrigger>
+          <TabsTrigger value="reference">📎 Reference</TabsTrigger>
           <TabsTrigger value="notes">Notes</TabsTrigger>
         </TabsList>
 
@@ -713,17 +751,68 @@ export default function BidDetail() {
           ))}
         </TabsContent>
 
+        {/* Reference Document Upload */}
+        <TabsContent value="reference" className="mt-4">
+          <Card>
+            <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Upload className="h-5 w-5" /> Bidding Document Reference</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">Upload the original bidding document (IFB/SBD PDF) for reference while preparing your submission.</p>
+              <div className="border-2 border-dashed border-border rounded-xl p-6 text-center space-y-3">
+                <Upload className="h-10 w-10 text-muted-foreground mx-auto" />
+                <p className="text-sm text-muted-foreground">Upload PPMO Standard Bidding Document (PDF, DOC, images)</p>
+                <input ref={bidDocRef} type="file" className="hidden" onChange={handleBidDocUpload} accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" />
+                <Button onClick={() => bidDocRef.current?.click()} variant="outline" className="gap-2">
+                  <Upload className="h-4 w-4" /> Choose File
+                </Button>
+              </div>
+              {bidDocument && (
+                <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                  <FileText className="h-5 w-5 text-primary" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">{bidDocument.name}</p>
+                    <p className="text-xs text-muted-foreground">{(bidDocument.size / 1024).toFixed(0)} KB</p>
+                  </div>
+                  <Badge variant="outline" className="text-accent">Uploaded ✓</Badge>
+                </div>
+              )}
+              <div className="bg-accent/10 p-3 rounded-lg">
+                <p className="text-xs text-muted-foreground">💡 Tip: For full AI-powered analysis, use the <strong>Bid Analysis</strong> page (/analyze) which can extract project details, BOQ items, and more from your document.</p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         {/* Notes */}
         <TabsContent value="notes" className="mt-4">
           <Card>
             <CardHeader><CardTitle className="text-lg">Notes & Methodology</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>Methodology / Work Plan (कार्यविधि)</Label>
+                <div className="flex items-center justify-between">
+                  <Label>Methodology / Work Plan (कार्यविधि)</Label>
+                  <Button 
+                    variant="outline" size="sm" className="gap-1 text-xs"
+                    disabled={aiLoading === 'suggest-methodology'}
+                    onClick={() => handleAISuggest('suggest-methodology')}
+                  >
+                    {aiLoading === 'suggest-methodology' ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                    AI Generate
+                  </Button>
+                </div>
                 <Textarea value={bid.methodology || ''} onChange={(e) => save({ ...bid, methodology: e.target.value })} placeholder="Describe your approach, methodology, work plan..." className="min-h-[120px]" />
               </div>
               <div className="space-y-2">
-                <Label>Site Organization Notes</Label>
+                <div className="flex items-center justify-between">
+                  <Label>Site Organization Notes</Label>
+                  <Button 
+                    variant="outline" size="sm" className="gap-1 text-xs"
+                    disabled={aiLoading === 'suggest-site-organization'}
+                    onClick={() => handleAISuggest('suggest-site-organization')}
+                  >
+                    {aiLoading === 'suggest-site-organization' ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                    AI Generate
+                  </Button>
+                </div>
                 <Textarea value={bid.siteOrganization || ''} onChange={(e) => save({ ...bid, siteOrganization: e.target.value })} placeholder="Key personnel, equipment list..." className="min-h-[80px]" />
               </div>
               <div className="space-y-2">

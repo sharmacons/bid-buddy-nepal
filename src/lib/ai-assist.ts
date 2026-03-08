@@ -1,0 +1,59 @@
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+
+export interface ExtractedBidInfo {
+  projectName?: string;
+  employer?: string;
+  employerAddress?: string;
+  ifbNumber?: string;
+  contractId?: string;
+  submissionDeadline?: string;
+  bidValidity?: string;
+  completionPeriod?: string;
+  commencementDays?: string;
+  bidSecurityAmount?: string;
+  performanceSecurityPercent?: string;
+  estimatedCost?: string;
+  isJV?: boolean;
+  boqItems?: Array<{ description: string; unit?: string; quantity?: number }>;
+}
+
+export async function extractBidInfo(text: string): Promise<ExtractedBidInfo | null> {
+  try {
+    const { data, error } = await supabase.functions.invoke('ai-assist', {
+      body: { type: 'extract-bid-info', text },
+    });
+    if (error) throw error;
+    if (data?.error) {
+      toast.error(data.error);
+      return null;
+    }
+    return data?.result || null;
+  } catch (e: any) {
+    console.error('AI extract error:', e);
+    toast.error('AI extraction failed. Please fill fields manually.');
+    return null;
+  }
+}
+
+export async function suggestContent(
+  type: 'suggest-methodology' | 'suggest-site-organization' | 'suggest-mobilization',
+  text: string,
+  projectContext?: { projectName?: string; bidType?: string; bidAmount?: string; completionPeriod?: string; commencementDays?: string }
+): Promise<string | null> {
+  try {
+    const { data, error } = await supabase.functions.invoke('ai-assist', {
+      body: { type, text, projectContext },
+    });
+    if (error) throw error;
+    if (data?.error) {
+      toast.error(data.error);
+      return null;
+    }
+    return data?.result || null;
+  } catch (e: any) {
+    console.error('AI suggest error:', e);
+    toast.error('AI suggestion failed. Please write content manually.');
+    return null;
+  }
+}

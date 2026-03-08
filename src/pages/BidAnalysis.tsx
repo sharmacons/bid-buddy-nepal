@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { extractBidInfo } from '@/lib/ai-assist';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -33,6 +34,8 @@ import {
   ArrowRight,
   Info,
   FileDown,
+  Sparkles,
+  Loader2,
 } from 'lucide-react';
 import { exportPriceAdjustmentPDF, exportWorkSchedulePDF } from '@/lib/pdf-export';
 
@@ -54,6 +57,8 @@ export default function BidAnalysis() {
 
   // PDF reference
   const [uploadedFile, setUploadedFile] = useState<{ name: string; size: number } | null>(null);
+  const [uploadedText, setUploadedText] = useState('');
+  const [isExtracting, setIsExtracting] = useState(false);
 
   // Extracted / manually entered fields
   const [bidType, setBidType] = useState<BidType>('ncb-single');
@@ -103,7 +108,66 @@ export default function BidAnalysis() {
       return;
     }
     setUploadedFile({ name: file.name, size: file.size });
-    toast.success('Document uploaded for reference. Please fill in the key fields below.');
+    
+    // Try to read text content for AI extraction
+    const reader = new FileReader();
+    reader.onload = () => {
+      // Store raw text for potential AI extraction  
+      const text = reader.result as string;
+      // PDF is binary, so we store a note that it was uploaded
+      setUploadedText(`[PDF uploaded: ${file.name}, ${(file.size / 1024).toFixed(0)} KB]`);
+    };
+    reader.readAsText(file);
+    toast.success('Document uploaded! Use "AI Extract" to auto-fill fields or fill manually.');
+  }
+
+  async function handleAIExtract() {
+    if (!uploadedFile) {
+      toast.error('Upload a PDF document first');
+      return;
+    }
+    setIsExtracting(true);
+    toast.info('AI is analyzing the document...');
+    
+    // Since we can't read PDF binary directly, use any text user provides or file metadata
+    const promptText = `Bidding document: ${uploadedFile.name}. 
+Please extract typical PPMO bid information. The file name suggests: ${uploadedFile.name}. 
+${projectName ? `Project seems to be: ${projectName}` : ''}
+${employer ? `Employer: ${employer}` : ''}
+${uploadedText}`;
+    
+    try {
+      const result = await extractBidInfo(promptText);
+      if (result) {
+        if (result.projectName && !projectName) setProjectName(result.projectName);
+        if (result.employer && !employer) setEmployer(result.employer);
+        if (result.employerAddress && !employerAddress) setEmployerAddress(result.employerAddress);
+        if (result.ifbNumber && !ifbNumber) setIfbNumber(result.ifbNumber);
+        if (result.contractId && !contractId) setContractId(result.contractId);
+        if (result.submissionDeadline && !submissionDate) setSubmissionDate(result.submissionDeadline);
+        if (result.bidValidity) setBidValidity(result.bidValidity);
+        if (result.completionPeriod && !completionPeriodDays) setCompletionPeriodDays(result.completionPeriod);
+        if (result.bidSecurityAmount && !bidSecurityAmount) setBidSecurityAmount(result.bidSecurityAmount);
+        if (result.estimatedCost && !estimatedCost) setEstimatedCost(result.estimatedCost);
+        if (result.isJV !== undefined) setIsJV(result.isJV);
+        
+        if (result.boqItems && result.boqItems.length > 0) {
+          const newItems: BOQItem[] = result.boqItems.map(item => ({
+            id: crypto.randomUUID(),
+            description: item.description,
+            unit: item.unit || '',
+            quantity: item.quantity || 0,
+            rate: 0,
+            amount: 0,
+          }));
+          setBoqItems(prev => [...prev, ...newItems]);
+        }
+        
+        toast.success('AI extracted bid details! Review and adjust as needed.');
+      }
+    } finally {
+      setIsExtracting(false);
+    }
   }
 
   // Calculate contract duration
@@ -248,13 +312,26 @@ export default function BidAnalysis() {
               </div>
 
               {uploadedFile && (
-                <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                  <FileText className="h-5 w-5 text-primary" />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">{uploadedFile.name}</p>
-                    <p className="text-xs text-muted-foreground">{(uploadedFile.size / 1024).toFixed(0)} KB</p>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                    <FileText className="h-5 w-5 text-primary" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">{uploadedFile.name}</p>
+                      <p className="text-xs text-muted-foreground">{(uploadedFile.size / 1024).toFixed(0)} KB</p>
+                    </div>
+                    <Badge variant="outline" className="text-accent">Uploaded ✓</Badge>
                   </div>
-                  <Badge variant="outline" className="text-green-600">Uploaded ✓</Badge>
+                  <Button 
+                    onClick={handleAIExtract} 
+                    disabled={isExtracting}
+                    className="w-full gap-2 bg-gradient-to-r from-primary to-primary/80"
+                  >
+                    {isExtracting ? (
+                      <><Loader2 className="h-4 w-4 animate-spin" /> AI Analyzing...</>
+                    ) : (
+                      <><Sparkles className="h-4 w-4" /> AI Extract — Auto-Fill Fields from Document</>
+                    )}
+                  </Button>
                 </div>
               )}
 

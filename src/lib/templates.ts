@@ -287,7 +287,10 @@ Attached are copies of the following original documents:
 1. □ Articles of incorporation or constitution of the legal entity named above, in accordance with ITB 4.1 and 4.2.
 2. □ Authorization to represent the firm named above, in accordance with ITB 17.2.
 3. □ In case of JV, letter of intent to form JV or JV agreement, in accordance with ITB 4.1.
-4. □ In case of a government-owned entity, any additional documents required to comply with ITB 4.5.`;
+4. □ In case of a government-owned entity, any additional documents required to comply with ITB 4.5.
+
+Signature: ___________________________
+${STAMP_SEAL}`;
 }
 
 // ==========================================
@@ -356,7 +359,9 @@ Notes:
 Following contracts shall not be counted:
 a) Contracts invited/accepted before 2078-12-03 B.S (March 17, 2022)
 b) Contracts invited after 2078-12-03 B.S and accepted but work acceptance report approved per Rule 117 of PPR
-c) Contracts running under all types of foreign assistance`;
+c) Contracts running under all types of foreign assistance
+
+${STAMP_SEAL}`;
 
   return table;
 }
