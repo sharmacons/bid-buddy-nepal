@@ -462,8 +462,20 @@ export default function BidDetail() {
                         <Input className="h-8 text-sm" value={partner.address} onChange={(e) => updateJVPartner(partner.id, 'address', e.target.value)} />
                       </div>
                       <div className="space-y-1">
+                        <Label className="text-xs">PAN/VAT Number</Label>
+                        <Input className="h-8 text-sm" value={partner.panVatNumber} onChange={(e) => updateJVPartner(partner.id, 'panVatNumber', e.target.value)} placeholder="123456789" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Registration Number</Label>
+                        <Input className="h-8 text-sm" value={partner.registrationNumber} onChange={(e) => updateJVPartner(partner.id, 'registrationNumber', e.target.value)} placeholder="REG-12345" />
+                      </div>
+                      <div className="space-y-1">
                         <Label className="text-xs">Authorized Representative</Label>
                         <Input className="h-8 text-sm" value={partner.authorizedRepresentative} onChange={(e) => updateJVPartner(partner.id, 'authorizedRepresentative', e.target.value)} />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Designation (MD/Proprietor/Partner)</Label>
+                        <Input className="h-8 text-sm" value={partner.designation} onChange={(e) => updateJVPartner(partner.id, 'designation', e.target.value)} placeholder="Managing Director" />
                       </div>
                       <div className="space-y-1">
                         <Label className="text-xs">Phone</Label>
