@@ -24,6 +24,7 @@ import { generatePrintPackageHTML } from '@/lib/letterhead';
 import { suggestContent } from '@/lib/ai-assist';
 import { toast } from 'sonner';
 import { Trash2, Save, FileText, CheckCircle2, Printer, Plus, Users, Calendar, Upload, Sparkles, Loader2 } from 'lucide-react';
+import GanttChart from '@/components/GanttChart';
 
 export default function BidDetail() {
   const { id } = useParams<{ id: string }>();
