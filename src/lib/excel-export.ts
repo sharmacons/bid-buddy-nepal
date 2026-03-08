@@ -134,9 +134,18 @@ export async function exportWorkScheduleExcel(params: {
   // Data rows
   workSchedule.forEach((item, idx) => {
     const isCritical = criticalIds.has(item.id);
+    const isOverdue = overdueIds.has(item.id);
+    const itemConflicts = conflictMap.get(item.id) || [];
+    const hasConflict = itemConflicts.length > 0;
     const predNames = (item.dependencies || [])
       .map(depId => { const pi = workSchedule.findIndex(w => w.id === depId); return pi >= 0 ? `${pi + 1}FS` : null; })
       .filter(Boolean).join(', ');
+
+    // Determine status
+    let status = '✅ OK';
+    if (isOverdue && hasConflict) status = '⚠️ Overdue + Conflict';
+    else if (isOverdue) status = '⏰ Overdue';
+    else if (hasConflict) status = '🔄 Resource Conflict';
 
     const row = dataSheet.getRow(5 + idx);
     row.getCell(1).value = idx + 1;
@@ -147,14 +156,23 @@ export async function exportWorkScheduleExcel(params: {
     row.getCell(6).value = predNames || '—';
     row.getCell(7).value = item.isMajor ? '★ Yes' : '';
     row.getCell(8).value = isCritical ? '🔴 Yes' : '';
+    row.getCell(9).value = status;
+    row.getCell(10).value = hasConflict ? itemConflicts.join('; ') : '—';
 
-    // Styling
-    for (let c = 1; c <= 8; c++) {
+    // Styling — determine row highlight priority: overdue > conflict > critical > major > alternating
+    for (let c = 1; c <= 10; c++) {
       const cell = row.getCell(c);
       cell.border = thinBorder();
-      cell.alignment = { vertical: 'middle', wrapText: c === 2, horizontal: c <= 2 ? 'left' : 'center' };
-      cell.font = { size: 10, bold: isCritical || item.isMajor };
-      if (isCritical) {
+      cell.alignment = { vertical: 'middle', wrapText: c === 2 || c === 10, horizontal: c <= 2 ? 'left' : 'center' };
+      cell.font = { size: 10, bold: isCritical || item.isMajor || isOverdue || hasConflict };
+
+      if (isOverdue) {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: OVERDUE_BG } };
+        if (c === 9) cell.font = { size: 10, bold: true, color: { argb: OVERDUE_FG } };
+      } else if (hasConflict) {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: CONFLICT_BG } };
+        if (c === 9 || c === 10) cell.font = { size: 10, bold: true, color: { argb: CONFLICT_FG } };
+      } else if (isCritical) {
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: CRITICAL_BG } };
       } else if (item.isMajor) {
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: MAJOR_BG } };
