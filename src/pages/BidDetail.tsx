@@ -701,6 +701,18 @@ export default function BidDetail() {
                   <div className="mt-4">
                     <h4 className="text-xs font-semibold mb-2">Gantt Chart</h4>
                     <GanttChart items={bid.workSchedule} totalWeeks={bid.totalDurationWeeks || 24} />
+                    <Button variant="outline" size="sm" className="mt-3 gap-2" onClick={() => {
+                      exportWorkSchedulePDF({
+                        projectName: bid.projectName,
+                        employer: bid.employer,
+                        ifbNumber: bid.ifbNumber,
+                        contractId: bid.contractId,
+                        workSchedule: bid.workSchedule,
+                        totalDurationWeeks: bid.totalDurationWeeks || 24,
+                      });
+                    }}>
+                      <Download className="h-3 w-3" /> Export Gantt PDF
+                    </Button>
                   </div>
                 </div>
               )}
