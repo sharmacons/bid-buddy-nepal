@@ -43,6 +43,8 @@ interface ExtractedField {
   selected: boolean;
 }
 
+type WizardPhase = 'upload' | 'analyzing' | 'review' | 'actions';
+
 // Component to display original document with highlighted extracted values
 function OriginalDocumentView({ text, highlightValues, activeHighlight }: {
   text: string;
