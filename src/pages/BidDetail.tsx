@@ -751,17 +751,68 @@ export default function BidDetail() {
           ))}
         </TabsContent>
 
+        {/* Reference Document Upload */}
+        <TabsContent value="reference" className="mt-4">
+          <Card>
+            <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Upload className="h-5 w-5" /> Bidding Document Reference</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">Upload the original bidding document (IFB/SBD PDF) for reference while preparing your submission.</p>
+              <div className="border-2 border-dashed border-border rounded-xl p-6 text-center space-y-3">
+                <Upload className="h-10 w-10 text-muted-foreground mx-auto" />
+                <p className="text-sm text-muted-foreground">Upload PPMO Standard Bidding Document (PDF, DOC, images)</p>
+                <input ref={bidDocRef} type="file" className="hidden" onChange={handleBidDocUpload} accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" />
+                <Button onClick={() => bidDocRef.current?.click()} variant="outline" className="gap-2">
+                  <Upload className="h-4 w-4" /> Choose File
+                </Button>
+              </div>
+              {bidDocument && (
+                <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                  <FileText className="h-5 w-5 text-primary" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">{bidDocument.name}</p>
+                    <p className="text-xs text-muted-foreground">{(bidDocument.size / 1024).toFixed(0)} KB</p>
+                  </div>
+                  <Badge variant="outline" className="text-accent">Uploaded ✓</Badge>
+                </div>
+              )}
+              <div className="bg-accent/10 p-3 rounded-lg">
+                <p className="text-xs text-muted-foreground">💡 Tip: For full AI-powered analysis, use the <strong>Bid Analysis</strong> page (/analyze) which can extract project details, BOQ items, and more from your document.</p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         {/* Notes */}
         <TabsContent value="notes" className="mt-4">
           <Card>
             <CardHeader><CardTitle className="text-lg">Notes & Methodology</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>Methodology / Work Plan (कार्यविधि)</Label>
+                <div className="flex items-center justify-between">
+                  <Label>Methodology / Work Plan (कार्यविधि)</Label>
+                  <Button 
+                    variant="outline" size="sm" className="gap-1 text-xs"
+                    disabled={aiLoading === 'suggest-methodology'}
+                    onClick={() => handleAISuggest('suggest-methodology')}
+                  >
+                    {aiLoading === 'suggest-methodology' ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                    AI Generate
+                  </Button>
+                </div>
                 <Textarea value={bid.methodology || ''} onChange={(e) => save({ ...bid, methodology: e.target.value })} placeholder="Describe your approach, methodology, work plan..." className="min-h-[120px]" />
               </div>
               <div className="space-y-2">
-                <Label>Site Organization Notes</Label>
+                <div className="flex items-center justify-between">
+                  <Label>Site Organization Notes</Label>
+                  <Button 
+                    variant="outline" size="sm" className="gap-1 text-xs"
+                    disabled={aiLoading === 'suggest-site-organization'}
+                    onClick={() => handleAISuggest('suggest-site-organization')}
+                  >
+                    {aiLoading === 'suggest-site-organization' ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                    AI Generate
+                  </Button>
+                </div>
                 <Textarea value={bid.siteOrganization || ''} onChange={(e) => save({ ...bid, siteOrganization: e.target.value })} placeholder="Key personnel, equipment list..." className="min-h-[80px]" />
               </div>
               <div className="space-y-2">
