@@ -367,6 +367,7 @@ export default function BidDetail() {
           <TabsTrigger value="contracts">Running Contracts</TabsTrigger>
           <TabsTrigger value="schedule">Work Schedule</TabsTrigger>
           <TabsTrigger value="templates">Documents</TabsTrigger>
+          <TabsTrigger value="reference">📎 Reference</TabsTrigger>
           <TabsTrigger value="notes">Notes</TabsTrigger>
         </TabsList>
 
