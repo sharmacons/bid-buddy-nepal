@@ -15,6 +15,47 @@ const BORDER_COLOR = 'CCCCCC';
 const LIGHT_BG = 'F0F4F8';
 const CRITICAL_BG = 'FEE2E2';
 const MAJOR_BG = 'EFF6FF';
+const OVERDUE_BG = 'FEF3C7'; // amber-100
+const OVERDUE_FG = '92400E'; // amber-800
+const CONFLICT_BG = 'FCE7F3'; // pink-100
+const CONFLICT_FG = '9D174D'; // pink-800
+
+/** Detect resource conflicts: overlapping activities sharing a common predecessor */
+function detectResourceConflicts(items: WorkScheduleItem[]): Map<string, string[]> {
+  const conflicts = new Map<string, string[]>();
+  for (let i = 0; i < items.length; i++) {
+    for (let j = i + 1; j < items.length; j++) {
+      const a = items[i], b = items[j];
+      const aEnd = a.startWeek + a.duration - 1;
+      const bEnd = b.startWeek + b.duration - 1;
+      const overlaps = a.startWeek <= bEnd && b.startWeek <= aEnd;
+      if (!overlaps) continue;
+      // Check shared predecessor (resource conflict)
+      const aDeps = new Set(a.dependencies || []);
+      const bDeps = new Set(b.dependencies || []);
+      const shared = [...aDeps].filter(d => bDeps.has(d));
+      if (shared.length > 0) {
+        const existing_a = conflicts.get(a.id) || [];
+        existing_a.push(b.activity);
+        conflicts.set(a.id, existing_a);
+        const existing_b = conflicts.get(b.id) || [];
+        existing_b.push(a.activity);
+        conflicts.set(b.id, existing_b);
+      }
+    }
+  }
+  return conflicts;
+}
+
+/** Detect overdue activities that extend beyond the project duration */
+function detectOverdue(items: WorkScheduleItem[], totalWeeks: number): Set<string> {
+  const overdue = new Set<string>();
+  for (const item of items) {
+    const endWeek = item.startWeek + item.duration - 1;
+    if (endWeek > totalWeeks) overdue.add(item.id);
+  }
+  return overdue;
+}
 
 function thinBorder(): Partial<ExcelJS.Borders> {
   const side: Partial<ExcelJS.Border> = { style: 'thin', color: { argb: BORDER_COLOR } };
