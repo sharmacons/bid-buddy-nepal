@@ -185,12 +185,19 @@ export async function exportWorkScheduleExcel(params: {
 
   // Summary row
   const sumRowIdx = 5 + workSchedule.length + 1;
-  dataSheet.mergeCells(`A${sumRowIdx}:B${sumRowIdx}`);
-  dataSheet.getCell(`A${sumRowIdx}`).value = `Total Activities: ${workSchedule.length}  |  Critical: ${criticalIds.size}  |  Duration: ${totalDurationWeeks} weeks`;
+  dataSheet.mergeCells(`A${sumRowIdx}:D${sumRowIdx}`);
+  dataSheet.getCell(`A${sumRowIdx}`).value = `Total: ${workSchedule.length}  |  Critical: ${criticalIds.size}  |  Overdue: ${overdueIds.size}  |  Conflicts: ${conflictMap.size}  |  Duration: ${totalDurationWeeks} wk`;
   dataSheet.getCell(`A${sumRowIdx}`).font = { size: 10, bold: true, color: { argb: HEADER_BG } };
 
+  // Legend row
+  const legendIdx = sumRowIdx + 1;
+  dataSheet.mergeCells(`A${legendIdx}:J${legendIdx}`);
+  const legendCell2 = dataSheet.getCell(`A${legendIdx}`);
+  legendCell2.value = '⏰ Overdue = extends beyond project duration  |  🔄 Resource Conflict = overlapping activities with shared predecessors  |  🔴 Critical = zero float';
+  legendCell2.font = { size: 9, italic: true, color: { argb: '666666' } };
+
   // Auto-filter
-  dataSheet.autoFilter = { from: 'A4', to: `H${4 + workSchedule.length}` };
+  dataSheet.autoFilter = { from: 'A4', to: `J${4 + workSchedule.length}` };
 
   // ─── Sheet 2: Gantt Bar Chart (visual) ───
   const ganttSheet = wb.addWorksheet('Gantt Chart', {
