@@ -6,6 +6,14 @@ import { CompanyProfile, BidData, JVPartner, Gender } from './types';
 // Matches real Nepal PPMO document formats
 // ==========================================
 
+const STAMP_SEAL = `
+┌─────────────────────────────┐
+│                             │
+│     Company Stamp / Seal    │
+│       कम्पनीको छाप          │
+│                             │
+└─────────────────────────────┘`;
+
 function honorific(gender: Gender | undefined): string {
   if (gender === 'female') return 'Mrs.';
   if (gender === 'male') return 'Mr.';
@@ -98,7 +106,7 @@ If our Bid is accepted, we will obtain the guarantee of a bank in a sum equivale
 
 Name: ${title} ${rep}
 In the capacity of: ${desig}
-Signed: ___________________________
+Signed: ___________________________                ${STAMP_SEAL}
 Duly authorized to sign the Bid for and on behalf of: ${co}
 Date: ${new Date().toLocaleDateString('en-GB')}
 
@@ -151,7 +159,7 @@ This Bank guarantee shall not be withdrawn or released merely upon return of the
 
 This guarantee is subject to the Uniform Rules for Demand Guarantees, ICC Publication No. 758.
 
-___________________________
+___________________________                        ${STAMP_SEAL}
 [Signature of Authorized Bank Representative]
 [Name and Title]
 [Bank Seal]`;
@@ -203,7 +211,8 @@ ${desig}
 ${co}
 
 Contact : ${phone}
-E-mail : ${email}`;
+E-mail : ${email}
+${STAMP_SEAL}`;
 }
 
 // ==========================================
@@ -240,7 +249,8 @@ ${desig}
 For and on behalf of ${co}
 
 Contact : ${phone}
-E-mail : ${email}`;
+E-mail : ${email}
+${STAMP_SEAL}`;
 }
 
 // ==========================================
@@ -314,7 +324,8 @@ Attached are copies of the following original documents:
 
 1. □ Articles of incorporation or constitution of the legal entity named above
 2. □ Authorization to represent the firm named above
-3. □ In case of government-owned entity, documents establishing legal and financial autonomy`;
+3. □ In case of government-owned entity, documents establishing legal and financial autonomy
+${STAMP_SEAL}`;
 }
 
 // ==========================================
@@ -384,12 +395,27 @@ export function jvAgreementTemplate(profile: CompanyProfile | null, partners: JV
     shareList += `\n- ${String.fromCharCode(98 + i)}) M/s ${p.legalName || '[Partner Name]'} ${p.sharePercentage || '____'}%`;
   });
 
-  // Signature blocks
-  let signatures = `…………………………\n\n${leadTitle} ${leadRep}\n\n${leadDesig}\n\n${lead}`;
+  // Signature blocks with stamp/seal
+  let signatures = `…………………………                              ${STAMP_SEAL}
+
+${leadTitle} ${leadRep}
+
+${leadDesig}
+
+${lead}`;
   partners.forEach(p => {
     const pTitle = honorific(p.gender);
     const pDesig = shortDesignation(p.designation);
-    signatures += `\n\n…………………………\n\n${pTitle} ${p.authorizedRepresentative || '[Name]'}\n\n${pDesig}\n\n${p.legalName || '[Partner Name]'}`;
+    signatures += `
+
+
+…………………………                              ${STAMP_SEAL}
+
+${pTitle} ${p.authorizedRepresentative || '[Name]'}
+
+${pDesig}
+
+${p.legalName || '[Partner Name]'}`;
   });
 
   return `JOINT VENTURE AGREEMENT (संयुक्त उपक्रम सम्झौता)
@@ -448,20 +474,24 @@ export function jvPowerOfAttorneyTemplate(profile: CompanyProfile | null, partne
   const attTitle = honorific(attorney.gender);
   const attDesig = shortDesignation(attorney.desig || '');
 
-  // Signature blocks for all partners
+  // Signature blocks for all partners with stamp/seal
   let signatureBlocks = '';
   signatureBlocks += `Name: ${honorific(profile?.gender)} ${profile?.authorizedRepresentative || '[Name]'}
 Signature of Partner In-Charge
 Designation: ${shortDesignation(profile?.designation || '')}
-${lead}`;
+${lead}
+${STAMP_SEAL}`;
 
   partners.forEach((p, i) => {
     const pTitle = honorific(p.gender);
     const pDesig = shortDesignation(p.designation);
-    signatureBlocks += `\n\nName: ${pTitle} ${p.authorizedRepresentative || '[Name]'}
+    signatureBlocks += `
+
+Name: ${pTitle} ${p.authorizedRepresentative || '[Name]'}
 Signature of ${i === 0 ? 'Second' : 'Third'} Partner
 Designation: ${pDesig}
-${p.legalName || '[Partner Name]'}`;
+${p.legalName || '[Partner Name]'}
+${STAMP_SEAL}`;
   });
 
   return `${jvName}
