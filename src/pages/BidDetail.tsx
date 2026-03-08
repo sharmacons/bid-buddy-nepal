@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { getBids, saveBid, deleteBid, getCompanyProfile } from '@/lib/storage';
 import { BID_TYPE_LABELS, BID_STATUS_LABELS, BidData, BidStatus, BOQItem, JVPartner, RunningContract, WorkScheduleItem, COMMON_ROAD_WORK_ITEMS } from '@/lib/types';
 import {
-  letterOfBidTemplate, bidSecurityTemplate, powerOfAttorneyTemplate,
+  letterOfBidTemplate, letterOfPriceBidTemplate, bidSecurityTemplate, powerOfAttorneyTemplate,
   bidderInfoELI1Template, jvInfoELI2Template, runningContractsELI3Template,
   jvAgreementTemplate, jvPowerOfAttorneyTemplate, declarationTemplate,
   methodStatementTemplate, siteOrganizationTemplate,
