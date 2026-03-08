@@ -40,6 +40,8 @@ export interface WorkScheduleItem {
 }
 
 export interface CompanyProfile {
+  bidMode: 'single' | 'jv';
+  // Single entity fields
   companyName: string;
   address: string;
   panVatNumber: string;
@@ -48,12 +50,26 @@ export interface CompanyProfile {
   gender: Gender;
   fatherName: string;
   grandfatherName: string;
-  designation: string; // MD, Proprietor, Partner, Director, etc.
+  designation: string;
   contactPhone: string;
   contactEmail: string;
   logoUrl?: string;
   yearOfConstitution?: string;
   country?: string;
+  // JV-specific fields
+  jvName?: string;
+  jvAddress?: string;
+  jvLeadCompanyName?: string;
+  jvLeadAddress?: string;
+  jvLeadPanVat?: string;
+  jvLeadRegistration?: string;
+  jvLeadRepresentative?: string;
+  jvLeadGender?: Gender;
+  jvLeadFatherName?: string;
+  jvLeadGrandfatherName?: string;
+  jvLeadDesignation?: string;
+  jvLeadPhone?: string;
+  jvLeadEmail?: string;
 }
 
 export interface StoredDocument {

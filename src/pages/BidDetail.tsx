@@ -238,7 +238,7 @@ export default function BidDetail() {
         });
         // Declaration for each partner
         const partnerProfile = {
-          companyName: p.legalName, address: p.address, panVatNumber: p.panVatNumber,
+          bidMode: 'single' as const, companyName: p.legalName, address: p.address, panVatNumber: p.panVatNumber,
           registrationNumber: p.registrationNumber, authorizedRepresentative: p.authorizedRepresentative,
           gender: p.gender, fatherName: p.fatherName, grandfatherName: p.grandfatherName,
           designation: p.designation, contactPhone: p.contactPhone, contactEmail: p.contactEmail,
