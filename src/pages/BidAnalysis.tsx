@@ -176,7 +176,7 @@ export default function BidAnalysis() {
       isJV,
       jvPartners: [],
       runningContracts: [],
-      workSchedule: [],
+      workSchedule,
       ifbNumber,
       contractId,
       bidSecurityAmount,
