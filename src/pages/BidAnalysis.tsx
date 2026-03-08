@@ -268,68 +268,82 @@ export default function BidAnalysis() {
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
-                <Upload className="h-5 w-5" /> Upload Bidding Document
+                <Upload className="h-5 w-5" /> Upload & Analyze Bidding Document
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="border-2 border-dashed border-border rounded-xl p-8 text-center space-y-3">
-                <Upload className="h-12 w-12 text-muted-foreground mx-auto" />
+              {/* Step 1: Upload PDF for reference */}
+              <div className="border-2 border-dashed border-border rounded-xl p-6 text-center space-y-3">
+                <Upload className="h-10 w-10 text-muted-foreground mx-auto" />
                 <p className="text-sm text-muted-foreground">
-                  Upload your PPMO Standard Bidding Document (PDF) for reference.<br />
-                  You'll manually extract key fields from it.
+                  Upload your PPMO Standard Bidding Document (PDF) for reference
                 </p>
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept=".pdf"
+                  accept=".pdf,.doc,.docx"
                   className="hidden"
                   onChange={handleFileUpload}
                 />
                 <Button onClick={() => fileInputRef.current?.click()} variant="outline" className="gap-2">
-                  <Upload className="h-4 w-4" /> Choose PDF File
+                  <Upload className="h-4 w-4" /> Choose File
                 </Button>
               </div>
 
               {uploadedFile && (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                    <FileText className="h-5 w-5 text-primary" />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">{uploadedFile.name}</p>
-                      <p className="text-xs text-muted-foreground">{(uploadedFile.size / 1024).toFixed(0)} KB</p>
-                    </div>
-                    <Badge variant="outline" className="text-accent">Uploaded ✓</Badge>
+                <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                  <FileText className="h-5 w-5 text-primary" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">{uploadedFile.name}</p>
+                    <p className="text-xs text-muted-foreground">{(uploadedFile.size / 1024).toFixed(0)} KB</p>
                   </div>
-                  <Button 
-                    onClick={handleAIExtract} 
-                    disabled={isExtracting}
-                    className="w-full gap-2 bg-gradient-to-r from-primary to-primary/80"
-                  >
-                    {isExtracting ? (
-                      <><Loader2 className="h-4 w-4 animate-spin" /> AI Analyzing...</>
-                    ) : (
-                      <><Sparkles className="h-4 w-4" /> AI Extract — Auto-Fill Fields from Document</>
-                    )}
-                  </Button>
+                  <Badge variant="outline" className="text-accent">Uploaded</Badge>
                 </div>
               )}
 
-              <div className="bg-accent/30 p-4 rounded-lg space-y-2">
-                <p className="text-sm font-medium flex items-center gap-2">
-                  <Info className="h-4 w-4 text-primary" /> How to use:
+              {/* Step 2: Paste document text for AI analysis */}
+              <Separator />
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <Label className="text-sm font-semibold">AI Analysis — Paste Document Text</Label>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Open your bid document, select all text (Ctrl+A), copy it (Ctrl+C), and paste it below. 
+                  AI will extract project name, employer, IFB number, deadlines, bid security, BOQ items, and more.
                 </p>
-                <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
-                  <li>Upload your bid document PDF for reference</li>
-                  <li>Open the PDF alongside and fill in key fields in the <strong>Details</strong> tab</li>
-                  <li>Enter BOQ items from the document in the <strong>BOQ</strong> tab</li>
-                  <li>Calculate price adjustment multiplying factor in <strong>Price Adj.</strong> tab</li>
-                  <li>Click "Create Bid" to start preparing your submission</li>
-                </ol>
+                <textarea
+                  className="w-full min-h-[200px] p-3 rounded-lg border border-border bg-background text-sm font-mono resize-y focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  placeholder="Paste the full text content of your bidding document here...
+
+Example: Copy text from IFB page, Data Sheet (ITB), BOQ table, etc.
+
+The AI will automatically extract:
+• Project Name & Employer details
+• IFB Number & Contract ID
+• Submission deadline & bid validity
+• Bid security & completion period
+• BOQ items (if found)"
+                  value={uploadedText}
+                  onChange={(e) => setUploadedText(e.target.value)}
+                />
+                <Button 
+                  onClick={handleAIExtract} 
+                  disabled={isExtracting || !uploadedText.trim()}
+                  className="w-full gap-2"
+                  size="lg"
+                >
+                  {isExtracting ? (
+                    <><Loader2 className="h-4 w-4 animate-spin" /> AI Analyzing Document...</>
+                  ) : (
+                    <><Sparkles className="h-4 w-4" /> AI Extract — Auto-Fill All Fields</>
+                  )}
+                </Button>
               </div>
 
               {/* Quick identification */}
               <Separator />
-              <p className="text-sm font-medium">Quick Identification — बोलपत्र प्रकार पहिचान:</p>
+              <p className="text-sm font-medium">Bid Type Identification:</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {[
                   { type: 'ncb-single' as BidType, hint: 'All docs in ONE envelope, national bidding' },
