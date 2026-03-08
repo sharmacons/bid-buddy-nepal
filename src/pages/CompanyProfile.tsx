@@ -149,11 +149,20 @@ export default function CompanyProfile() {
   });
 
   function onSingleSubmit(data: z.infer<typeof singleSchema>) {
-    const profile: CompanyProfileType = {
+    saveCompanyProfile({
       bidMode: 'single',
-      ...data,
-    };
-    saveCompanyProfile(profile);
+      companyName: data.companyName,
+      address: data.address,
+      panVatNumber: data.panVatNumber,
+      registrationNumber: data.registrationNumber,
+      authorizedRepresentative: data.authorizedRepresentative,
+      gender: data.gender,
+      fatherName: data.fatherName,
+      grandfatherName: data.grandfatherName,
+      designation: data.designation,
+      contactPhone: data.contactPhone,
+      contactEmail: data.contactEmail,
+    });
     toast.success('Company profile saved!');
   }
 
