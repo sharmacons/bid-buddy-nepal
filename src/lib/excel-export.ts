@@ -15,6 +15,47 @@ const BORDER_COLOR = 'CCCCCC';
 const LIGHT_BG = 'F0F4F8';
 const CRITICAL_BG = 'FEE2E2';
 const MAJOR_BG = 'EFF6FF';
+const OVERDUE_BG = 'FEF3C7'; // amber-100
+const OVERDUE_FG = '92400E'; // amber-800
+const CONFLICT_BG = 'FCE7F3'; // pink-100
+const CONFLICT_FG = '9D174D'; // pink-800
+
+/** Detect resource conflicts: overlapping activities sharing a common predecessor */
+function detectResourceConflicts(items: WorkScheduleItem[]): Map<string, string[]> {
+  const conflicts = new Map<string, string[]>();
+  for (let i = 0; i < items.length; i++) {
+    for (let j = i + 1; j < items.length; j++) {
+      const a = items[i], b = items[j];
+      const aEnd = a.startWeek + a.duration - 1;
+      const bEnd = b.startWeek + b.duration - 1;
+      const overlaps = a.startWeek <= bEnd && b.startWeek <= aEnd;
+      if (!overlaps) continue;
+      // Check shared predecessor (resource conflict)
+      const aDeps = new Set(a.dependencies || []);
+      const bDeps = new Set(b.dependencies || []);
+      const shared = [...aDeps].filter(d => bDeps.has(d));
+      if (shared.length > 0) {
+        const existing_a = conflicts.get(a.id) || [];
+        existing_a.push(b.activity);
+        conflicts.set(a.id, existing_a);
+        const existing_b = conflicts.get(b.id) || [];
+        existing_b.push(a.activity);
+        conflicts.set(b.id, existing_b);
+      }
+    }
+  }
+  return conflicts;
+}
+
+/** Detect overdue activities that extend beyond the project duration */
+function detectOverdue(items: WorkScheduleItem[], totalWeeks: number): Set<string> {
+  const overdue = new Set<string>();
+  for (const item of items) {
+    const endWeek = item.startWeek + item.duration - 1;
+    if (endWeek > totalWeeks) overdue.add(item.id);
+  }
+  return overdue;
+}
 
 function thinBorder(): Partial<ExcelJS.Borders> {
   const side: Partial<ExcelJS.Border> = { style: 'thin', color: { argb: BORDER_COLOR } };
@@ -42,16 +83,18 @@ export async function exportWorkScheduleExcel(params: {
   });
 
   const { criticalIds } = computeCriticalPath(workSchedule);
+  const overdueIds = detectOverdue(workSchedule, totalDurationWeeks);
+  const conflictMap = detectResourceConflicts(workSchedule);
 
   // Project header rows
-  dataSheet.mergeCells('A1:H1');
+  dataSheet.mergeCells('A1:J1');
   const titleCell = dataSheet.getCell('A1');
   titleCell.value = projectName || 'Work Schedule';
   titleCell.font = { size: 16, bold: true, color: { argb: HEADER_BG } };
   titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
   dataSheet.getRow(1).height = 30;
 
-  dataSheet.mergeCells('A2:H2');
+  dataSheet.mergeCells('A2:J2');
   const subCell = dataSheet.getCell('A2');
   subCell.value = `Employer: ${employer || '—'}  |  IFB: ${ifbNumber || '—'}  |  Contract: ${contractId || '—'}`;
   subCell.font = { size: 10, color: { argb: '666666' } };
@@ -68,11 +111,13 @@ export async function exportWorkScheduleExcel(params: {
     { key: 'predecessors', width: 18 },
     { key: 'major', width: 10 },
     { key: 'critical', width: 10 },
+    { key: 'status', width: 14 },
+    { key: 'conflicts', width: 30 },
   ];
 
   // Header row
   const headerRow = dataSheet.getRow(4);
-  ['S.N.', 'Activity', 'Duration (wk)', 'Start Week', 'End Week', 'Predecessors', 'Major', 'Critical'].forEach((h, i) => {
+  ['S.N.', 'Activity', 'Duration (wk)', 'Start Week', 'End Week', 'Predecessors', 'Major', 'Critical', 'Status', 'Conflicts'].forEach((h, i) => {
     const cell = headerRow.getCell(i + 1);
     cell.value = h;
     cell.font = { size: 11, bold: true, color: { argb: HEADER_FG } };
@@ -85,9 +130,18 @@ export async function exportWorkScheduleExcel(params: {
   // Data rows
   workSchedule.forEach((item, idx) => {
     const isCritical = criticalIds.has(item.id);
+    const isOverdue = overdueIds.has(item.id);
+    const itemConflicts = conflictMap.get(item.id) || [];
+    const hasConflict = itemConflicts.length > 0;
     const predNames = (item.dependencies || [])
       .map(depId => { const pi = workSchedule.findIndex(w => w.id === depId); return pi >= 0 ? `${pi + 1}FS` : null; })
       .filter(Boolean).join(', ');
+
+    // Determine status
+    let status = '✅ OK';
+    if (isOverdue && hasConflict) status = '⚠️ Overdue + Conflict';
+    else if (isOverdue) status = '⏰ Overdue';
+    else if (hasConflict) status = '🔄 Resource Conflict';
 
     const row = dataSheet.getRow(5 + idx);
     row.getCell(1).value = idx + 1;
@@ -98,14 +152,23 @@ export async function exportWorkScheduleExcel(params: {
     row.getCell(6).value = predNames || '—';
     row.getCell(7).value = item.isMajor ? '★ Yes' : '';
     row.getCell(8).value = isCritical ? '🔴 Yes' : '';
+    row.getCell(9).value = status;
+    row.getCell(10).value = hasConflict ? itemConflicts.join('; ') : '—';
 
-    // Styling
-    for (let c = 1; c <= 8; c++) {
+    // Styling — determine row highlight priority: overdue > conflict > critical > major > alternating
+    for (let c = 1; c <= 10; c++) {
       const cell = row.getCell(c);
       cell.border = thinBorder();
-      cell.alignment = { vertical: 'middle', wrapText: c === 2, horizontal: c <= 2 ? 'left' : 'center' };
-      cell.font = { size: 10, bold: isCritical || item.isMajor };
-      if (isCritical) {
+      cell.alignment = { vertical: 'middle', wrapText: c === 2 || c === 10, horizontal: c <= 2 ? 'left' : 'center' };
+      cell.font = { size: 10, bold: isCritical || item.isMajor || isOverdue || hasConflict };
+
+      if (isOverdue) {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: OVERDUE_BG } };
+        if (c === 9) cell.font = { size: 10, bold: true, color: { argb: OVERDUE_FG } };
+      } else if (hasConflict) {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: CONFLICT_BG } };
+        if (c === 9 || c === 10) cell.font = { size: 10, bold: true, color: { argb: CONFLICT_FG } };
+      } else if (isCritical) {
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: CRITICAL_BG } };
       } else if (item.isMajor) {
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: MAJOR_BG } };
@@ -118,12 +181,19 @@ export async function exportWorkScheduleExcel(params: {
 
   // Summary row
   const sumRowIdx = 5 + workSchedule.length + 1;
-  dataSheet.mergeCells(`A${sumRowIdx}:B${sumRowIdx}`);
-  dataSheet.getCell(`A${sumRowIdx}`).value = `Total Activities: ${workSchedule.length}  |  Critical: ${criticalIds.size}  |  Duration: ${totalDurationWeeks} weeks`;
+  dataSheet.mergeCells(`A${sumRowIdx}:D${sumRowIdx}`);
+  dataSheet.getCell(`A${sumRowIdx}`).value = `Total: ${workSchedule.length}  |  Critical: ${criticalIds.size}  |  Overdue: ${overdueIds.size}  |  Conflicts: ${conflictMap.size}  |  Duration: ${totalDurationWeeks} wk`;
   dataSheet.getCell(`A${sumRowIdx}`).font = { size: 10, bold: true, color: { argb: HEADER_BG } };
 
+  // Legend row
+  const legendIdx = sumRowIdx + 1;
+  dataSheet.mergeCells(`A${legendIdx}:J${legendIdx}`);
+  const legendCell2 = dataSheet.getCell(`A${legendIdx}`);
+  legendCell2.value = '⏰ Overdue = extends beyond project duration  |  🔄 Resource Conflict = overlapping activities with shared predecessors  |  🔴 Critical = zero float';
+  legendCell2.font = { size: 9, italic: true, color: { argb: '666666' } };
+
   // Auto-filter
-  dataSheet.autoFilter = { from: 'A4', to: `H${4 + workSchedule.length}` };
+  dataSheet.autoFilter = { from: 'A4', to: `J${4 + workSchedule.length}` };
 
   // ─── Sheet 2: Gantt Bar Chart (visual) ───
   const ganttSheet = wb.addWorksheet('Gantt Chart', {
@@ -197,26 +267,33 @@ export async function exportWorkScheduleExcel(params: {
     const rowNum = 5 + idx;
     const row = ganttSheet.getRow(rowNum);
     const isCritical = criticalIds.has(item.id);
-    const barColor = isCritical ? CRITICAL_COLOR : BAR_COLORS[idx % BAR_COLORS.length];
+    const isOverdue = overdueIds.has(item.id);
+    const hasConflict = conflictMap.has(item.id);
+    const barColor = isOverdue ? OVERDUE_FG : isCritical ? CRITICAL_COLOR : BAR_COLORS[idx % BAR_COLORS.length];
 
     // SN column
     const snCell = row.getCell(1);
     snCell.value = idx + 1;
-    snCell.font = { size: 9, bold: isCritical };
+    snCell.font = { size: 9, bold: isCritical || isOverdue };
     snCell.alignment = { horizontal: 'center', vertical: 'middle' };
     snCell.border = thinBorder();
-    if (isCritical) snCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: CRITICAL_BG } };
+    if (isOverdue) snCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: OVERDUE_BG } };
+    else if (hasConflict) snCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: CONFLICT_BG } };
+    else if (isCritical) snCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: CRITICAL_BG } };
 
     // Activity name
     const nameCell = row.getCell(2);
-    nameCell.value = item.activity;
-    nameCell.font = { size: 9, bold: isCritical || item.isMajor, color: { argb: isCritical ? 'B91C1C' : '1A1A1A' } };
+    const statusPrefix = isOverdue ? '⏰ ' : hasConflict ? '🔄 ' : '';
+    nameCell.value = statusPrefix + item.activity;
+    nameCell.font = { size: 9, bold: isCritical || item.isMajor || isOverdue, color: { argb: isOverdue ? OVERDUE_FG : hasConflict ? CONFLICT_FG : isCritical ? 'B91C1C' : '1A1A1A' } };
     nameCell.alignment = { vertical: 'middle', wrapText: true };
     nameCell.border = thinBorder();
-    if (isCritical) nameCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: CRITICAL_BG } };
+    if (isOverdue) nameCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: OVERDUE_BG } };
+    else if (hasConflict) nameCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: CONFLICT_BG } };
+    else if (isCritical) nameCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: CRITICAL_BG } };
     else if (item.isMajor) nameCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: MAJOR_BG } };
 
-    // Week cells — fill bar cells with color
+    // Week cells — fill bar cells with color, use dashed pattern for overdue portion
     for (let w = 0; w < totalDurationWeeks; w++) {
       const cell = row.getCell(3 + w);
       const weekNum = w + 1;
@@ -230,16 +307,19 @@ export async function exportWorkScheduleExcel(params: {
       };
 
       if (isBar) {
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: barColor } };
-        // Show duration text in the middle cell of the bar
+        // Overdue portion (beyond totalDurationWeeks) gets striped pattern indicator
+        if (isOverdue && weekNum > totalDurationWeeks) {
+          cell.fill = { type: 'pattern', pattern: 'darkUp', fgColor: { argb: OVERDUE_FG }, bgColor: { argb: OVERDUE_BG } };
+        } else {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: barColor } };
+        }
         const barMiddle = item.startWeek + Math.floor(item.duration / 2) - 1;
         if (w === barMiddle) {
-          cell.value = `${item.duration}w`;
+          cell.value = isOverdue ? `${item.duration}w ⚠` : `${item.duration}w`;
           cell.font = { size: 7, bold: true, color: { argb: 'FFFFFF' } };
           cell.alignment = { horizontal: 'center', vertical: 'middle' };
         }
       } else {
-        // Light alternating background for non-bar cells
         if (idx % 2 === 1) {
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FAFAFA' } };
         }
@@ -250,9 +330,9 @@ export async function exportWorkScheduleExcel(params: {
 
   // Legend row
   const legendRowNum = 5 + workSchedule.length + 2;
-  ganttSheet.mergeCells(legendRowNum, 1, legendRowNum, 6);
+  ganttSheet.mergeCells(legendRowNum, 1, legendRowNum, 8);
   const legendCell = ganttSheet.getCell(legendRowNum, 1);
-  legendCell.value = '🔴 = Critical Path  |  ★ = Major Activity  |  Adjust row heights, column widths, and bar colors as needed';
+  legendCell.value = '🔴 = Critical Path  |  ⏰ = Overdue (extends beyond project duration)  |  🔄 = Resource Conflict  |  ★ = Major Activity';
   legendCell.font = { size: 9, italic: true, color: { argb: '666666' } };
 
   // ─── Sheet 3: Bill of Quantities ───
