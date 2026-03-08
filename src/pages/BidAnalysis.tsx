@@ -1,15 +1,16 @@
-import { useState, useRef } from 'react';
-import { extractBidInfo } from '@/lib/ai-assist';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { fullBidAnalysis, FullAnalysisResult, generateAISchedule } from '@/lib/ai-assist';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
+import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
 import { saveBid } from '@/lib/storage';
 import { getChecklistForType } from '@/lib/checklists';
@@ -23,1039 +24,830 @@ import {
   isPriceAdjustmentApplicable,
   PriceAdjustmentResult,
 } from '@/lib/price-index';
-import {
-  Upload,
-  FileText,
-  Calculator,
-  Calendar,
-  TrendingUp,
-  AlertTriangle,
-  CheckCircle,
-  ArrowRight,
-  Info,
-  FileDown,
-  Sparkles,
-  Loader2,
-} from 'lucide-react';
 import { exportPriceAdjustmentPDF, exportWorkSchedulePDF } from '@/lib/pdf-export';
+import GanttChart from '@/components/GanttChart';
+import {
+  Upload, FileText, Calculator, Calendar, TrendingUp, AlertTriangle, CheckCircle,
+  ArrowRight, ArrowLeft, Info, FileDown, Sparkles, Loader2, Cpu, BarChart3,
+  ClipboardList, Eye, EyeOff, ChevronDown, ChevronUp, Link2,
+} from 'lucide-react';
 
-// Bar colors for Gantt chart
-const BAR_COLORS = [
-  'hsl(var(--primary))',
-  'hsl(210, 70%, 50%)',
-  'hsl(150, 60%, 40%)',
-  'hsl(30, 80%, 50%)',
-  'hsl(340, 65%, 47%)',
-  'hsl(260, 55%, 50%)',
-  'hsl(180, 50%, 40%)',
-  'hsl(45, 80%, 45%)',
-];
+// Extracted info field for the selectable list
+interface ExtractedField {
+  key: string;
+  label: string;
+  labelNe?: string;
+  value: string;
+  category: 'project' | 'dates' | 'financial' | 'eligibility' | 'conditions';
+  selected: boolean;
+}
+
+type WizardPhase = 'upload' | 'analyzing' | 'review' | 'actions';
 
 export default function BidAnalysis() {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // PDF reference
-  const [uploadedFile, setUploadedFile] = useState<{ name: string; size: number } | null>(null);
+  // Wizard state
+  const [phase, setPhase] = useState<WizardPhase>('upload');
   const [uploadedText, setUploadedText] = useState('');
-  const [isExtracting, setIsExtracting] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisProgress, setAnalysisProgress] = useState(0);
+  const [analysisStatus, setAnalysisStatus] = useState('');
 
-  // Extracted / manually entered fields
-  const [bidType, setBidType] = useState<BidType>('ncb-single');
-  const [projectName, setProjectName] = useState('');
-  const [employer, setEmployer] = useState('');
-  const [employerAddress, setEmployerAddress] = useState('');
-  const [ifbNumber, setIfbNumber] = useState('');
-  const [contractId, setContractId] = useState('');
-  const [submissionDate, setSubmissionDate] = useState('');
-  const [workStartDate, setWorkStartDate] = useState('');
-  const [workCompletionDate, setWorkCompletionDate] = useState('');
-  const [completionPeriodDays, setCompletionPeriodDays] = useState('');
-  const [bidSecurityAmount, setBidSecurityAmount] = useState('');
-  const [bidValidity, setBidValidity] = useState('120');
-  const [estimatedCost, setEstimatedCost] = useState('');
-  const [isJV, setIsJV] = useState(false);
-
-  // BOQ items from document
+  // AI result
+  const [analysisResult, setAnalysisResult] = useState<FullAnalysisResult | null>(null);
+  const [extractedFields, setExtractedFields] = useState<ExtractedField[]>([]);
   const [boqItems, setBoqItems] = useState<BOQItem[]>([]);
-  const [newBoqDesc, setNewBoqDesc] = useState('');
-  const [newBoqUnit, setNewBoqUnit] = useState('');
-  const [newBoqQty, setNewBoqQty] = useState('');
-  const [newBoqRate, setNewBoqRate] = useState('');
+  const [boqSelected, setBoqSelected] = useState<Set<string>>(new Set());
+  const [specialConditions, setSpecialConditions] = useState<string[]>([]);
+
+  // Editable values (user can override AI)
+  const [editedValues, setEditedValues] = useState<Record<string, string>>({});
+
+  // Work schedule
+  const [workSchedule, setWorkSchedule] = useState<WorkScheduleItem[]>([]);
+  const [scheduleLoading, setScheduleLoading] = useState(false);
 
   // Price adjustment
   const [coeffPreset, setCoeffPreset] = useState('road-works');
-  const [coefficients, setCoefficients] = useState<PriceAdjustmentCoefficients>(
-    COEFFICIENT_PRESETS['road-works'].coefficients
-  );
+  const [coefficients, setCoefficients] = useState<PriceAdjustmentCoefficients>(COEFFICIENT_PRESETS['road-works'].coefficients);
   const [baseYear, setBaseYear] = useState('2080/81');
   const [currentYear, setCurrentYear] = useState('2082/83');
   const [priceAdjResult, setPriceAdjResult] = useState<PriceAdjustmentResult | null>(null);
 
-  // Work schedule
-  const [workSchedule, setWorkSchedule] = useState<WorkScheduleItem[]>([]);
-  const [scheduleGenerated, setScheduleGenerated] = useState(false);
-  // Handle file upload
-  function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+  // Expanded sections
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['project', 'dates', 'financial', 'boq']));
+
+  // File upload & auto-trigger analysis
+  const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 20 * 1024 * 1024) {
-      toast.error('File size must be under 20MB');
-      return;
-    }
-    setUploadedFile({ name: file.name, size: file.size });
-    toast.success('Document uploaded! Now paste the document text below for AI analysis.');
-  }
+    if (file.size > 20 * 1024 * 1024) { toast.error('Max 20MB'); return; }
 
-  async function handleAIExtract() {
-    if (!uploadedText.trim()) {
-      toast.error('Please paste the bid document text in the text area below');
-      return;
-    }
-    setIsExtracting(true);
-    toast.info('AI is analyzing the document text...');
-    
+    // Read text from the file
     try {
-      const result = await extractBidInfo(uploadedText);
-      if (result) {
-        if (result.projectName) setProjectName(result.projectName);
-        if (result.employer) setEmployer(result.employer);
-        if (result.employerAddress) setEmployerAddress(result.employerAddress);
-        if (result.ifbNumber) setIfbNumber(result.ifbNumber);
-        if (result.contractId) setContractId(result.contractId);
-        if (result.submissionDeadline) setSubmissionDate(result.submissionDeadline);
-        if (result.bidValidity) setBidValidity(result.bidValidity);
-        if (result.completionPeriod) setCompletionPeriodDays(result.completionPeriod);
-        if (result.bidSecurityAmount) setBidSecurityAmount(result.bidSecurityAmount);
-        if (result.estimatedCost) setEstimatedCost(result.estimatedCost);
-        if (result.isJV !== undefined) setIsJV(result.isJV);
-        
-        if (result.boqItems && result.boqItems.length > 0) {
-          const newItems: BOQItem[] = result.boqItems.map(item => ({
-            id: crypto.randomUUID(),
-            description: item.description,
-            unit: item.unit || '',
-            quantity: item.quantity || 0,
-            rate: 0,
-            amount: 0,
-          }));
-          setBoqItems(prev => [...prev, ...newItems]);
-        }
-        
-        toast.success('AI extracted bid details! Check Details and BOQ tabs.');
+      const text = await file.text();
+      if (text.trim().length > 50) {
+        setUploadedText(text);
+        toast.success(`"${file.name}" loaded — starting AI analysis...`);
+        triggerAnalysis(text);
+      } else {
+        toast.info(`"${file.name}" uploaded. Paste the document text below for AI analysis.`);
       }
+    } catch {
+      toast.info(`"${file.name}" uploaded. Paste text content below for analysis.`);
+    }
+  }, []);
+
+  // Trigger AI analysis
+  const triggerAnalysis = useCallback(async (text: string) => {
+    if (!text.trim()) { toast.error('No text to analyze'); return; }
+    setPhase('analyzing');
+    setIsAnalyzing(true);
+    setAnalysisProgress(0);
+    setAnalysisStatus('Sending document to AI...');
+
+    // Simulate progress
+    const progressInterval = setInterval(() => {
+      setAnalysisProgress(prev => Math.min(prev + Math.random() * 15, 85));
+    }, 800);
+
+    try {
+      setAnalysisStatus('AI is reading and extracting all information...');
+      const result = await fullBidAnalysis(text);
+
+      clearInterval(progressInterval);
+      setAnalysisProgress(95);
+      setAnalysisStatus('Processing results...');
+
+      if (result) {
+        setAnalysisResult(result);
+        processAnalysisResult(result);
+        setAnalysisProgress(100);
+        setAnalysisStatus('Analysis complete!');
+        setTimeout(() => setPhase('review'), 500);
+      } else {
+        setPhase('upload');
+        toast.error('Analysis returned no results. Try pasting more text.');
+      }
+    } catch (err) {
+      clearInterval(progressInterval);
+      console.error(err);
+      setPhase('upload');
+      toast.error('Analysis failed. Please try again.');
     } finally {
-      setIsExtracting(false);
+      setIsAnalyzing(false);
+    }
+  }, []);
+
+  // Process AI result into selectable fields
+  function processAnalysisResult(result: FullAnalysisResult) {
+    const fields: ExtractedField[] = [];
+    const addField = (key: string, label: string, value: string | undefined, category: ExtractedField['category'], labelNe?: string) => {
+      if (value && value.trim()) {
+        fields.push({ key, label, labelNe, value: value.trim(), category, selected: true });
+      }
+    };
+
+    // Project identification
+    addField('projectName', 'Project Name', result.projectName, 'project', 'परियोजनाको नाम');
+    addField('employer', 'Employer / Procuring Entity', result.employer, 'project', 'नियोक्ता');
+    addField('employerAddress', 'Employer Address', result.employerAddress, 'project');
+    addField('district', 'District', result.district, 'project', 'जिल्ला');
+    addField('ifbNumber', 'IFB Number', result.ifbNumber, 'project');
+    addField('contractId', 'Contract ID', result.contractId, 'project');
+    addField('lotNumber', 'Lot Number', result.lotNumber, 'project');
+    addField('sourceOfFund', 'Source of Fund', result.sourceOfFund, 'project', 'कोषको स्रोत');
+    addField('bidType', 'Bid Type', result.bidType ? BID_TYPE_LABELS[result.bidType as BidType] || result.bidType : undefined, 'project');
+
+    // Dates
+    addField('submissionDeadline', 'Submission Deadline', result.submissionDeadline, 'dates', 'पेश गर्ने मिति');
+    addField('bidOpeningDate', 'Bid Opening Date', result.bidOpeningDate, 'dates');
+    addField('preBidMeetingDate', 'Pre-Bid Meeting', result.preBidMeetingDate, 'dates');
+    addField('siteVisitDate', 'Site Visit Date', result.siteVisitDate, 'dates');
+
+    // Financial
+    addField('estimatedCost', 'Estimated Cost (NPR)', result.estimatedCost, 'financial', 'अनुमानित लागत');
+    addField('bidSecurityAmount', 'Bid Security Amount', result.bidSecurityAmount, 'financial', 'बोलपत्र जमानत');
+    addField('earnestMoney', 'Earnest Money', result.earnestMoney, 'financial');
+    addField('performanceSecurityPercent', 'Performance Security %', result.performanceSecurityPercent, 'financial');
+
+    // Conditions
+    addField('bidValidity', 'Bid Validity (days)', result.bidValidity, 'conditions');
+    addField('completionPeriod', 'Completion Period (days)', result.completionPeriod, 'conditions', 'सम्पन्न अवधि');
+    addField('commencementDays', 'Commencement Period (days)', result.commencementDays, 'conditions');
+    addField('defectLiabilityPeriod', 'Defect Liability Period', result.defectLiabilityPeriod, 'conditions');
+
+    // Eligibility
+    addField('isJV', 'Joint Venture Allowed', result.isJV !== undefined ? (result.isJV ? 'Yes' : 'No') : undefined, 'eligibility');
+    addField('maxJVPartners', 'Max JV Partners', result.maxJVPartners?.toString(), 'eligibility');
+    addField('minimumExperienceYears', 'Min. Experience (years)', result.minimumExperienceYears?.toString(), 'eligibility');
+    addField('minimumTurnover', 'Min. Annual Turnover', result.minimumTurnover, 'eligibility');
+
+    setExtractedFields(fields);
+
+    // Initialize edited values
+    const edits: Record<string, string> = {};
+    fields.forEach(f => { edits[f.key] = f.value; });
+    setEditedValues(edits);
+
+    // Process BOQ items
+    if (result.boqItems && result.boqItems.length > 0) {
+      const items: BOQItem[] = result.boqItems.map((item, idx) => ({
+        id: crypto.randomUUID(),
+        description: item.description,
+        unit: item.unit || 'LS',
+        quantity: item.quantity || 0,
+        rate: item.rate || 0,
+        amount: item.amount || (item.quantity || 0) * (item.rate || 0),
+      }));
+      setBoqItems(items);
+      setBoqSelected(new Set(items.map(i => i.id)));
+    }
+
+    if (result.specialConditions) {
+      setSpecialConditions(result.specialConditions);
     }
   }
 
-  // Calculate contract duration
-  function getContractDurationMonths(): number {
-    if (!workStartDate || !workCompletionDate) return 0;
-    const start = new Date(workStartDate);
-    const end = new Date(workCompletionDate);
-    return Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 30.44));
-  }
+  // Toggle field selection
+  const toggleField = (key: string) => {
+    setExtractedFields(prev => prev.map(f => f.key === key ? { ...f, selected: !f.selected } : f));
+  };
 
-  // Add BOQ item
-  function addBoqItem() {
-    if (!newBoqDesc || !newBoqUnit || !newBoqQty || !newBoqRate) {
-      toast.error('Fill all BOQ fields');
-      return;
+  const toggleBoqItem = (id: string) => {
+    setBoqSelected(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const selectAllBoq = () => setBoqSelected(new Set(boqItems.map(i => i.id)));
+  const deselectAllBoq = () => setBoqSelected(new Set());
+
+  const toggleSection = (section: string) => {
+    setExpandedSections(prev => {
+      const next = new Set(prev);
+      next.has(section) ? next.delete(section) : next.add(section);
+      return next;
+    });
+  };
+
+  // Generate work schedule from selected BOQ
+  async function handleGenerateSchedule() {
+    const selected = boqItems.filter(i => boqSelected.has(i.id));
+    if (selected.length === 0) { toast.error('Select BOQ items first'); return; }
+
+    setScheduleLoading(true);
+    const totalWeeks = editedValues.completionPeriod ? Math.round(parseInt(editedValues.completionPeriod) / 7) : 24;
+
+    try {
+      // Try AI schedule first
+      const aiResult = await generateAISchedule(selected, {
+        projectName: editedValues.projectName || 'Construction Project',
+        totalDurationWeeks: totalWeeks,
+      });
+
+      if (aiResult && aiResult.activities.length > 0) {
+        const idMap: string[] = [];
+        const schedule: WorkScheduleItem[] = aiResult.activities.map((act, idx) => {
+          const itemId = crypto.randomUUID();
+          idMap.push(itemId);
+          const predIds: string[] = [];
+          let startWeek = 1;
+
+          if (act.predecessors?.length > 0) {
+            let maxEnd = 0;
+            for (const predIdx of act.predecessors) {
+              if (predIdx >= 0 && predIdx < idx) {
+                predIds.push(idMap[predIdx]);
+                const pred = schedule[predIdx];
+                if (pred) maxEnd = Math.max(maxEnd, pred.startWeek + pred.duration + (act.lag || 0));
+              }
+            }
+            if (maxEnd > 0) startWeek = maxEnd;
+          } else if (idx > 0) {
+            startWeek = schedule[idx - 1].startWeek + Math.ceil(schedule[idx - 1].duration * 0.6);
+          }
+
+          return { id: itemId, activity: act.name, duration: Math.max(1, act.duration), startWeek: Math.max(1, startWeek), isMajor: act.isMajor, dependencies: predIds };
+        });
+        setWorkSchedule(schedule);
+        toast.success(`AI generated ${schedule.length} activities with dependencies`);
+      } else {
+        // Fallback
+        const detected = detectActivitiesFromBOQ(selected);
+        const schedule = generateWorkSchedule(detected, totalWeeks);
+        setWorkSchedule(schedule);
+        toast.success(`Auto-generated ${schedule.length} activities`);
+      }
+    } catch {
+      const detected = detectActivitiesFromBOQ(selected);
+      const schedule = generateWorkSchedule(detected, editedValues.completionPeriod ? Math.round(parseInt(editedValues.completionPeriod) / 7) : 24);
+      setWorkSchedule(schedule);
+    } finally {
+      setScheduleLoading(false);
     }
-    const qty = parseFloat(newBoqQty);
-    const rate = parseFloat(newBoqRate);
-    setBoqItems([...boqItems, {
-      id: crypto.randomUUID(),
-      description: newBoqDesc,
-      unit: newBoqUnit,
-      quantity: qty,
-      rate,
-      amount: qty * rate,
-    }]);
-    setNewBoqDesc(''); setNewBoqUnit(''); setNewBoqQty(''); setNewBoqRate('');
   }
 
-  function removeBoqItem(id: string) {
-    setBoqItems(boqItems.filter(i => i.id !== id));
-  }
-
-  // Calculate price adjustment
+  // Price adjustment calculation
   function handleCalculatePriceAdj() {
     const baseIdx = NRB_PRICE_INDEX_DATA.find(d => d.fiscalYear === baseYear);
     const currIdx = NRB_PRICE_INDEX_DATA.find(d => d.fiscalYear === currentYear);
-    if (!baseIdx || !currIdx) {
-      toast.error('Select valid base and current year');
-      return;
-    }
-    const amount = parseFloat(estimatedCost) || boqItems.reduce((s, i) => s + i.amount, 0) || 0;
-    if (amount <= 0) {
-      toast.error('Enter estimated cost or add BOQ items first');
-      return;
-    }
+    if (!baseIdx || !currIdx) { toast.error('Select valid years'); return; }
+    const amount = parseFloat(editedValues.estimatedCost || '0') || boqItems.filter(i => boqSelected.has(i.id)).reduce((s, i) => s + i.amount, 0);
+    if (amount <= 0) { toast.error('No amount available'); return; }
     const result = calculatePriceAdjustment(coefficients, baseIdx, currIdx, amount);
     setPriceAdjResult(result);
     toast.success(`Multiplying Factor: ${result.multiplyingFactor}`);
   }
 
-  // Create bid from analysis — cascades all data
+  // Create bid from selected data
   function handleCreateBid() {
-    if (!projectName || !employer || !submissionDate) {
-      toast.error('Project Name, Employer, and Submission Date are required');
-      return;
-    }
+    const selected = extractedFields.filter(f => f.selected);
+    const val = (key: string) => editedValues[key] || '';
+    const pName = val('projectName');
+    const emp = val('employer');
+    const subDate = val('submissionDeadline');
+    if (!pName) { toast.error('Project name is required'); return; }
+
+    const selectedBoq = boqItems.filter(i => boqSelected.has(i.id));
+    const boqTotal = selectedBoq.reduce((s, i) => s + i.amount, 0);
+    const bidTypeVal = (analysisResult?.bidType as BidType) || 'ncb-single';
+    const totalWeeks = val('completionPeriod') ? Math.round(parseInt(val('completionPeriod')) / 7) : undefined;
+
     const id = crypto.randomUUID();
-    const boqTotal = boqItems.reduce((s, i) => s + i.amount, 0);
-    
     saveBid({
       id,
-      projectName,
-      employer,
-      employerAddress,
-      bidType,
+      projectName: pName,
+      employer: emp,
+      employerAddress: val('employerAddress'),
+      bidType: bidTypeVal,
       status: 'preparing',
-      submissionDeadline: submissionDate,
+      submissionDeadline: subDate || new Date().toISOString().split('T')[0],
       createdAt: new Date().toISOString(),
-      checklist: getChecklistForType(bidType),
-      boqItems,
-      isJV,
+      checklist: getChecklistForType(bidTypeVal),
+      boqItems: selectedBoq,
+      isJV: analysisResult?.isJV || false,
       jvPartners: [],
       runningContracts: [],
       workSchedule,
-      totalDurationWeeks: completionPeriodDays ? Math.round(parseInt(completionPeriodDays) / 7) : undefined,
-      ifbNumber,
-      contractId,
-      bidSecurityAmount,
-      bidValidity,
-      completionPeriod: completionPeriodDays ? `${completionPeriodDays}` : undefined,
-      commencementDays: '14',
-      bidAmount: boqTotal > 0 ? boqTotal.toFixed(2) : undefined,
+      totalDurationWeeks: totalWeeks,
+      ifbNumber: val('ifbNumber'),
+      contractId: val('contractId'),
+      bidSecurityAmount: val('bidSecurityAmount'),
+      bidValidity: val('bidValidity') || '120',
+      completionPeriod: val('completionPeriod'),
+      commencementDays: val('commencementDays') || '14',
+      bidAmount: boqTotal > 0 ? boqTotal.toFixed(2) : val('estimatedCost'),
       bidAmountWords: '',
-      performanceSecurityPercent: '5',
+      performanceSecurityPercent: val('performanceSecurityPercent') || '5',
     });
-    toast.success('Bid created with all analysis data — BOQ, schedule & details linked!');
+    toast.success('Bid created with all selected data!');
     navigate(`/bid/${id}`);
   }
 
-  const totalBoq = boqItems.reduce((s, i) => s + i.amount, 0);
-  const durationMonths = getContractDurationMonths();
-  const priceAdjApplicable = durationMonths > 0
-    ? isPriceAdjustmentApplicable(durationMonths, priceAdjResult?.adjustmentPercent || 0)
-    : null;
+  const selectedFieldCount = extractedFields.filter(f => f.selected).length;
+  const selectedBoqCount = boqSelected.size;
+  const totalBoq = boqItems.filter(i => boqSelected.has(i.id)).reduce((s, i) => s + i.amount, 0);
+  const categories = ['project', 'dates', 'financial', 'eligibility', 'conditions'] as const;
+  const categoryLabels: Record<string, { label: string; icon: any }> = {
+    project: { label: 'Project Details', icon: FileText },
+    dates: { label: 'Important Dates', icon: Calendar },
+    financial: { label: 'Financial Information', icon: Calculator },
+    eligibility: { label: 'Eligibility Requirements', icon: ClipboardList },
+    conditions: { label: 'Bid Conditions', icon: Info },
+  };
 
   return (
-    <div className="p-4 md:p-6 max-w-4xl mx-auto space-y-6">
+    <div className="p-4 md:p-6 max-w-5xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <FileText className="h-7 w-7 text-primary" />
+        <Sparkles className="h-7 w-7 text-primary" />
         <div>
-          <h1 className="text-2xl font-bold font-heading">Bid Document Analysis</h1>
-          <p className="text-sm text-muted-foreground">Upload & extract key details using AI</p>
+          <h1 className="text-2xl font-bold font-heading">AI Bid Document Analyzer</h1>
+          <p className="text-sm text-muted-foreground">
+            Upload → AI extracts everything → You select what you need → Create bid
+          </p>
         </div>
       </div>
 
-      <Tabs defaultValue="upload" className="space-y-4">
-        <TabsList className="grid grid-cols-5 w-full">
-          <TabsTrigger value="upload">📄 Upload</TabsTrigger>
-          <TabsTrigger value="details">📋 Details</TabsTrigger>
-          <TabsTrigger value="boq">📊 BOQ</TabsTrigger>
-          <TabsTrigger value="schedule">📅 Schedule</TabsTrigger>
-          <TabsTrigger value="price-adj">💰 Price Adj.</TabsTrigger>
-        </TabsList>
-
-        {/* TAB 1: Upload */}
-        <TabsContent value="upload">
+      {/* Phase: Upload */}
+      {phase === 'upload' && (
+        <div className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Upload className="h-5 w-5" /> Upload & Analyze Bidding Document
+              <CardTitle className="flex items-center gap-2">
+                <Upload className="h-5 w-5" /> Upload Bidding Document
               </CardTitle>
+              <CardDescription>
+                Upload a text/CSV file or paste the full bid document text. AI will automatically extract all details.
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Step 1: Upload PDF for reference */}
-              <div className="border-2 border-dashed border-border rounded-xl p-6 text-center space-y-3">
-                <Upload className="h-10 w-10 text-muted-foreground mx-auto" />
-                <p className="text-sm text-muted-foreground">
-                  Upload your PPMO Standard Bidding Document (PDF) for reference
-                </p>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".pdf,.doc,.docx"
-                  className="hidden"
-                  onChange={handleFileUpload}
-                />
-                <Button onClick={() => fileInputRef.current?.click()} variant="outline" className="gap-2">
-                  <Upload className="h-4 w-4" /> Choose File
-                </Button>
+              {/* File upload */}
+              <div
+                className="border-2 border-dashed border-border rounded-xl p-8 text-center cursor-pointer hover:border-primary/50 hover:bg-muted/30 transition-colors"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <input ref={fileInputRef} type="file" accept=".txt,.csv,.doc,.docx,.pdf" className="hidden" onChange={handleFileUpload} />
+                <Upload className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                <p className="text-sm font-medium text-muted-foreground">Drop your bid document here or click to browse</p>
+                <p className="text-xs text-muted-foreground/60 mt-1">Supports TXT, CSV, DOC files (for PDF, paste text below)</p>
               </div>
 
-              {uploadedFile && (
-                <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                  <FileText className="h-5 w-5 text-primary" />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">{uploadedFile.name}</p>
-                    <p className="text-xs text-muted-foreground">{(uploadedFile.size / 1024).toFixed(0)} KB</p>
-                  </div>
-                  <Badge variant="outline" className="text-accent">Uploaded</Badge>
-                </div>
-              )}
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center"><Separator /></div>
+                <div className="relative flex justify-center"><span className="px-3 bg-background text-xs text-muted-foreground">or paste document text</span></div>
+              </div>
 
-              {/* Step 2: Paste document text for AI analysis */}
-              <Separator />
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-primary" />
-                  <Label className="text-sm font-semibold">AI Analysis — Paste Document Text</Label>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Open your bid document, select all text (Ctrl+A), copy it (Ctrl+C), and paste it below. 
-                  AI will extract project name, employer, IFB number, deadlines, bid security, BOQ items, and more.
+              <textarea
+                className="w-full min-h-[250px] p-3 rounded-lg border border-border bg-background text-sm font-mono resize-y focus:outline-none focus:ring-2 focus:ring-ring"
+                placeholder={`Paste the FULL text of your PPMO bidding document here...\n\nInclude:\n• IFB page / cover page\n• Data Sheet (ITB clauses)\n• BOQ / Bill of Quantities table\n• Special conditions\n\nAI will automatically extract:\n✓ Project name, employer, IFB number, contract ID\n✓ All dates (submission, opening, pre-bid meeting)\n✓ Financial details (estimated cost, bid security)\n✓ Eligibility (JV, experience, turnover)\n✓ BOQ items with quantities\n✓ Special conditions & notes`}
+                value={uploadedText}
+                onChange={(e) => setUploadedText(e.target.value)}
+              />
+
+              <Button
+                onClick={() => triggerAnalysis(uploadedText)}
+                disabled={!uploadedText.trim() || isAnalyzing}
+                className="w-full gap-2"
+                size="lg"
+              >
+                <Sparkles className="h-5 w-5" /> Analyze Document with AI
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Phase: Analyzing */}
+      {phase === 'analyzing' && (
+        <Card>
+          <CardContent className="py-12">
+            <div className="text-center space-y-5 max-w-md mx-auto">
+              <Loader2 className="h-14 w-14 text-primary animate-spin mx-auto" />
+              <div>
+                <p className="text-lg font-semibold text-foreground">{analysisStatus}</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  AI is reading your document and extracting all bid details, BOQ items, dates, and conditions...
                 </p>
-                <textarea
-                  className="w-full min-h-[200px] p-3 rounded-lg border border-border bg-background text-sm font-mono resize-y focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  placeholder="Paste the full text content of your bidding document here...
+              </div>
+              <Progress value={analysisProgress} className="h-3" />
+              <p className="text-xs text-muted-foreground">{Math.round(analysisProgress)}% complete</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
-Example: Copy text from IFB page, Data Sheet (ITB), BOQ table, etc.
+      {/* Phase: Review — Selectable results */}
+      {phase === 'review' && (
+        <div className="space-y-4">
+          {/* Summary banner */}
+          {analysisResult?.summary && (
+            <Card className="border-primary/30 bg-primary/5">
+              <CardContent className="py-4">
+                <div className="flex items-start gap-3">
+                  <CheckCircle className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">AI Analysis Complete</p>
+                    <p className="text-sm text-muted-foreground mt-1">{analysisResult.summary}</p>
+                    <div className="flex gap-3 mt-2 text-xs text-muted-foreground">
+                      <span>{extractedFields.length} fields extracted</span>
+                      <span>•</span>
+                      <span>{boqItems.length} BOQ items</span>
+                      <span>•</span>
+                      <span>{specialConditions.length} special conditions</span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
-The AI will automatically extract:
-• Project Name & Employer details
-• IFB Number & Contract ID
-• Submission deadline & bid validity
-• Bid security & completion period
-• BOQ items (if found)"
-                  value={uploadedText}
-                  onChange={(e) => setUploadedText(e.target.value)}
-                />
-                <Button 
-                  onClick={handleAIExtract} 
-                  disabled={isExtracting || !uploadedText.trim()}
-                  className="w-full gap-2"
-                  size="lg"
+          {/* Selection controls */}
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium">
+              <span className="text-primary">{selectedFieldCount}</span> of {extractedFields.length} fields selected
+              {boqItems.length > 0 && <> · <span className="text-primary">{selectedBoqCount}</span> of {boqItems.length} BOQ items</>}
+            </p>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setExtractedFields(prev => prev.map(f => ({ ...f, selected: true })))}>
+                Select All Fields
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => { setPhase('upload'); }}>
+                <ArrowLeft className="h-4 w-4 mr-1" /> Re-analyze
+              </Button>
+            </div>
+          </div>
+
+          {/* Categorized fields */}
+          {categories.map(cat => {
+            const catFields = extractedFields.filter(f => f.category === cat);
+            if (catFields.length === 0) return null;
+            const { label, icon: Icon } = categoryLabels[cat];
+            const isExpanded = expandedSections.has(cat);
+            const selectedInCat = catFields.filter(f => f.selected).length;
+
+            return (
+              <Card key={cat}>
+                <CardHeader
+                  className="cursor-pointer hover:bg-muted/30 transition-colors py-3"
+                  onClick={() => toggleSection(cat)}
                 >
-                  {isExtracting ? (
-                    <><Loader2 className="h-4 w-4 animate-spin" /> AI Analyzing Document...</>
-                  ) : (
-                    <><Sparkles className="h-4 w-4" /> AI Extract — Auto-Fill All Fields</>
-                  )}
-                </Button>
-              </div>
-
-              {/* Quick identification */}
-              <Separator />
-              <p className="text-sm font-medium">Bid Type Identification:</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {[
-                  { type: 'ncb-single' as BidType, hint: 'All docs in ONE envelope, national bidding' },
-                  { type: 'ncb-double' as BidType, hint: 'Technical + Financial in SEPARATE envelopes' },
-                  { type: 'sealed-quotation' as BidType, hint: 'Simple quotation, lower value works' },
-                  { type: 'icb' as BidType, hint: 'International bidding, additional eligibility forms' },
-                ].map(({ type, hint }) => (
-                  <button
-                    key={type}
-                    onClick={() => setBidType(type)}
-                    className={`p-3 rounded-lg border text-left transition-all ${bidType === type
-                      ? 'border-primary bg-primary/10 ring-1 ring-primary'
-                      : 'border-border hover:border-primary/50'
-                      }`}
-                  >
-                    <p className="text-sm font-medium">{BID_TYPE_LABELS[type]}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{hint}</p>
-                  </button>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* TAB 2: Details */}
-        <TabsContent value="details">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Calendar className="h-5 w-5" /> Key Details from Document
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Project Name *</Label>
-                <Input value={projectName} onChange={e => setProjectName(e.target.value)}
-                  placeholder="From IFB / Cover Page" />
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label>Employer / Procuring Entity *</Label>
-                  <Input value={employer} onChange={e => setEmployer(e.target.value)}
-                    placeholder="e.g., DoR, Division Road Office" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Employer Address</Label>
-                  <Input value={employerAddress} onChange={e => setEmployerAddress(e.target.value)}
-                    placeholder="e.g., Gulmi, Nepal" />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label>IFB Number</Label>
-                  <Input value={ifbNumber} onChange={e => setIfbNumber(e.target.value)}
-                    placeholder="From Invitation for Bids" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Contract ID</Label>
-                  <Input value={contractId} onChange={e => setContractId(e.target.value)} />
-                </div>
-              </div>
-
-              <Separator />
-              <p className="text-sm font-semibold">📅 Important Dates</p>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="space-y-2">
-                  <Label>Bid Submission Date *</Label>
-                  <Input type="date" value={submissionDate} onChange={e => setSubmissionDate(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Work Start Date (Intended)</Label>
-                  <Input type="date" value={workStartDate} onChange={e => setWorkStartDate(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Work Completion Date</Label>
-                  <Input type="date" value={workCompletionDate} onChange={e => setWorkCompletionDate(e.target.value)} />
-                </div>
-              </div>
-
-              {durationMonths > 0 && (
-                <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg">
-                  <Calendar className="h-4 w-4 text-primary" />
-                  <span className="text-sm">Contract Duration: <strong>{durationMonths} months</strong>
-                    {durationMonths > 12 && <Badge variant="outline" className="ml-2 text-green-600">Price Adjustment Eligible</Badge>}
-                    {durationMonths <= 12 && <Badge variant="outline" className="ml-2 text-orange-600">No Price Adjustment</Badge>}
-                  </span>
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="space-y-2">
-                  <Label>Completion Period (days)</Label>
-                  <Input value={completionPeriodDays} onChange={e => setCompletionPeriodDays(e.target.value)}
-                    placeholder="e.g., 365" type="number" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Bid Security Amount (NPR)</Label>
-                  <Input value={bidSecurityAmount} onChange={e => setBidSecurityAmount(e.target.value)}
-                    placeholder="From ITB" type="number" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Bid Validity (days)</Label>
-                  <Input value={bidValidity} onChange={e => setBidValidity(e.target.value)}
-                    placeholder="120" type="number" />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Estimated Cost / Engineer's Estimate (NPR)</Label>
-                <Input value={estimatedCost} onChange={e => setEstimatedCost(e.target.value)}
-                  placeholder="If mentioned in bid document" type="number" />
-              </div>
-
-              <div className="flex items-center justify-between p-3 rounded-lg border">
-                <div>
-                  <Label>Joint Venture (JV) Allowed?</Label>
-                  <p className="text-xs text-muted-foreground">Check ITB clause 4.1</p>
-                </div>
-                <Switch checked={isJV} onCheckedChange={setIsJV} />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* TAB 3: BOQ */}
-        <TabsContent value="boq">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">📊 Bill of Quantities (from document)</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-xs text-muted-foreground">
-                Enter BOQ items from Section IV of the bidding document. Major items will be used for work schedule.
-              </p>
-
-              {/* Add BOQ form */}
-              <div className="grid grid-cols-12 gap-2 items-end">
-                <div className="col-span-4 space-y-1">
-                  <Label className="text-xs">Description</Label>
-                  <Input value={newBoqDesc} onChange={e => setNewBoqDesc(e.target.value)}
-                    placeholder="Earthwork excavation" className="text-sm" />
-                </div>
-                <div className="col-span-2 space-y-1">
-                  <Label className="text-xs">Unit</Label>
-                  <Input value={newBoqUnit} onChange={e => setNewBoqUnit(e.target.value)}
-                    placeholder="cum" className="text-sm" />
-                </div>
-                <div className="col-span-2 space-y-1">
-                  <Label className="text-xs">Qty</Label>
-                  <Input value={newBoqQty} onChange={e => setNewBoqQty(e.target.value)}
-                    type="number" className="text-sm" />
-                </div>
-                <div className="col-span-2 space-y-1">
-                  <Label className="text-xs">Rate (NPR)</Label>
-                  <Input value={newBoqRate} onChange={e => setNewBoqRate(e.target.value)}
-                    type="number" className="text-sm" />
-                </div>
-                <div className="col-span-2">
-                  <Button onClick={addBoqItem} size="sm" className="w-full">Add</Button>
-                </div>
-              </div>
-
-              {/* BOQ table */}
-              {boqItems.length > 0 && (
-                <div className="border rounded-lg overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead className="bg-muted/50">
-                      <tr>
-                        <th className="text-left px-3 py-2 font-medium">S.N.</th>
-                        <th className="text-left px-3 py-2 font-medium">Description</th>
-                        <th className="text-left px-3 py-2 font-medium">Unit</th>
-                        <th className="text-right px-3 py-2 font-medium">Qty</th>
-                        <th className="text-right px-3 py-2 font-medium">Rate</th>
-                        <th className="text-right px-3 py-2 font-medium">Amount</th>
-                        <th className="px-3 py-2"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {boqItems.map((item, idx) => (
-                        <tr key={item.id} className="border-t">
-                          <td className="px-3 py-2">{idx + 1}</td>
-                          <td className="px-3 py-2">{item.description}</td>
-                          <td className="px-3 py-2">{item.unit}</td>
-                          <td className="px-3 py-2 text-right">{item.quantity.toLocaleString()}</td>
-                          <td className="px-3 py-2 text-right">{item.rate.toLocaleString()}</td>
-                          <td className="px-3 py-2 text-right font-medium">{item.amount.toLocaleString()}</td>
-                          <td className="px-3 py-2">
-                            <Button variant="ghost" size="sm" onClick={() => removeBoqItem(item.id)}
-                              className="text-destructive h-6 px-2">✕</Button>
-                          </td>
-                        </tr>
-                      ))}
-                      <tr className="border-t bg-muted/30">
-                        <td colSpan={5} className="px-3 py-2 text-right font-semibold">Total:</td>
-                        <td className="px-3 py-2 text-right font-bold">NPR {totalBoq.toLocaleString()}</td>
-                        <td></td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
-              {boqItems.length === 0 && (
-                <div className="text-center py-8 text-muted-foreground">
-                  <p className="text-sm">No BOQ items yet. Add items from the bidding document above.</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* TAB 4: Work Schedule */}
-        <TabsContent value="schedule">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Calendar className="h-5 w-5" /> Auto-Generated Work Schedule
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {boqItems.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <p className="text-sm">Add BOQ items first in the BOQ tab to auto-generate a work schedule.</p>
-                </div>
-              ) : (
-                <>
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 space-y-1">
-                      <Label className="text-xs">Total Project Duration (weeks)</Label>
-                      <Input
-                        type="number"
-                        value={completionPeriodDays ? Math.round(parseInt(completionPeriodDays) / 7) : ''}
-                        onChange={e => setCompletionPeriodDays(String(parseInt(e.target.value || '0') * 7))}
-                        placeholder="e.g., 52"
-                        className="text-sm"
-                      />
-                    </div>
-                    <div className="pt-5">
-                      <Button
-                        onClick={() => {
-                          const totalWeeks = completionPeriodDays ? Math.round(parseInt(completionPeriodDays) / 7) : 52;
-                          const detected = detectActivitiesFromBOQ(boqItems);
-                          const schedule = generateWorkSchedule(detected, totalWeeks);
-                          setWorkSchedule(schedule);
-                          setScheduleGenerated(true);
-                          toast.success(`Generated ${schedule.length} activities from ${boqItems.length} BOQ items`);
-                        }}
-                        className="gap-2"
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <Icon className="h-4 w-4 text-primary" />
+                      {label}
+                      <Badge variant="secondary" className="text-[10px]">{selectedInCat}/{catFields.length}</Badge>
+                    </CardTitle>
+                    {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                  </div>
+                </CardHeader>
+                {isExpanded && (
+                  <CardContent className="pt-0 space-y-2">
+                    {catFields.map(field => (
+                      <div
+                        key={field.key}
+                        className={`flex items-start gap-3 p-3 rounded-lg border transition-colors cursor-pointer ${
+                          field.selected ? 'border-primary/30 bg-primary/5' : 'border-border opacity-60'
+                        }`}
+                        onClick={() => toggleField(field.key)}
                       >
-                        <Calculator className="h-4 w-4" /> Auto-Generate Schedule
-                      </Button>
+                        <Checkbox checked={field.selected} onCheckedChange={() => toggleField(field.key)} className="mt-0.5" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-medium text-muted-foreground">{field.label}</span>
+                            {field.labelNe && <span className="text-[10px] text-muted-foreground/60">({field.labelNe})</span>}
+                          </div>
+                          <Input
+                            className="h-8 text-sm mt-1 border-none bg-transparent px-0 focus:bg-background focus:px-2 focus:border"
+                            value={editedValues[field.key] || field.value}
+                            onChange={(e) => {
+                              e.stopPropagation();
+                              setEditedValues(prev => ({ ...prev, [field.key]: e.target.value }));
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                )}
+              </Card>
+            );
+          })}
+
+          {/* BOQ items */}
+          {boqItems.length > 0 && (
+            <Card>
+              <CardHeader
+                className="cursor-pointer hover:bg-muted/30 transition-colors py-3"
+                onClick={() => toggleSection('boq')}
+              >
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <BarChart3 className="h-4 w-4 text-primary" />
+                    Bill of Quantities (BOQ)
+                    <Badge variant="secondary" className="text-[10px]">{selectedBoqCount}/{boqItems.length}</Badge>
+                    {totalBoq > 0 && <Badge variant="outline" className="text-[10px]">NPR {totalBoq.toLocaleString()}</Badge>}
+                  </CardTitle>
+                  {expandedSections.has('boq') ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                </div>
+              </CardHeader>
+              {expandedSections.has('boq') && (
+                <CardContent className="pt-0 space-y-3">
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={selectAllBoq}>Select All</Button>
+                    <Button variant="outline" size="sm" onClick={deselectAllBoq}>Deselect All</Button>
+                  </div>
+                  <div className="border rounded-lg overflow-hidden">
+                    <div className="overflow-x-auto max-h-[350px] overflow-y-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-muted/60 sticky top-0">
+                          <tr>
+                            <th className="px-2 py-2 w-8"></th>
+                            <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground">SN</th>
+                            <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground">Description</th>
+                            <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground">Unit</th>
+                            <th className="px-2 py-2 text-right text-xs font-semibold text-muted-foreground">Qty</th>
+                            <th className="px-2 py-2 text-right text-xs font-semibold text-muted-foreground">Rate</th>
+                            <th className="px-2 py-2 text-right text-xs font-semibold text-muted-foreground">Amount</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {boqItems.map((item, idx) => (
+                            <tr
+                              key={item.id}
+                              className={`border-t cursor-pointer transition-colors ${boqSelected.has(item.id) ? 'bg-primary/5' : 'opacity-50'} hover:bg-muted/30`}
+                              onClick={() => toggleBoqItem(item.id)}
+                            >
+                              <td className="px-2 py-1.5"><Checkbox checked={boqSelected.has(item.id)} /></td>
+                              <td className="px-2 py-1.5 text-muted-foreground">{idx + 1}</td>
+                              <td className="px-2 py-1.5 max-w-[250px] truncate">{item.description}</td>
+                              <td className="px-2 py-1.5 text-muted-foreground">{item.unit}</td>
+                              <td className="px-2 py-1.5 text-right tabular-nums">{item.quantity.toLocaleString()}</td>
+                              <td className="px-2 py-1.5 text-right tabular-nums">{item.rate.toLocaleString()}</td>
+                              <td className="px-2 py-1.5 text-right tabular-nums font-medium">{item.amount.toLocaleString()}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
-
-                  {/* Detected activities summary */}
-                  {scheduleGenerated && workSchedule.length > 0 && (
-                    <>
-                      <Separator />
-                      <p className="text-sm font-semibold">Detected Activities ({workSchedule.length})</p>
-
-                      {/* Editable table */}
-                      <div className="border rounded-lg overflow-hidden">
-                        <table className="w-full text-sm">
-                          <thead className="bg-muted/50">
-                            <tr>
-                              <th className="text-left px-3 py-2 font-medium w-8">#</th>
-                              <th className="text-left px-3 py-2 font-medium">Activity</th>
-                              <th className="text-center px-3 py-2 font-medium w-20">Major</th>
-                              <th className="text-center px-3 py-2 font-medium w-24">Start (wk)</th>
-                              <th className="text-center px-3 py-2 font-medium w-24">Duration (wk)</th>
-                              <th className="text-center px-3 py-2 font-medium w-24">End (wk)</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {workSchedule.map((item, idx) => (
-                              <tr key={item.id} className={`border-t ${item.isMajor ? 'bg-primary/5 font-medium' : ''}`}>
-                                <td className="px-3 py-1.5 text-muted-foreground">{idx + 1}</td>
-                                <td className="px-3 py-1.5">
-                                  <Input
-                                    value={item.activity}
-                                    onChange={e => {
-                                      const updated = [...workSchedule];
-                                      updated[idx] = { ...item, activity: e.target.value };
-                                      setWorkSchedule(updated);
-                                    }}
-                                    className="h-7 text-sm border-none shadow-none px-0"
-                                  />
-                                </td>
-                                <td className="px-3 py-1.5 text-center">
-                                  <input
-                                    type="checkbox"
-                                    checked={item.isMajor}
-                                    onChange={e => {
-                                      const updated = [...workSchedule];
-                                      updated[idx] = { ...item, isMajor: e.target.checked };
-                                      setWorkSchedule(updated);
-                                    }}
-                                    className="accent-primary"
-                                  />
-                                </td>
-                                <td className="px-3 py-1.5">
-                                  <Input
-                                    type="number"
-                                    value={item.startWeek}
-                                    onChange={e => {
-                                      const updated = [...workSchedule];
-                                      updated[idx] = { ...item, startWeek: parseInt(e.target.value) || 1 };
-                                      setWorkSchedule(updated);
-                                    }}
-                                    className="h-7 text-sm text-center"
-                                    min={1}
-                                  />
-                                </td>
-                                <td className="px-3 py-1.5">
-                                  <Input
-                                    type="number"
-                                    value={item.duration}
-                                    onChange={e => {
-                                      const updated = [...workSchedule];
-                                      updated[idx] = { ...item, duration: parseInt(e.target.value) || 1 };
-                                      setWorkSchedule(updated);
-                                    }}
-                                    className="h-7 text-sm text-center"
-                                    min={1}
-                                  />
-                                </td>
-                                <td className="px-3 py-1.5 text-center text-muted-foreground">
-                                  {item.startWeek + item.duration - 1}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-
-                      {/* Gantt Bar Chart */}
-                      <Separator />
-                      <p className="text-sm font-semibold">📊 Bar Chart (Gantt View)</p>
-                      {(() => {
-                        const maxWeek = Math.max(...workSchedule.map(i => i.startWeek + i.duration - 1), 1);
-                        const monthMarkers: number[] = [];
-                        for (let w = 4; w <= maxWeek; w += 4) monthMarkers.push(w);
-
-                        return (
-                          <div className="border rounded-lg p-3 overflow-x-auto">
-                            {/* Month headers */}
-                            <div className="flex items-center mb-1" style={{ marginLeft: '180px' }}>
-                              {monthMarkers.map(w => (
-                                <div
-                                  key={w}
-                                  className="text-[9px] text-muted-foreground"
-                                  style={{
-                                    position: 'absolute' as const,
-                                    left: `${180 + ((w - 1) / maxWeek) * 600}px`,
-                                  }}
-                                >
-                                  M{Math.ceil(w / 4)}
-                                </div>
-                              ))}
-                            </div>
-
-                            <div className="relative" style={{ minWidth: `${780}px` }}>
-                              {/* Week scale header */}
-                              <div className="flex items-center h-5 mb-1">
-                                <div className="w-[180px] shrink-0 text-[9px] text-muted-foreground font-medium pr-2 text-right">
-                                  Activity
-                                </div>
-                                <div className="flex-1 relative h-full border-b border-border">
-                                  {Array.from({ length: Math.ceil(maxWeek / 4) }, (_, i) => (
-                                    <div
-                                      key={i}
-                                      className="absolute text-[8px] text-muted-foreground"
-                                      style={{ left: `${(i * 4 / maxWeek) * 100}%` }}
-                                    >
-                                      {i * 4 + 1}
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-
-                              {/* Bars */}
-                              {workSchedule.map((item, idx) => {
-                                const left = ((item.startWeek - 1) / maxWeek) * 100;
-                                const width = (item.duration / maxWeek) * 100;
-                                const color = BAR_COLORS[idx % BAR_COLORS.length];
-
-                                return (
-                                  <div key={item.id} className="flex items-center h-7 group">
-                                    <div className="w-[180px] shrink-0 text-[10px] pr-2 text-right truncate" title={item.activity}>
-                                      {item.isMajor && <span className="text-primary mr-1">●</span>}
-                                      {item.activity}
-                                    </div>
-                                    <div className="flex-1 relative h-5 bg-muted/30 rounded-sm">
-                                      {/* Grid lines every 4 weeks */}
-                                      {Array.from({ length: Math.ceil(maxWeek / 4) }, (_, i) => (
-                                        <div
-                                          key={i}
-                                          className="absolute top-0 bottom-0 border-l border-border/30"
-                                          style={{ left: `${(i * 4 / maxWeek) * 100}%` }}
-                                        />
-                                      ))}
-                                      <div
-                                        className="absolute top-0.5 bottom-0.5 rounded-sm transition-all group-hover:brightness-110"
-                                        style={{
-                                          left: `${left}%`,
-                                          width: `${Math.max(width, 1)}%`,
-                                          backgroundColor: color,
-                                          opacity: item.isMajor ? 1 : 0.7,
-                                        }}
-                                      />
-                                    </div>
-                                  </div>
-                                );
-                              })}
-
-                              {/* Legend */}
-                              <div className="flex items-center gap-4 mt-3 text-[10px] text-muted-foreground">
-                                <span className="flex items-center gap-1">
-                                  <span className="text-primary">●</span> Major Item
-                                </span>
-                                <span>Total: {Math.max(...workSchedule.map(i => i.startWeek + i.duration - 1))} weeks</span>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })()}
-
-                      {/* Add/Remove buttons */}
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setWorkSchedule([...workSchedule, {
-                            id: crypto.randomUUID(),
-                            activity: 'New Activity',
-                            duration: 2,
-                            startWeek: workSchedule.length > 0 ? Math.max(...workSchedule.map(i => i.startWeek + i.duration)) : 1,
-                            isMajor: false,
-                          }])}
-                        >
-                          + Add Activity
-                        </Button>
-                        {workSchedule.length > 0 && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setWorkSchedule(workSchedule.slice(0, -1))}
-                          >
-                            Remove Last
-                          </Button>
-                        )}
-                      </div>
-
-                      {/* Export button */}
-                      <Button
-                        variant="outline"
-                        className="w-full gap-2"
-                        onClick={() => exportWorkSchedulePDF({
-                          projectName,
-                          employer,
-                          ifbNumber,
-                          contractId,
-                          workSchedule,
-                          totalDurationWeeks: completionPeriodDays ? Math.round(parseInt(completionPeriodDays) / 7) : 52,
-                        })}
-                      >
-                        <FileDown className="h-4 w-4" /> Export Work Schedule (PDF / Print)
-                      </Button>
-                    </>
-                  )}
-                </>
+                </CardContent>
               )}
+            </Card>
+          )}
+
+          {/* Special conditions */}
+          {specialConditions.length > 0 && (
+            <Card>
+              <CardHeader className="py-3">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-amber-500" />
+                  Special Conditions & Notes
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <ul className="space-y-1">
+                  {specialConditions.map((cond, idx) => (
+                    <li key={idx} className="text-xs text-muted-foreground flex items-start gap-2">
+                      <span className="text-amber-500 mt-0.5">•</span>
+                      {cond}
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Action bar: What do you want to do? */}
+          <Card className="border-primary/30">
+            <CardHeader>
+              <CardTitle className="text-base">What would you like to do?</CardTitle>
+              <CardDescription>Choose actions based on the extracted information</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {/* Action 1: Create Bid */}
+              <Button onClick={handleCreateBid} className="w-full gap-2 justify-start h-auto py-3" size="lg">
+                <ArrowRight className="h-5 w-5 shrink-0" />
+                <div className="text-left">
+                  <p className="font-semibold">Create Bid from Selected Data</p>
+                  <p className="text-xs opacity-80 font-normal">
+                    {selectedFieldCount} fields + {selectedBoqCount} BOQ items → new bid with checklist
+                  </p>
+                </div>
+              </Button>
+
+              {/* Action 2: Generate Work Schedule */}
+              <Button
+                variant="outline"
+                onClick={handleGenerateSchedule}
+                disabled={selectedBoqCount === 0 || scheduleLoading}
+                className="w-full gap-2 justify-start h-auto py-3"
+              >
+                {scheduleLoading ? <Loader2 className="h-5 w-5 animate-spin shrink-0" /> : <Cpu className="h-5 w-5 shrink-0" />}
+                <div className="text-left">
+                  <p className="font-semibold">Generate AI Work Schedule</p>
+                  <p className="text-xs text-muted-foreground font-normal">
+                    AI analyzes {selectedBoqCount} BOQ items → creates activities with dependencies & Gantt chart
+                  </p>
+                </div>
+              </Button>
+
+              {/* Action 3: Price Adjustment */}
+              <Button
+                variant="outline"
+                onClick={() => setPhase('actions')}
+                className="w-full gap-2 justify-start h-auto py-3"
+              >
+                <TrendingUp className="h-5 w-5 shrink-0" />
+                <div className="text-left">
+                  <p className="font-semibold">Calculate Price Adjustment</p>
+                  <p className="text-xs text-muted-foreground font-normal">
+                    NRB Price Index based calculation per PPA Section 55
+                  </p>
+                </div>
+              </Button>
             </CardContent>
           </Card>
-        </TabsContent>
 
-        <TabsContent value="price-adj">
-          <div className="space-y-4">
+          {/* Work Schedule Preview (if generated) */}
+          {workSchedule.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5" /> Price Adjustment Calculator
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4 text-primary" />
+                  Generated Work Schedule ({workSchedule.length} activities)
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="bg-accent/30 p-3 rounded-lg text-xs space-y-1">
-                  <p className="font-medium">Formula (PPA Section 55 / PPR Rule 119):</p>
-                  <p className="font-mono">Pn = a + b×(Ln/Lo) + c×(Mn/Mo) + d×(En/Eo) + e×(Fn/Fo)</p>
-                  <p className="text-muted-foreground">Where a=fixed, b=labor, c=materials, d=equipment, e=fuel coefficients. L,M,E,F = NRB indices.</p>
+                {/* Schedule table */}
+                <div className="border rounded-lg overflow-hidden">
+                  <div className="overflow-x-auto max-h-[300px] overflow-y-auto">
+                    <table className="w-full text-xs">
+                      <thead className="bg-muted/60 sticky top-0">
+                        <tr>
+                          <th className="px-2 py-2 text-left">#</th>
+                          <th className="px-2 py-2 text-left">Activity</th>
+                          <th className="px-2 py-2 text-center">Duration</th>
+                          <th className="px-2 py-2 text-center">Start</th>
+                          <th className="px-2 py-2 text-center">End</th>
+                          <th className="px-2 py-2 text-left"><Link2 className="h-3 w-3 inline" /> Pred.</th>
+                          <th className="px-2 py-2 text-center">Major</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {workSchedule.map((item, idx) => {
+                          const predNames = (item.dependencies || [])
+                            .map(depId => { const pi = workSchedule.findIndex(w => w.id === depId); return pi >= 0 ? `${pi + 1}` : null; })
+                            .filter(Boolean);
+                          return (
+                            <tr key={item.id} className={`border-t ${item.isMajor ? 'bg-primary/5 font-medium' : ''}`}>
+                              <td className="px-2 py-1.5 text-muted-foreground">{idx + 1}</td>
+                              <td className="px-2 py-1.5">{item.activity}</td>
+                              <td className="px-2 py-1.5 text-center">{item.duration}w</td>
+                              <td className="px-2 py-1.5 text-center">Wk {item.startWeek}</td>
+                              <td className="px-2 py-1.5 text-center">Wk {item.startWeek + item.duration - 1}</td>
+                              <td className="px-2 py-1.5">
+                                {predNames.length > 0 ? predNames.map(p => <Badge key={p} variant="outline" className="text-[9px] h-4 px-1 mr-0.5">{p}FS</Badge>) : '—'}
+                              </td>
+                              <td className="px-2 py-1.5 text-center">{item.isMajor ? '★' : ''}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
 
-                {priceAdjApplicable && (
-                  <div className={`flex items-start gap-2 p-3 rounded-lg ${priceAdjApplicable.applicable
-                    ? 'bg-green-500/10 border border-green-500/20'
-                    : 'bg-orange-500/10 border border-orange-500/20'
-                    }`}>
-                    {priceAdjApplicable.applicable
-                      ? <CheckCircle className="h-4 w-4 text-green-600 mt-0.5" />
-                      : <AlertTriangle className="h-4 w-4 text-orange-600 mt-0.5" />}
-                    <p className="text-xs">{priceAdjApplicable.reason}</p>
-                  </div>
-                )}
+                {/* Gantt chart */}
+                <GanttChart items={workSchedule} totalWeeks={editedValues.completionPeriod ? Math.round(parseInt(editedValues.completionPeriod) / 7) : 24} />
 
-                {/* Coefficient preset */}
+                <Button variant="outline" size="sm" className="gap-2" onClick={() => exportWorkSchedulePDF({
+                  projectName: editedValues.projectName || '',
+                  employer: editedValues.employer || '',
+                  ifbNumber: editedValues.ifbNumber || '',
+                  contractId: editedValues.contractId || '',
+                  workSchedule,
+                  totalDurationWeeks: editedValues.completionPeriod ? Math.round(parseInt(editedValues.completionPeriod) / 7) : 24,
+                })}>
+                  <FileDown className="h-3 w-3" /> Export Schedule PDF
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {/* Phase: Actions — Price Adjustment */}
+      {phase === 'actions' && (
+        <div className="space-y-4">
+          <Button variant="ghost" size="sm" onClick={() => setPhase('review')} className="gap-1">
+            <ArrowLeft className="h-4 w-4" /> Back to Review
+          </Button>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <TrendingUp className="h-5 w-5" /> Price Adjustment Calculator
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="bg-accent/30 p-3 rounded-lg text-xs space-y-1">
+                <p className="font-medium">Formula (PPA Section 55 / PPR Rule 119):</p>
+                <p className="font-mono">Pn = a + b×(Ln/Lo) + c×(Mn/Mo) + d×(En/Eo) + e×(Fn/Fo)</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Work Type Preset</Label>
+                <Select value={coeffPreset} onValueChange={v => { setCoeffPreset(v); setCoefficients(COEFFICIENT_PRESETS[v].coefficients); }}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(COEFFICIENT_PRESETS).map(([key, { label }]) => (
+                      <SelectItem key={key} value={key}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-5 gap-2">
+                {([['a', 'Fixed'], ['b', 'Labor'], ['c', 'Materials'], ['d', 'Equipment'], ['e', 'Fuel']] as const).map(([key, label]) => (
+                  <div key={key} className="space-y-1">
+                    <Label className="text-xs">{label} ({key})</Label>
+                    <Input type="number" step="0.01" value={coefficients[key]}
+                      onChange={e => setCoefficients({ ...coefficients, [key]: parseFloat(e.target.value) || 0 })}
+                      className="text-sm text-center" />
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <Label>Work Type (for coefficient preset)</Label>
-                  <Select value={coeffPreset} onValueChange={v => {
-                    setCoeffPreset(v);
-                    setCoefficients(COEFFICIENT_PRESETS[v].coefficients);
-                  }}>
+                  <Label>Base Year</Label>
+                  <Select value={baseYear} onValueChange={setBaseYear}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {Object.entries(COEFFICIENT_PRESETS).map(([key, { label }]) => (
-                        <SelectItem key={key} value={key}>{label}</SelectItem>
+                      {NRB_PRICE_INDEX_DATA.map(d => (
+                        <SelectItem key={d.fiscalYear} value={d.fiscalYear}>{d.fiscalYear}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-
-                {/* Coefficients */}
-                <div className="grid grid-cols-5 gap-2">
-                  {([
-                    ['a', 'Fixed (a)'],
-                    ['b', 'Labor (b)'],
-                    ['c', 'Materials (c)'],
-                    ['d', 'Equipment (d)'],
-                    ['e', 'Fuel (e)'],
-                  ] as const).map(([key, label]) => (
-                    <div key={key} className="space-y-1">
-                      <Label className="text-xs">{label}</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={coefficients[key]}
-                        onChange={e => setCoefficients({ ...coefficients, [key]: parseFloat(e.target.value) || 0 })}
-                        className="text-sm text-center"
-                      />
-                    </div>
-                  ))}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Sum: {(coefficients.a + coefficients.b + coefficients.c + coefficients.d + coefficients.e).toFixed(2)}
-                  {Math.abs((coefficients.a + coefficients.b + coefficients.c + coefficients.d + coefficients.e) - 1) > 0.001 && (
-                    <span className="text-destructive ml-2">⚠ Must equal 1.00</span>
-                  )}
-                </p>
-
-                {/* Year selection */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label>Base Year (Lo — bid opening date)</Label>
-                    <Select value={baseYear} onValueChange={setBaseYear}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {NRB_PRICE_INDEX_DATA.map(d => (
-                          <SelectItem key={d.fiscalYear} value={d.fiscalYear}>
-                            {d.fiscalYear} BS ({d.fiscalYearAD} AD)
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Current Year (Ln — payment date)</Label>
-                    <Select value={currentYear} onValueChange={setCurrentYear}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {NRB_PRICE_INDEX_DATA.map(d => (
-                          <SelectItem key={d.fiscalYear} value={d.fiscalYear}>
-                            {d.fiscalYear} BS ({d.fiscalYearAD} AD)
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                {/* NRB Index table */}
-                <div className="border rounded-lg overflow-auto">
-                  <table className="w-full text-xs">
-                    <thead className="bg-muted/50">
-                      <tr>
-                        <th className="px-2 py-1.5 text-left">Year (BS)</th>
-                        <th className="px-2 py-1.5 text-right">Overall</th>
-                        <th className="px-2 py-1.5 text-right">Food</th>
-                        <th className="px-2 py-1.5 text-right">Non-Food</th>
-                        <th className="px-2 py-1.5 text-right">Construction</th>
-                        <th className="px-2 py-1.5 text-right">Labor</th>
-                        <th className="px-2 py-1.5 text-right">Fuel</th>
-                      </tr>
-                    </thead>
-                    <tbody>
+                <div className="space-y-2">
+                  <Label>Current Year</Label>
+                  <Select value={currentYear} onValueChange={setCurrentYear}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
                       {NRB_PRICE_INDEX_DATA.map(d => (
-                        <tr key={d.fiscalYear} className={`border-t ${(d.fiscalYear === baseYear || d.fiscalYear === currentYear) ? 'bg-primary/10 font-medium' : ''}`}>
-                          <td className="px-2 py-1.5">{d.fiscalYear}</td>
-                          <td className="px-2 py-1.5 text-right">{d.overall.toFixed(1)}</td>
-                          <td className="px-2 py-1.5 text-right">{d.food.toFixed(1)}</td>
-                          <td className="px-2 py-1.5 text-right">{d.nonFood.toFixed(1)}</td>
-                          <td className="px-2 py-1.5 text-right">{d.construction.toFixed(1)}</td>
-                          <td className="px-2 py-1.5 text-right">{d.labor.toFixed(1)}</td>
-                          <td className="px-2 py-1.5 text-right">{d.fuel.toFixed(1)}</td>
-                        </tr>
+                        <SelectItem key={d.fiscalYear} value={d.fiscalYear}>{d.fiscalYear}</SelectItem>
                       ))}
-                    </tbody>
-                  </table>
+                    </SelectContent>
+                  </Select>
                 </div>
-                <p className="text-[10px] text-muted-foreground">
-                  Source: Nepal Rastra Bank CPI Data. Base Year: 2080/81 BS = 100. Construction & Labor indices derived from NRB sectoral reports.
-                </p>
+              </div>
 
-                <Button onClick={handleCalculatePriceAdj} className="w-full gap-2">
-                  <Calculator className="h-4 w-4" /> Calculate Multiplying Factor
-                </Button>
+              <Button onClick={handleCalculatePriceAdj} className="w-full gap-2">
+                <Calculator className="h-4 w-4" /> Calculate
+              </Button>
 
-                {/* Result */}
-                {priceAdjResult && (
-                  <Card className="border-primary/30 bg-primary/5">
-                    <CardContent className="pt-4 space-y-3">
-                      <div className="text-center">
-                        <p className="text-sm text-muted-foreground">Multiplying Factor (Pn)</p>
-                        <p className="text-4xl font-bold text-primary">{priceAdjResult.multiplyingFactor}</p>
-                        <p className="text-sm mt-1">
-                          Price Adjustment: <strong>{priceAdjResult.adjustmentPercent > 0 ? '+' : ''}{priceAdjResult.adjustmentPercent}%</strong>
-                        </p>
-                      </div>
-
-                      <Separator />
-
-                      <div className="grid grid-cols-5 gap-2 text-center text-xs">
-                        <div>
-                          <p className="text-muted-foreground">Fixed</p>
-                          <p className="font-medium">{priceAdjResult.breakDown.fixed}</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Labor</p>
-                          <p className="font-medium">{priceAdjResult.breakDown.labor}</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Materials</p>
-                          <p className="font-medium">{priceAdjResult.breakDown.materials}</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Equipment</p>
-                          <p className="font-medium">{priceAdjResult.breakDown.equipment}</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Fuel</p>
-                          <p className="font-medium">{priceAdjResult.breakDown.fuel}</p>
-                        </div>
-                      </div>
-
-                      <Separator />
-
-                      <div className="flex justify-between text-sm">
-                        <span>Original Amount:</span>
-                        <span>NPR {(parseFloat(estimatedCost) || totalBoq).toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between text-sm font-bold">
-                        <span>Adjusted Amount:</span>
-                        <span>NPR {priceAdjResult.adjustedAmount.toLocaleString()}</span>
-                      </div>
-
-                      {priceAdjResult.adjustmentPercent > 25 && (
-                        <div className="flex items-start gap-2 p-2 bg-destructive/10 rounded-lg">
-                          <AlertTriangle className="h-4 w-4 text-destructive mt-0.5" />
-                          <p className="text-xs text-destructive">
-                            Exceeds 25% cap per PPR Rule 119(3). Contract may be terminated or renegotiated.
-                          </p>
-                        </div>
-                      )}
-
-                      <Separator />
-
-                      <Button
-                        onClick={() => exportPriceAdjustmentPDF({
-                          projectName,
-                          employer,
-                          ifbNumber,
-                          contractId,
-                          baseYear,
-                          currentYear,
-                          coefficients,
-                          coeffPresetLabel: COEFFICIENT_PRESETS[coeffPreset]?.label || coeffPreset,
-                          result: priceAdjResult,
-                          originalAmount: parseFloat(estimatedCost) || totalBoq,
-                        })}
-                        variant="outline"
-                        className="w-full gap-2"
-                      >
-                        <FileDown className="h-4 w-4" /> Export Price Adjustment Report (PDF)
-                      </Button>
-                    </CardContent>
-                  </Card>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-      </Tabs>
-
-      {/* Create Bid CTA */}
-      <Card className="border-primary/30">
-        <CardContent className="pt-4">
-          <Button onClick={handleCreateBid} className="w-full gap-2" size="lg">
-            <ArrowRight className="h-5 w-5" /> Create Bid from This Analysis & Start Preparing
-          </Button>
-          <p className="text-xs text-muted-foreground text-center mt-2">
-            This will create a new bid with all details, BOQ items, and checklist ready to go.
-          </p>
-        </CardContent>
-      </Card>
+              {priceAdjResult && (
+                <Card className="border-primary/30 bg-primary/5">
+                  <CardContent className="pt-4 space-y-3">
+                    <div className="text-center">
+                      <p className="text-sm text-muted-foreground">Multiplying Factor (Pn)</p>
+                      <p className="text-4xl font-bold text-primary">{priceAdjResult.multiplyingFactor}</p>
+                      <p className="text-sm mt-1">Adjustment: <strong>{priceAdjResult.adjustmentPercent > 0 ? '+' : ''}{priceAdjResult.adjustmentPercent}%</strong></p>
+                    </div>
+                    <Separator />
+                    <div className="flex justify-between text-sm">
+                      <span>Original:</span>
+                      <span>NPR {(parseFloat(editedValues.estimatedCost || '0') || totalBoq).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between text-sm font-bold">
+                      <span>Adjusted:</span>
+                      <span>NPR {priceAdjResult.adjustedAmount.toLocaleString()}</span>
+                    </div>
+                    <Button variant="outline" className="w-full gap-2" onClick={() => exportPriceAdjustmentPDF({
+                      projectName: editedValues.projectName || '', employer: editedValues.employer || '',
+                      ifbNumber: editedValues.ifbNumber || '', contractId: editedValues.contractId || '',
+                      baseYear, currentYear, coefficients,
+                      coeffPresetLabel: COEFFICIENT_PRESETS[coeffPreset]?.label || coeffPreset,
+                      result: priceAdjResult,
+                      originalAmount: parseFloat(editedValues.estimatedCost || '0') || totalBoq,
+                    })}>
+                      <FileDown className="h-4 w-4" /> Export Report
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
