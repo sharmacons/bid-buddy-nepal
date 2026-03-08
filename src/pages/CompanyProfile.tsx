@@ -188,6 +188,7 @@ export default function CompanyProfile() {
       designation: data.designation,
       contactPhone: data.contactPhone,
       contactEmail: data.contactEmail,
+      logoUrl: logoUrl || undefined,
     });
     toast.success('Company profile saved!');
   }
