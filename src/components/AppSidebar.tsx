@@ -14,6 +14,7 @@ const NAV_ITEMS = [
   { to: '/', label: 'Dashboard', labelNe: 'ड्यासबोर्ड', icon: LayoutDashboard },
   { to: '/company', label: 'Company Profile', labelNe: 'कम्पनी प्रोफाइल', icon: Building2 },
   { to: '/bid/new', label: 'New Bid', labelNe: 'नयाँ बोलपत्र', icon: FilePlus },
+  { to: '/analyze', label: 'Analyze Document', labelNe: 'कागजात विश्लेषण', icon: FileSearch },
   { to: '/templates', label: 'Templates', labelNe: 'नमुनाहरू', icon: FileText },
   { to: '/tracker', label: 'Bid Tracker', labelNe: 'बोलपत्र ट्र्याकर', icon: ClipboardList },
   { to: '/documents', label: 'Documents', labelNe: 'कागजातहरू', icon: FolderArchive },

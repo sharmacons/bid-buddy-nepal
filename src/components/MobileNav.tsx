@@ -13,8 +13,8 @@ const ITEMS = [
   { to: '/', icon: LayoutDashboard, label: 'Home' },
   { to: '/company', icon: Building2, label: 'Company' },
   { to: '/bid/new', icon: FilePlus, label: 'New Bid' },
+  { to: '/analyze', icon: FileSearch, label: 'Analyze' },
   { to: '/tracker', icon: ClipboardList, label: 'Tracker' },
-  { to: '/documents', icon: FolderArchive, label: 'Docs' },
 ];
 
 export default function MobileNav() {

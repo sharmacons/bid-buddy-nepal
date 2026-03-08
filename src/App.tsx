@@ -31,6 +31,7 @@ const App = () => (
             <Route path="/templates" element={<Templates />} />
             <Route path="/tracker" element={<BidTracker />} />
             <Route path="/documents" element={<Documents />} />
+            <Route path="/analyze" element={<BidAnalysis />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
