@@ -359,7 +359,9 @@ Notes:
 Following contracts shall not be counted:
 a) Contracts invited/accepted before 2078-12-03 B.S (March 17, 2022)
 b) Contracts invited after 2078-12-03 B.S and accepted but work acceptance report approved per Rule 117 of PPR
-c) Contracts running under all types of foreign assistance`;
+c) Contracts running under all types of foreign assistance
+
+${STAMP_SEAL}`;
 
   return table;
 }
