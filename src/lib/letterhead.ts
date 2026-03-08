@@ -408,7 +408,11 @@ export function generatePrintPackageHTML(params: {
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Mukta:wght@400;600;700;800&display=swap');
   @page { size: A4; margin: 20mm 15mm; }
+  @page landscape { size: A4 landscape; margin: 12mm 10mm; }
+  @page portrait { size: A4; margin: 20mm 15mm; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
+  .landscape-page { page: landscape; }
+  .portrait-page { page: portrait; }
   body { font-family: 'Times New Roman', serif; font-size: 12pt; line-height: 1.6; color: #000; }
   ${LETTERHEAD_CSS}
   ${GANTT_CSS}
