@@ -96,13 +96,23 @@ export default function Templates() {
   }, [profile, selectedBid]);
 
   function handlePrintAll() {
+    // Auto-generate work schedule for print if needed
+    const workSchedule = (() => {
+      if (selectedBid?.workSchedule && selectedBid.workSchedule.length > 0) return selectedBid.workSchedule;
+      if (selectedBid?.boqItems && selectedBid.boqItems.length > 0) {
+        const detected = detectActivitiesFromBOQ(selectedBid.boqItems);
+        return generateWorkSchedule(detected, selectedBid.totalDurationWeeks || 24);
+      }
+      return undefined;
+    })();
+
     const printWindow = window.open('', '_blank');
     if (!printWindow) { toast.error('Please allow popups'); return; }
     printWindow.document.write(generatePrintPackageHTML({
       profile,
       projectName: selectedBid?.projectName || 'PPMO Standard Templates',
       documents: templates,
-      workSchedule: selectedBid?.workSchedule,
+      workSchedule,
       totalDurationWeeks: selectedBid?.totalDurationWeeks || 24,
     }));
     printWindow.document.close();
