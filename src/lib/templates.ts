@@ -77,13 +77,14 @@ If our Bid is accepted, we undertake to commence the Works within ${commence} da
 If our Bid is accepted, we will obtain the guarantee of a bank in a sum equivalent to ${perfSecurity}% of the Accepted Contract Amount for the due performance of the Contract.
 
 Name: ${rep}
-In the capacity of: Authorized Representative
+In the capacity of: ${designation}
 Signed: ___________________________
 Duly authorized to sign the Bid for and on behalf of: ${co}
 Date: ${new Date().toLocaleDateString('en-GB')}
 
 ${co}
-${addr}`;
+${addr}
+PAN/VAT: ${pan}`;
 }
 
 export function bidSecurityTemplate(profile: CompanyProfile | null, bid?: Partial<BidData>): string {
