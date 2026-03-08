@@ -36,6 +36,18 @@ import {
 } from 'lucide-react';
 import { exportPriceAdjustmentPDF } from '@/lib/pdf-export';
 
+// Bar colors for Gantt chart
+const BAR_COLORS = [
+  'hsl(var(--primary))',
+  'hsl(210, 70%, 50%)',
+  'hsl(150, 60%, 40%)',
+  'hsl(30, 80%, 50%)',
+  'hsl(340, 65%, 47%)',
+  'hsl(260, 55%, 50%)',
+  'hsl(180, 50%, 40%)',
+  'hsl(45, 80%, 45%)',
+];
+
 export default function BidAnalysis() {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
