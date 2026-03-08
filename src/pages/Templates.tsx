@@ -209,7 +209,7 @@ export default function Templates() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Textarea className="font-mono text-xs min-h-[200px]" defaultValue={tpl.content} readOnly key={tpl.content.slice(0, 50)} />
+            <Textarea className="font-mono text-xs min-h-[200px]" defaultValue={tpl.content} key={tpl.content.slice(0, 50)} />
             <Button variant="outline" size="sm" className="mt-2 gap-2" onClick={() => {
               navigator.clipboard.writeText(tpl.content);
               toast.success('Copied!');
