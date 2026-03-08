@@ -1,5 +1,5 @@
 import ExcelJS from 'exceljs';
-import { WorkScheduleItem } from './types';
+import { WorkScheduleItem, BOQItem } from './types';
 import { computeCriticalPath } from './critical-path';
 
 // Color palette for Gantt bars
