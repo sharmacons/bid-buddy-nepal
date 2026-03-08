@@ -176,34 +176,16 @@ export default function BidDetail() {
     save({ ...bid!, workSchedule: bid!.workSchedule.filter((i) => i.id !== itemId) });
   }
 
-  // Print all documents
+  // Print all documents with letterhead
   function handlePrint() {
     const allDocs = generateAllDocuments();
     const printWindow = window.open('', '_blank');
     if (!printWindow) { toast.error('Please allow popups'); return; }
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html><head><title>Bid Documents - ${bid!.projectName}</title>
-      <style>
-        @page { margin: 2cm; size: A4; }
-        body { font-family: 'Times New Roman', serif; font-size: 12pt; line-height: 1.6; color: #000; }
-        .page-break { page-break-before: always; }
-        pre { white-space: pre-wrap; font-family: 'Times New Roman', serif; font-size: 12pt; line-height: 1.6; }
-        h1 { text-align: center; font-size: 16pt; margin-bottom: 20pt; }
-        table { width: 100%; border-collapse: collapse; margin: 10pt 0; }
-        td, th { border: 1px solid #000; padding: 4pt 8pt; text-align: left; font-size: 11pt; }
-        @media print { .no-print { display: none; } }
-      </style></head><body>
-      <div class="no-print" style="text-align:center;padding:20px;background:#f0f0f0;margin-bottom:20px;">
-        <button onclick="window.print()" style="padding:10px 30px;font-size:14pt;cursor:pointer;">🖨️ Print All Documents</button>
-      </div>
-      ${allDocs.map((doc, i) => `
-        ${i > 0 ? '<div class="page-break"></div>' : ''}
-        <h1>${doc.title}</h1>
-        <pre>${doc.content}</pre>
-      `).join('')}
-      </body></html>
-    `);
+    printWindow.document.write(generatePrintPackageHTML({
+      profile,
+      projectName: bid!.projectName,
+      documents: allDocs,
+    }));
     printWindow.document.close();
   }
 
