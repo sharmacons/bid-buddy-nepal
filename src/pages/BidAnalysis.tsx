@@ -34,9 +34,10 @@ import {
   ArrowRight,
   Info,
   FileDown,
+  Sparkles,
+  Loader2,
 } from 'lucide-react';
 import { exportPriceAdjustmentPDF, exportWorkSchedulePDF } from '@/lib/pdf-export';
-import { Sparkles, Loader2 } from 'lucide-react';
 
 // Bar colors for Gantt chart
 const BAR_COLORS = [
