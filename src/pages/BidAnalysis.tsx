@@ -801,6 +801,8 @@ export default function BidAnalysis() {
               </CardContent>
             </Card>
           )}
+            </div>{/* end right panel */}
+          </div>{/* end grid/comparison wrapper */}
         </div>
       )}
 
