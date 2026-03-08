@@ -8,7 +8,10 @@ export interface JVPartner {
   country: string;
   yearOfConstitution: string;
   address: string;
+  panVatNumber: string;
+  registrationNumber: string;
   authorizedRepresentative: string;
+  designation: string; // MD, Proprietor, Partner, Director, etc.
   contactPhone: string;
   contactEmail: string;
   sharePercentage: number;
