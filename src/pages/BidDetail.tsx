@@ -196,6 +196,39 @@ export default function BidDetail() {
     save({ ...bid!, workSchedule: bid!.workSchedule.filter((i) => i.id !== itemId) });
   }
 
+  // Document upload for bid reference
+  function handleBidDocUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 20 * 1024 * 1024) { toast.error('File too large (max 20MB)'); return; }
+    setBidDocument({ name: file.name, size: file.size });
+    toast.success(`${file.name} uploaded as bid reference document.`);
+    if (bidDocRef.current) bidDocRef.current.value = '';
+  }
+
+  // AI content suggestions
+  async function handleAISuggest(type: 'suggest-methodology' | 'suggest-site-organization' | 'suggest-mobilization') {
+    setAiLoading(type);
+    const context = {
+      projectName: bid!.projectName,
+      bidType: bid!.bidType,
+      bidAmount: bid!.bidAmount,
+      completionPeriod: bid!.completionPeriod,
+      commencementDays: bid!.commencementDays,
+    };
+    try {
+      const result = await suggestContent(type, bid!.notes || bid!.projectName, context);
+      if (result) {
+        if (type === 'suggest-methodology') save({ ...bid!, methodology: result });
+        else if (type === 'suggest-site-organization') save({ ...bid!, siteOrganization: result });
+        else if (type === 'suggest-mobilization') save({ ...bid!, mobilizationPlan: result });
+        toast.success('AI content generated! Review and edit as needed.');
+      }
+    } finally {
+      setAiLoading(null);
+    }
+  }
+
   // Print all documents with letterhead
   function handlePrint() {
     const allDocs = generateAllDocuments();
