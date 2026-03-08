@@ -25,6 +25,7 @@ import {
   PriceAdjustmentResult,
 } from '@/lib/price-index';
 import { exportPriceAdjustmentPDF, exportWorkSchedulePDF } from '@/lib/pdf-export';
+import { exportWorkScheduleExcel } from '@/lib/excel-export';
 import GanttChart from '@/components/GanttChart';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
@@ -853,16 +854,28 @@ export default function BidAnalysis() {
                 {/* Gantt chart */}
                 <GanttChart items={workSchedule} totalWeeks={editedValues.completionPeriod ? Math.round(parseInt(editedValues.completionPeriod) / 7) : 24} />
 
-                <Button variant="outline" size="sm" className="gap-2" onClick={() => exportWorkSchedulePDF({
-                  projectName: editedValues.projectName || '',
-                  employer: editedValues.employer || '',
-                  ifbNumber: editedValues.ifbNumber || '',
-                  contractId: editedValues.contractId || '',
-                  workSchedule,
-                  totalDurationWeeks: editedValues.completionPeriod ? Math.round(parseInt(editedValues.completionPeriod) / 7) : 24,
-                })}>
-                  <FileDown className="h-3 w-3" /> Export Schedule PDF
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" className="gap-2" onClick={() => exportWorkSchedulePDF({
+                    projectName: editedValues.projectName || '',
+                    employer: editedValues.employer || '',
+                    ifbNumber: editedValues.ifbNumber || '',
+                    contractId: editedValues.contractId || '',
+                    workSchedule,
+                    totalDurationWeeks: editedValues.completionPeriod ? Math.round(parseInt(editedValues.completionPeriod) / 7) : 24,
+                  })}>
+                    <FileDown className="h-3 w-3" /> Export PDF
+                  </Button>
+                  <Button variant="outline" size="sm" className="gap-2" onClick={() => exportWorkScheduleExcel({
+                    projectName: editedValues.projectName || '',
+                    employer: editedValues.employer || '',
+                    ifbNumber: editedValues.ifbNumber || '',
+                    contractId: editedValues.contractId || '',
+                    workSchedule,
+                    totalDurationWeeks: editedValues.completionPeriod ? Math.round(parseInt(editedValues.completionPeriod) / 7) : 24,
+                  })}>
+                    <FileDown className="h-3 w-3" /> Export Excel (.xlsx)
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           )}

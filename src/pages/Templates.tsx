@@ -16,6 +16,7 @@ import {
 import { detectActivitiesFromBOQ, generateWorkSchedule } from '@/lib/work-schedule';
 import { generatePrintPackageHTML } from '@/lib/letterhead';
 import { exportWorkSchedulePDF } from '@/lib/pdf-export';
+import { exportWorkScheduleExcel } from '@/lib/excel-export';
 import GanttChart from '@/components/GanttChart';
 import { WorkScheduleItem } from '@/lib/types';
 import { toast } from 'sonner';
@@ -230,18 +231,32 @@ export default function Templates() {
           </CardHeader>
           <CardContent className="space-y-4">
             <GanttChart items={workScheduleItems} totalWeeks={selectedBid?.totalDurationWeeks || 24} />
-            <Button variant="outline" size="sm" className="gap-2" onClick={() => {
-              exportWorkSchedulePDF({
-                projectName: selectedBid?.projectName || '',
-                employer: selectedBid?.employer || '',
-                ifbNumber: selectedBid?.ifbNumber || '',
-                contractId: selectedBid?.contractId || '',
-                workSchedule: workScheduleItems,
-                totalDurationWeeks: selectedBid?.totalDurationWeeks || 24,
-              });
-            }}>
-              <Download className="h-3 w-3" /> Export Gantt Chart PDF (Landscape)
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" className="gap-2" onClick={() => {
+                exportWorkSchedulePDF({
+                  projectName: selectedBid?.projectName || '',
+                  employer: selectedBid?.employer || '',
+                  ifbNumber: selectedBid?.ifbNumber || '',
+                  contractId: selectedBid?.contractId || '',
+                  workSchedule: workScheduleItems,
+                  totalDurationWeeks: selectedBid?.totalDurationWeeks || 24,
+                });
+              }}>
+                <Download className="h-3 w-3" /> Export PDF
+              </Button>
+              <Button variant="outline" size="sm" className="gap-2" onClick={() => {
+                exportWorkScheduleExcel({
+                  projectName: selectedBid?.projectName || '',
+                  employer: selectedBid?.employer || '',
+                  ifbNumber: selectedBid?.ifbNumber || '',
+                  contractId: selectedBid?.contractId || '',
+                  workSchedule: workScheduleItems,
+                  totalDurationWeeks: selectedBid?.totalDurationWeeks || 24,
+                });
+              }}>
+                <Download className="h-3 w-3" /> Export Excel (.xlsx)
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}

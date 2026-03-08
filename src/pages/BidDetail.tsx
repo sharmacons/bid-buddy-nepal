@@ -22,6 +22,7 @@ import {
 } from '@/lib/templates';
 import { generatePrintPackageHTML } from '@/lib/letterhead';
 import { exportWorkSchedulePDF } from '@/lib/pdf-export';
+import { exportWorkScheduleExcel } from '@/lib/excel-export';
 import { suggestContent, generateAISchedule } from '@/lib/ai-assist';
 import { detectActivitiesFromBOQ, generateWorkSchedule } from '@/lib/work-schedule';
 import { toast } from 'sonner';
@@ -888,18 +889,32 @@ export default function BidDetail() {
                       📊 Gantt Chart with Critical Path & Timeline
                     </h4>
                     <GanttChart items={bid.workSchedule} totalWeeks={bid.totalDurationWeeks || 24} />
-                    <Button variant="outline" size="sm" className="mt-3 gap-2" onClick={() => {
-                      exportWorkSchedulePDF({
-                        projectName: bid.projectName,
-                        employer: bid.employer,
-                        ifbNumber: bid.ifbNumber,
-                        contractId: bid.contractId,
-                        workSchedule: bid.workSchedule,
-                        totalDurationWeeks: bid.totalDurationWeeks || 24,
-                      });
-                    }}>
-                      <Download className="h-3 w-3" /> Export Gantt PDF
-                    </Button>
+                    <div className="flex gap-2 mt-3">
+                      <Button variant="outline" size="sm" className="gap-2" onClick={() => {
+                        exportWorkSchedulePDF({
+                          projectName: bid.projectName,
+                          employer: bid.employer,
+                          ifbNumber: bid.ifbNumber,
+                          contractId: bid.contractId,
+                          workSchedule: bid.workSchedule,
+                          totalDurationWeeks: bid.totalDurationWeeks || 24,
+                        });
+                      }}>
+                        <Download className="h-3 w-3" /> Export PDF
+                      </Button>
+                      <Button variant="outline" size="sm" className="gap-2" onClick={() => {
+                        exportWorkScheduleExcel({
+                          projectName: bid.projectName,
+                          employer: bid.employer,
+                          ifbNumber: bid.ifbNumber,
+                          contractId: bid.contractId,
+                          workSchedule: bid.workSchedule,
+                          totalDurationWeeks: bid.totalDurationWeeks || 24,
+                        });
+                      }}>
+                        <Download className="h-3 w-3" /> Export Excel (.xlsx)
+                      </Button>
+                    </div>
                   </div>
                 </div>
               )}
