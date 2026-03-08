@@ -31,7 +31,9 @@ import {
   CheckCircle,
   ArrowRight,
   Info,
+  FileDown,
 } from 'lucide-react';
+import { exportPriceAdjustmentPDF } from '@/lib/pdf-export';
 
 export default function BidAnalysis() {
   const navigate = useNavigate();
