@@ -43,7 +43,61 @@ interface ExtractedField {
   selected: boolean;
 }
 
-type WizardPhase = 'upload' | 'analyzing' | 'review' | 'actions';
+// Component to display original document with highlighted extracted values
+function OriginalDocumentView({ text, highlightValues, activeHighlight }: {
+  text: string;
+  highlightValues: string[];
+  activeHighlight: string | null;
+}) {
+  const ref = useRef<HTMLPreElement>(null);
+
+  useEffect(() => {
+    if (activeHighlight && ref.current) {
+      const mark = ref.current.querySelector('mark[data-active="true"]');
+      if (mark) mark.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [activeHighlight]);
+
+  if (!text) return <p className="p-4 text-sm text-muted-foreground">No document text available</p>;
+
+  // Build regex from values, sorted longest-first to match greedily
+  const escaped = highlightValues
+    .filter(v => v && v.length > 3)
+    .sort((a, b) => b.length - a.length)
+    .map(v => v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+
+  if (escaped.length === 0) {
+    return <pre className="p-4 text-xs font-mono whitespace-pre-wrap text-foreground leading-relaxed">{text}</pre>;
+  }
+
+  const regex = new RegExp(`(${escaped.join('|')})`, 'gi');
+  const parts = text.split(regex);
+
+  return (
+    <pre ref={ref} className="p-4 text-xs font-mono whitespace-pre-wrap text-foreground/80 leading-relaxed">
+      {parts.map((part, i) => {
+        const isMatch = escaped.some(e => part.toLowerCase() === e.toLowerCase().replace(/\\/g, ''));
+        const isActive = activeHighlight && part.toLowerCase().includes(activeHighlight.toLowerCase());
+        if (isMatch) {
+          return (
+            <mark
+              key={i}
+              data-active={isActive ? 'true' : 'false'}
+              className={`rounded px-0.5 ${
+                isActive
+                  ? 'bg-primary text-primary-foreground font-semibold'
+                  : 'bg-primary/20 text-foreground'
+              }`}
+            >
+              {part}
+            </mark>
+          );
+        }
+        return <span key={i}>{part}</span>;
+      })}
+    </pre>
+  );
+}
 
 export default function BidAnalysis() {
   const navigate = useNavigate();
