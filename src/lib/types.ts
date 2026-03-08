@@ -45,10 +45,13 @@ export interface CompanyProfile {
   panVatNumber: string;
   registrationNumber: string;
   authorizedRepresentative: string;
+  gender: Gender;
+  fatherName: string;
+  grandfatherName: string;
   designation: string; // MD, Proprietor, Partner, Director, etc.
   contactPhone: string;
   contactEmail: string;
-  logoUrl?: string; // Optional company logo data URL
+  logoUrl?: string;
   yearOfConstitution?: string;
   country?: string;
 }
