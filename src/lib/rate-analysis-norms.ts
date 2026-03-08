@@ -151,17 +151,29 @@ export const STANDARD_EQUIPMENT: { equipment: string; unit: string; defaultRate:
   { equipment: 'Generator Set', unit: 'hr', defaultRate: 1500 },
 ];
 
-// ── DoR Standard Norms for Road & Bridge Works ──
+// ── DoR/DoLIDAR/NBC Standard Norms for Road, Bridge, Building & Other Works ──
 export const RATE_ANALYSIS_NORMS: RateAnalysisNorm[] = [
-  // ─── Earthwork ───
+  // ═══════════════════════════════════════════
+  // ─── EARTHWORK ───
+  // ═══════════════════════════════════════════
   {
     id: 'earthwork-excavation',
     category: 'Earthwork',
     description: 'Earthwork in excavation in ordinary soil (manual)',
     unit: 'cu.m',
     materials: [],
+    labor: [{ role: 'Unskilled Labor', unit: 'day', quantity: 1.5 }],
+    equipment: [],
+  },
+  {
+    id: 'earthwork-excavation-hard',
+    category: 'Earthwork',
+    description: 'Earthwork in excavation in hard rock (manual with blasting)',
+    unit: 'cu.m',
+    materials: [],
     labor: [
-      { role: 'Unskilled Labor', unit: 'day', quantity: 1.5 },
+      { role: 'Skilled Mason', unit: 'day', quantity: 0.5 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 3.0 },
     ],
     equipment: [],
   },
@@ -177,9 +189,7 @@ export const RATE_ANALYSIS_NORMS: RateAnalysisNorm[] = [
       { role: 'Equipment Operator', unit: 'day', quantity: 0.02 },
       { role: 'Unskilled Labor', unit: 'day', quantity: 0.1 },
     ],
-    equipment: [
-      { equipment: 'Excavator', unit: 'hr', quantity: 0.05 },
-    ],
+    equipment: [{ equipment: 'Excavator', unit: 'hr', quantity: 0.05 }],
   },
   {
     id: 'earthwork-fill',
@@ -189,14 +199,48 @@ export const RATE_ANALYSIS_NORMS: RateAnalysisNorm[] = [
     materials: [
       { materialId: 'water', material: 'Water', unit: 'litre', quantity: 50, wastageDefault: 5 },
     ],
-    labor: [
-      { role: 'Unskilled Labor', unit: 'day', quantity: 0.8 },
-    ],
-    equipment: [
-      { equipment: 'Roller (8-10T)', unit: 'hr', quantity: 0.03 },
-    ],
+    labor: [{ role: 'Unskilled Labor', unit: 'day', quantity: 0.8 }],
+    equipment: [{ equipment: 'Roller (8-10T)', unit: 'hr', quantity: 0.03 }],
   },
-  // ─── Sub-base & Base Course ───
+  {
+    id: 'foundation-trench',
+    category: 'Earthwork',
+    description: 'Foundation trench excavation for building',
+    unit: 'cu.m',
+    materials: [],
+    labor: [{ role: 'Unskilled Labor', unit: 'day', quantity: 1.8 }],
+    equipment: [],
+  },
+  {
+    id: 'sand-filling',
+    category: 'Earthwork',
+    description: 'Sand filling under floor/foundation',
+    unit: 'cu.m',
+    materials: [
+      { materialId: 'sand', material: 'Sand (coarse)', unit: 'cu.m', quantity: 1.3, wastageDefault: 5 },
+      { materialId: 'water', material: 'Water', unit: 'litre', quantity: 40, wastageDefault: 5 },
+    ],
+    labor: [{ role: 'Unskilled Labor', unit: 'day', quantity: 0.5 }],
+    equipment: [],
+  },
+  {
+    id: 'soling-work',
+    category: 'Earthwork',
+    description: 'Soling with stone (150mm thick)',
+    unit: 'cu.m',
+    materials: [
+      { materialId: 'soling-stone', material: 'Soling Stone (150mm)', unit: 'cu.m', quantity: 1.25, wastageDefault: 5 },
+    ],
+    labor: [
+      { role: 'Skilled Mason', unit: 'day', quantity: 0.3 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 1.0 },
+    ],
+    equipment: [],
+  },
+
+  // ═══════════════════════════════════════════
+  // ─── SUB-BASE & BASE COURSE ───
+  // ═══════════════════════════════════════════
   {
     id: 'granular-subbase',
     category: 'Sub-base & Base',
@@ -229,11 +273,12 @@ export const RATE_ANALYSIS_NORMS: RateAnalysisNorm[] = [
       { role: 'Skilled Mason', unit: 'day', quantity: 0.15 },
       { role: 'Unskilled Labor', unit: 'day', quantity: 1.5 },
     ],
-    equipment: [
-      { equipment: 'Roller (8-10T)', unit: 'hr', quantity: 0.2 },
-    ],
+    equipment: [{ equipment: 'Roller (8-10T)', unit: 'hr', quantity: 0.2 }],
   },
-  // ─── Pavement / Bituminous Work ───
+
+  // ═══════════════════════════════════════════
+  // ─── BITUMINOUS WORK ───
+  // ═══════════════════════════════════════════
   {
     id: 'prime-coat',
     category: 'Bituminous Work',
@@ -246,9 +291,7 @@ export const RATE_ANALYSIS_NORMS: RateAnalysisNorm[] = [
       { role: 'Semi-skilled Labor', unit: 'day', quantity: 0.01 },
       { role: 'Unskilled Labor', unit: 'day', quantity: 0.02 },
     ],
-    equipment: [
-      { equipment: 'Asphalt Plant', unit: 'hr', quantity: 0.002 },
-    ],
+    equipment: [{ equipment: 'Asphalt Plant', unit: 'hr', quantity: 0.002 }],
   },
   {
     id: 'tack-coat',
@@ -300,11 +343,27 @@ export const RATE_ANALYSIS_NORMS: RateAnalysisNorm[] = [
       { role: 'Skilled Mason', unit: 'day', quantity: 0.01 },
       { role: 'Unskilled Labor', unit: 'day', quantity: 0.05 },
     ],
-    equipment: [
-      { equipment: 'Roller (8-10T)', unit: 'hr', quantity: 0.01 },
-    ],
+    equipment: [{ equipment: 'Roller (8-10T)', unit: 'hr', quantity: 0.01 }],
   },
-  // ─── Concrete Work ───
+  {
+    id: 'seal-coat',
+    category: 'Bituminous Work',
+    description: 'Seal Coat (surface dressing)',
+    unit: 'sq.m',
+    materials: [
+      { materialId: 'aggregate-10mm', material: 'Aggregate (10mm)', unit: 'cu.m', quantity: 0.012, wastageDefault: 5 },
+      { materialId: 'bitumen-60-70', material: 'Bitumen (60/70 grade)', unit: 'kg', quantity: 1.2, wastageDefault: 3 },
+    ],
+    labor: [
+      { role: 'Semi-skilled Labor', unit: 'day', quantity: 0.008 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 0.03 },
+    ],
+    equipment: [{ equipment: 'Roller (8-10T)', unit: 'hr', quantity: 0.008 }],
+  },
+
+  // ═══════════════════════════════════════════
+  // ─── CONCRETE WORK ───
+  // ═══════════════════════════════════════════
   {
     id: 'pcc-m10',
     category: 'Concrete Work',
@@ -326,6 +385,26 @@ export const RATE_ANALYSIS_NORMS: RateAnalysisNorm[] = [
     ],
   },
   {
+    id: 'pcc-m15',
+    category: 'Concrete Work',
+    description: 'Plain Cement Concrete (PCC) M15 (1:2:4)',
+    unit: 'cu.m',
+    materials: [
+      { materialId: 'cement', material: 'Cement (OPC)', unit: 'bag (50kg)', quantity: 6.5, wastageDefault: 3 },
+      { materialId: 'sand', material: 'Sand (coarse)', unit: 'cu.m', quantity: 0.42, wastageDefault: 5 },
+      { materialId: 'aggregate-20mm', material: 'Aggregate (20mm)', unit: 'cu.m', quantity: 0.84, wastageDefault: 3 },
+      { materialId: 'water', material: 'Water', unit: 'litre', quantity: 180, wastageDefault: 5 },
+    ],
+    labor: [
+      { role: 'Skilled Mason', unit: 'day', quantity: 0.6 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 3.5 },
+    ],
+    equipment: [
+      { equipment: 'Concrete Mixer', unit: 'hr', quantity: 1.0 },
+      { equipment: 'Vibrator', unit: 'hr', quantity: 0.5 },
+    ],
+  },
+  {
     id: 'rcc-m20',
     category: 'Concrete Work',
     description: 'Reinforced Cement Concrete (RCC) M20 (1:1.5:3)',
@@ -335,6 +414,7 @@ export const RATE_ANALYSIS_NORMS: RateAnalysisNorm[] = [
       { materialId: 'sand', material: 'Sand (coarse)', unit: 'cu.m', quantity: 0.42, wastageDefault: 5 },
       { materialId: 'aggregate-20mm', material: 'Aggregate (20mm)', unit: 'cu.m', quantity: 0.84, wastageDefault: 3 },
       { materialId: 'steel-bar', material: 'Steel Reinforcement Bar', unit: 'kg', quantity: 80, wastageDefault: 3 },
+      { materialId: 'binding-wire', material: 'Binding Wire (GI)', unit: 'kg', quantity: 1.2, wastageDefault: 5 },
       { materialId: 'water', material: 'Water', unit: 'litre', quantity: 185, wastageDefault: 5 },
     ],
     labor: [
@@ -347,7 +427,108 @@ export const RATE_ANALYSIS_NORMS: RateAnalysisNorm[] = [
       { equipment: 'Vibrator', unit: 'hr', quantity: 1.0 },
     ],
   },
-  // ─── Masonry ───
+  {
+    id: 'rcc-m25',
+    category: 'Concrete Work',
+    description: 'Reinforced Cement Concrete (RCC) M25',
+    unit: 'cu.m',
+    materials: [
+      { materialId: 'cement', material: 'Cement (OPC)', unit: 'bag (50kg)', quantity: 10.0, wastageDefault: 3 },
+      { materialId: 'sand', material: 'Sand (coarse)', unit: 'cu.m', quantity: 0.4, wastageDefault: 5 },
+      { materialId: 'aggregate-20mm', material: 'Aggregate (20mm)', unit: 'cu.m', quantity: 0.8, wastageDefault: 3 },
+      { materialId: 'steel-bar', material: 'Steel Reinforcement Bar', unit: 'kg', quantity: 100, wastageDefault: 3 },
+      { materialId: 'binding-wire', material: 'Binding Wire (GI)', unit: 'kg', quantity: 1.5, wastageDefault: 5 },
+      { materialId: 'water', material: 'Water', unit: 'litre', quantity: 185, wastageDefault: 5 },
+    ],
+    labor: [
+      { role: 'Skilled Mason', unit: 'day', quantity: 1.2 },
+      { role: 'Skilled Bar Bender', unit: 'day', quantity: 1.0 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 5.5 },
+    ],
+    equipment: [
+      { equipment: 'Concrete Mixer', unit: 'hr', quantity: 1.5 },
+      { equipment: 'Vibrator', unit: 'hr', quantity: 1.0 },
+    ],
+  },
+  {
+    id: 'rcc-m30',
+    category: 'Concrete Work',
+    description: 'Reinforced Cement Concrete (RCC) M30',
+    unit: 'cu.m',
+    materials: [
+      { materialId: 'cement', material: 'Cement (OPC)', unit: 'bag (50kg)', quantity: 11.5, wastageDefault: 3 },
+      { materialId: 'sand', material: 'Sand (coarse)', unit: 'cu.m', quantity: 0.38, wastageDefault: 5 },
+      { materialId: 'aggregate-20mm', material: 'Aggregate (20mm)', unit: 'cu.m', quantity: 0.76, wastageDefault: 3 },
+      { materialId: 'steel-bar', material: 'Steel Reinforcement Bar', unit: 'kg', quantity: 110, wastageDefault: 3 },
+      { materialId: 'binding-wire', material: 'Binding Wire (GI)', unit: 'kg', quantity: 1.6, wastageDefault: 5 },
+      { materialId: 'water', material: 'Water', unit: 'litre', quantity: 180, wastageDefault: 5 },
+    ],
+    labor: [
+      { role: 'Skilled Mason', unit: 'day', quantity: 1.5 },
+      { role: 'Skilled Bar Bender', unit: 'day', quantity: 1.2 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 6.0 },
+    ],
+    equipment: [
+      { equipment: 'Concrete Mixer', unit: 'hr', quantity: 2.0 },
+      { equipment: 'Vibrator', unit: 'hr', quantity: 1.5 },
+    ],
+  },
+
+  // ═══════════════════════════════════════════
+  // ─── FORMWORK ───
+  // ═══════════════════════════════════════════
+  {
+    id: 'formwork-foundation',
+    category: 'Formwork',
+    description: 'Formwork for foundation/footing',
+    unit: 'sq.m',
+    materials: [
+      { materialId: 'timber', material: 'Timber (Sal)', unit: 'cu.ft', quantity: 0.5, wastageDefault: 10 },
+      { materialId: 'plywood', material: 'Plywood (12mm)', unit: 'sq.m', quantity: 1.1, wastageDefault: 15 },
+      { materialId: 'nail', material: 'Nails (assorted)', unit: 'kg', quantity: 0.25, wastageDefault: 5 },
+    ],
+    labor: [
+      { role: 'Skilled Carpenter', unit: 'day', quantity: 0.4 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 0.3 },
+    ],
+    equipment: [],
+  },
+  {
+    id: 'formwork-column',
+    category: 'Formwork',
+    description: 'Formwork for columns',
+    unit: 'sq.m',
+    materials: [
+      { materialId: 'timber', material: 'Timber (Sal)', unit: 'cu.ft', quantity: 0.6, wastageDefault: 10 },
+      { materialId: 'plywood', material: 'Plywood (12mm)', unit: 'sq.m', quantity: 1.15, wastageDefault: 15 },
+      { materialId: 'nail', material: 'Nails (assorted)', unit: 'kg', quantity: 0.3, wastageDefault: 5 },
+    ],
+    labor: [
+      { role: 'Skilled Carpenter', unit: 'day', quantity: 0.5 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 0.35 },
+    ],
+    equipment: [],
+  },
+  {
+    id: 'formwork-beam-slab',
+    category: 'Formwork',
+    description: 'Formwork for beam & slab (with propping)',
+    unit: 'sq.m',
+    materials: [
+      { materialId: 'timber', material: 'Timber (Sal)', unit: 'cu.ft', quantity: 0.8, wastageDefault: 10 },
+      { materialId: 'plywood', material: 'Plywood (12mm)', unit: 'sq.m', quantity: 1.15, wastageDefault: 15 },
+      { materialId: 'nail', material: 'Nails (assorted)', unit: 'kg', quantity: 0.35, wastageDefault: 5 },
+    ],
+    labor: [
+      { role: 'Skilled Carpenter', unit: 'day', quantity: 0.6 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 0.4 },
+    ],
+    equipment: [],
+  },
+
+  // ═══════════════════════════════════════════
+  // ─── MASONRY ───
+  // ═══════════════════════════════════════════
   {
     id: 'stone-masonry-cm-1-4',
     category: 'Masonry',
@@ -361,6 +542,40 @@ export const RATE_ANALYSIS_NORMS: RateAnalysisNorm[] = [
     ],
     labor: [
       { role: 'Skilled Mason', unit: 'day', quantity: 1.5 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 2.0 },
+    ],
+    equipment: [],
+  },
+  {
+    id: 'stone-masonry-cm-1-6',
+    category: 'Masonry',
+    description: 'Stone Masonry in cement mortar (1:6)',
+    unit: 'cu.m',
+    materials: [
+      { materialId: 'stone', material: 'Stone (rubble)', unit: 'cu.m', quantity: 1.2, wastageDefault: 5 },
+      { materialId: 'cement', material: 'Cement (OPC)', unit: 'bag (50kg)', quantity: 2.0, wastageDefault: 3 },
+      { materialId: 'sand', material: 'Sand (coarse)', unit: 'cu.m', quantity: 0.3, wastageDefault: 5 },
+      { materialId: 'water', material: 'Water', unit: 'litre', quantity: 55, wastageDefault: 5 },
+    ],
+    labor: [
+      { role: 'Skilled Mason', unit: 'day', quantity: 1.5 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 2.0 },
+    ],
+    equipment: [],
+  },
+  {
+    id: 'dressed-stone-masonry',
+    category: 'Masonry',
+    description: 'Dressed Stone Masonry in cement mortar (1:4)',
+    unit: 'cu.m',
+    materials: [
+      { materialId: 'dressed-stone', material: 'Dressed Stone', unit: 'cu.m', quantity: 1.15, wastageDefault: 5 },
+      { materialId: 'cement', material: 'Cement (OPC)', unit: 'bag (50kg)', quantity: 2.5, wastageDefault: 3 },
+      { materialId: 'sand', material: 'Sand (coarse)', unit: 'cu.m', quantity: 0.25, wastageDefault: 5 },
+      { materialId: 'water', material: 'Water', unit: 'litre', quantity: 55, wastageDefault: 5 },
+    ],
+    labor: [
+      { role: 'Skilled Mason', unit: 'day', quantity: 2.5 },
       { role: 'Unskilled Labor', unit: 'day', quantity: 2.0 },
     ],
     equipment: [],
@@ -382,7 +597,360 @@ export const RATE_ANALYSIS_NORMS: RateAnalysisNorm[] = [
     ],
     equipment: [],
   },
-  // ─── Drainage / Cross Drainage ───
+  {
+    id: 'brick-masonry-cm-1-6',
+    category: 'Masonry',
+    description: 'Brick Masonry in cement mortar (1:6)',
+    unit: 'cu.m',
+    materials: [
+      { materialId: 'brick', material: 'Bricks (1st class)', unit: 'nos', quantity: 500, wastageDefault: 5 },
+      { materialId: 'cement', material: 'Cement (OPC)', unit: 'bag (50kg)', quantity: 2.2, wastageDefault: 3 },
+      { materialId: 'sand', material: 'Sand (coarse)', unit: 'cu.m', quantity: 0.33, wastageDefault: 5 },
+      { materialId: 'water', material: 'Water', unit: 'litre', quantity: 60, wastageDefault: 5 },
+    ],
+    labor: [
+      { role: 'Skilled Mason', unit: 'day', quantity: 1.8 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 1.5 },
+    ],
+    equipment: [],
+  },
+
+  // ═══════════════════════════════════════════
+  // ─── PLASTERING & FINISHING ───
+  // ═══════════════════════════════════════════
+  {
+    id: 'plaster-12mm-1-4',
+    category: 'Plastering & Finishing',
+    description: 'Cement plaster 12mm thick (1:4)',
+    unit: 'sq.m',
+    materials: [
+      { materialId: 'cement', material: 'Cement (OPC)', unit: 'bag (50kg)', quantity: 0.22, wastageDefault: 5 },
+      { materialId: 'fine-sand', material: 'Sand (fine/plastering)', unit: 'cu.m', quantity: 0.016, wastageDefault: 5 },
+      { materialId: 'water', material: 'Water', unit: 'litre', quantity: 4, wastageDefault: 5 },
+    ],
+    labor: [
+      { role: 'Skilled Mason', unit: 'day', quantity: 0.15 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 0.1 },
+    ],
+    equipment: [],
+  },
+  {
+    id: 'plaster-20mm-1-4',
+    category: 'Plastering & Finishing',
+    description: 'Cement plaster 20mm thick (1:4)',
+    unit: 'sq.m',
+    materials: [
+      { materialId: 'cement', material: 'Cement (OPC)', unit: 'bag (50kg)', quantity: 0.36, wastageDefault: 5 },
+      { materialId: 'fine-sand', material: 'Sand (fine/plastering)', unit: 'cu.m', quantity: 0.025, wastageDefault: 5 },
+      { materialId: 'water', material: 'Water', unit: 'litre', quantity: 6, wastageDefault: 5 },
+    ],
+    labor: [
+      { role: 'Skilled Mason', unit: 'day', quantity: 0.18 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 0.12 },
+    ],
+    equipment: [],
+  },
+  {
+    id: 'plaster-ceiling',
+    category: 'Plastering & Finishing',
+    description: 'Cement plaster on ceiling 12mm (1:3)',
+    unit: 'sq.m',
+    materials: [
+      { materialId: 'cement', material: 'Cement (OPC)', unit: 'bag (50kg)', quantity: 0.28, wastageDefault: 5 },
+      { materialId: 'fine-sand', material: 'Sand (fine/plastering)', unit: 'cu.m', quantity: 0.014, wastageDefault: 5 },
+      { materialId: 'water', material: 'Water', unit: 'litre', quantity: 4, wastageDefault: 5 },
+    ],
+    labor: [
+      { role: 'Skilled Mason', unit: 'day', quantity: 0.22 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 0.15 },
+    ],
+    equipment: [],
+  },
+  {
+    id: 'pointing-cm-1-3',
+    category: 'Plastering & Finishing',
+    description: 'Pointing in cement mortar (1:3)',
+    unit: 'sq.m',
+    materials: [
+      { materialId: 'cement', material: 'Cement (OPC)', unit: 'bag (50kg)', quantity: 0.1, wastageDefault: 5 },
+      { materialId: 'fine-sand', material: 'Sand (fine/plastering)', unit: 'cu.m', quantity: 0.006, wastageDefault: 5 },
+    ],
+    labor: [
+      { role: 'Skilled Mason', unit: 'day', quantity: 0.2 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 0.1 },
+    ],
+    equipment: [],
+  },
+
+  // ═══════════════════════════════════════════
+  // ─── PAINTING ───
+  // ═══════════════════════════════════════════
+  {
+    id: 'distember-2coat',
+    category: 'Painting',
+    description: 'Distemper/Acrylic paint (2 coats) on wall',
+    unit: 'sq.m',
+    materials: [
+      { materialId: 'distemper', material: 'Distemper/Acrylic Paint', unit: 'litre', quantity: 0.35, wastageDefault: 5 },
+      { materialId: 'primer', material: 'Primer/Putty', unit: 'litre', quantity: 0.15, wastageDefault: 5 },
+    ],
+    labor: [
+      { role: 'Skilled Painter', unit: 'day', quantity: 0.06 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 0.02 },
+    ],
+    equipment: [],
+  },
+  {
+    id: 'enamel-paint-2coat',
+    category: 'Painting',
+    description: 'Enamel paint (2 coats) on wood/metal',
+    unit: 'sq.m',
+    materials: [
+      { materialId: 'enamel-paint', material: 'Enamel Paint', unit: 'litre', quantity: 0.2, wastageDefault: 5 },
+      { materialId: 'primer', material: 'Primer/Putty', unit: 'litre', quantity: 0.12, wastageDefault: 5 },
+    ],
+    labor: [
+      { role: 'Skilled Painter', unit: 'day', quantity: 0.08 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 0.02 },
+    ],
+    equipment: [],
+  },
+
+  // ═══════════════════════════════════════════
+  // ─── FLOORING & TILING ───
+  // ═══════════════════════════════════════════
+  {
+    id: 'floor-tile-ceramic',
+    category: 'Flooring & Tiling',
+    description: 'Ceramic floor tiling with adhesive',
+    unit: 'sq.m',
+    materials: [
+      { materialId: 'tile-ceramic', material: 'Ceramic Floor Tile', unit: 'sq.m', quantity: 1.05, wastageDefault: 5 },
+      { materialId: 'tile-adhesive', material: 'Tile Adhesive', unit: 'kg', quantity: 5, wastageDefault: 5 },
+      { materialId: 'cement', material: 'Cement (OPC)', unit: 'bag (50kg)', quantity: 0.2, wastageDefault: 3 },
+    ],
+    labor: [
+      { role: 'Skilled Tiler', unit: 'day', quantity: 0.15 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 0.1 },
+    ],
+    equipment: [],
+  },
+  {
+    id: 'wall-tile-glazed',
+    category: 'Flooring & Tiling',
+    description: 'Glazed wall tiling (dado) with adhesive',
+    unit: 'sq.m',
+    materials: [
+      { materialId: 'tile-wall', material: 'Wall Tile (glazed)', unit: 'sq.m', quantity: 1.05, wastageDefault: 5 },
+      { materialId: 'tile-adhesive', material: 'Tile Adhesive', unit: 'kg', quantity: 5, wastageDefault: 5 },
+      { materialId: 'cement', material: 'Cement (OPC)', unit: 'bag (50kg)', quantity: 0.15, wastageDefault: 3 },
+    ],
+    labor: [
+      { role: 'Skilled Tiler', unit: 'day', quantity: 0.18 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 0.1 },
+    ],
+    equipment: [],
+  },
+  {
+    id: 'cement-floor-25mm',
+    category: 'Flooring & Tiling',
+    description: 'Cement concrete flooring 25mm thick (1:2:4)',
+    unit: 'sq.m',
+    materials: [
+      { materialId: 'cement', material: 'Cement (OPC)', unit: 'bag (50kg)', quantity: 0.4, wastageDefault: 3 },
+      { materialId: 'sand', material: 'Sand (coarse)', unit: 'cu.m', quantity: 0.012, wastageDefault: 5 },
+      { materialId: 'aggregate-10mm', material: 'Aggregate (10mm)', unit: 'cu.m', quantity: 0.024, wastageDefault: 5 },
+    ],
+    labor: [
+      { role: 'Skilled Mason', unit: 'day', quantity: 0.12 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 0.15 },
+    ],
+    equipment: [],
+  },
+
+  // ═══════════════════════════════════════════
+  // ─── ROOFING ───
+  // ═══════════════════════════════════════════
+  {
+    id: 'gi-sheet-roofing',
+    category: 'Roofing',
+    description: 'GI corrugated sheet roofing (0.5mm) with purlin',
+    unit: 'sq.m',
+    materials: [
+      { materialId: 'gi-sheet', material: 'GI Corrugated Sheet (0.5mm)', unit: 'sq.m', quantity: 1.1, wastageDefault: 5 },
+      { materialId: 'timber', material: 'Timber (Sal)', unit: 'cu.ft', quantity: 0.4, wastageDefault: 10 },
+      { materialId: 'nail', material: 'Nails (assorted)', unit: 'kg', quantity: 0.15, wastageDefault: 5 },
+    ],
+    labor: [
+      { role: 'Skilled Carpenter', unit: 'day', quantity: 0.15 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 0.2 },
+    ],
+    equipment: [],
+  },
+  {
+    id: 'rcc-roof-slab',
+    category: 'Roofing',
+    description: 'RCC roof slab M20 (125mm thick)',
+    unit: 'sq.m',
+    materials: [
+      { materialId: 'cement', material: 'Cement (OPC)', unit: 'bag (50kg)', quantity: 1.06, wastageDefault: 3 },
+      { materialId: 'sand', material: 'Sand (coarse)', unit: 'cu.m', quantity: 0.053, wastageDefault: 5 },
+      { materialId: 'aggregate-20mm', material: 'Aggregate (20mm)', unit: 'cu.m', quantity: 0.105, wastageDefault: 3 },
+      { materialId: 'steel-bar', material: 'Steel Reinforcement Bar', unit: 'kg', quantity: 10, wastageDefault: 3 },
+      { materialId: 'binding-wire', material: 'Binding Wire (GI)', unit: 'kg', quantity: 0.15, wastageDefault: 5 },
+    ],
+    labor: [
+      { role: 'Skilled Mason', unit: 'day', quantity: 0.15 },
+      { role: 'Skilled Bar Bender', unit: 'day', quantity: 0.1 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 0.6 },
+    ],
+    equipment: [
+      { equipment: 'Concrete Mixer', unit: 'hr', quantity: 0.2 },
+      { equipment: 'Vibrator', unit: 'hr', quantity: 0.15 },
+    ],
+  },
+
+  // ═══════════════════════════════════════════
+  // ─── DOORS & WINDOWS ───
+  // ═══════════════════════════════════════════
+  {
+    id: 'sal-door-frame',
+    category: 'Doors & Windows',
+    description: 'Sal wood door frame (75x100mm section)',
+    unit: 'r.m',
+    materials: [
+      { materialId: 'door-frame-sal', material: 'Door Frame (Sal wood)', unit: 'cu.ft', quantity: 0.28, wastageDefault: 10 },
+      { materialId: 'nail', material: 'Nails (assorted)', unit: 'kg', quantity: 0.1, wastageDefault: 5 },
+    ],
+    labor: [
+      { role: 'Skilled Carpenter', unit: 'day', quantity: 0.3 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 0.1 },
+    ],
+    equipment: [],
+  },
+  {
+    id: 'aluminium-window',
+    category: 'Doors & Windows',
+    description: 'Aluminium sliding window with 5mm glass',
+    unit: 'sq.m',
+    materials: [
+      { materialId: 'aluminium-section', material: 'Aluminium Section', unit: 'kg', quantity: 5.0, wastageDefault: 5 },
+      { materialId: 'glass-5mm', material: 'Glass (5mm plain)', unit: 'sq.m', quantity: 1.05, wastageDefault: 5 },
+    ],
+    labor: [
+      { role: 'Skilled Carpenter', unit: 'day', quantity: 0.4 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 0.2 },
+    ],
+    equipment: [],
+  },
+
+  // ═══════════════════════════════════════════
+  // ─── WATERPROOFING ───
+  // ═══════════════════════════════════════════
+  {
+    id: 'waterproof-cement',
+    category: 'Waterproofing',
+    description: 'Waterproofing treatment with cement-based compound',
+    unit: 'sq.m',
+    materials: [
+      { materialId: 'waterproof-compound', material: 'Waterproofing Compound', unit: 'kg', quantity: 1.5, wastageDefault: 5 },
+      { materialId: 'cement', material: 'Cement (OPC)', unit: 'bag (50kg)', quantity: 0.15, wastageDefault: 3 },
+    ],
+    labor: [
+      { role: 'Skilled Mason', unit: 'day', quantity: 0.08 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 0.05 },
+    ],
+    equipment: [],
+  },
+  {
+    id: 'bitumen-felt-waterproof',
+    category: 'Waterproofing',
+    description: 'Bitumen felt waterproofing (2 layers)',
+    unit: 'sq.m',
+    materials: [
+      { materialId: 'bitumen-felt', material: 'Bitumen Felt', unit: 'sq.m', quantity: 2.1, wastageDefault: 5 },
+      { materialId: 'bitumen-60-70', material: 'Bitumen (60/70 grade)', unit: 'kg', quantity: 1.5, wastageDefault: 3 },
+    ],
+    labor: [
+      { role: 'Skilled Mason', unit: 'day', quantity: 0.1 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 0.08 },
+    ],
+    equipment: [],
+  },
+
+  // ═══════════════════════════════════════════
+  // ─── PLUMBING & SANITARY ───
+  // ═══════════════════════════════════════════
+  {
+    id: 'gi-pipe-supply-20mm',
+    category: 'Plumbing & Sanitary',
+    description: 'GI pipe water supply line (20mm dia)',
+    unit: 'r.m',
+    materials: [
+      { materialId: 'pipe-gi', material: 'GI Pipe (various dia)', unit: 'r.m', quantity: 1.05, wastageDefault: 3 },
+    ],
+    labor: [
+      { role: 'Skilled Plumber', unit: 'day', quantity: 0.15 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 0.1 },
+    ],
+    equipment: [],
+  },
+  {
+    id: 'pvc-pipe-drainage-110mm',
+    category: 'Plumbing & Sanitary',
+    description: 'PVC pipe drainage line (110mm dia)',
+    unit: 'r.m',
+    materials: [
+      { materialId: 'pipe-pvc', material: 'PVC Pipe (various dia)', unit: 'r.m', quantity: 1.05, wastageDefault: 3 },
+      { materialId: 'cement', material: 'Cement (OPC)', unit: 'bag (50kg)', quantity: 0.05, wastageDefault: 5 },
+    ],
+    labor: [
+      { role: 'Skilled Plumber', unit: 'day', quantity: 0.12 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 0.15 },
+    ],
+    equipment: [],
+  },
+  {
+    id: 'manhole-construction',
+    category: 'Plumbing & Sanitary',
+    description: 'Manhole construction (internal 900x900mm)',
+    unit: 'nos',
+    materials: [
+      { materialId: 'brick', material: 'Bricks (1st class)', unit: 'nos', quantity: 250, wastageDefault: 5 },
+      { materialId: 'cement', material: 'Cement (OPC)', unit: 'bag (50kg)', quantity: 3.5, wastageDefault: 3 },
+      { materialId: 'sand', material: 'Sand (coarse)', unit: 'cu.m', quantity: 0.35, wastageDefault: 5 },
+      { materialId: 'manhole-cover', material: 'CI Manhole Cover', unit: 'nos', quantity: 1, wastageDefault: 0 },
+    ],
+    labor: [
+      { role: 'Skilled Mason', unit: 'day', quantity: 2.0 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 3.0 },
+    ],
+    equipment: [],
+  },
+
+  // ═══════════════════════════════════════════
+  // ─── ELECTRICAL ───
+  // ═══════════════════════════════════════════
+  {
+    id: 'electrical-wiring-point',
+    category: 'Electrical',
+    description: 'Concealed wiring per point (switch/socket)',
+    unit: 'nos',
+    materials: [
+      { materialId: 'electric-wire', material: 'Electric Wire (1.5 sq.mm)', unit: 'r.m', quantity: 12, wastageDefault: 5 },
+      { materialId: 'pvc-conduit', material: 'PVC Conduit Pipe (20mm)', unit: 'r.m', quantity: 4, wastageDefault: 5 },
+      { materialId: 'switch-socket', material: 'Switch/Socket Point', unit: 'nos', quantity: 1, wastageDefault: 2 },
+    ],
+    labor: [
+      { role: 'Skilled Electrician', unit: 'day', quantity: 0.25 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 0.15 },
+    ],
+    equipment: [],
+  },
+
+  // ═══════════════════════════════════════════
+  // ─── DRAINAGE & PROTECTION ───
+  // ═══════════════════════════════════════════
   {
     id: 'gabion-wall',
     category: 'Drainage & Protection',
@@ -399,12 +967,48 @@ export const RATE_ANALYSIS_NORMS: RateAnalysisNorm[] = [
     equipment: [],
   },
   {
-    id: 'hume-pipe-culvert-600mm',
+    id: 'stone-pitching',
     category: 'Drainage & Protection',
+    description: 'Stone pitching (150-200mm thick) for slope protection',
+    unit: 'sq.m',
+    materials: [
+      { materialId: 'stone', material: 'Stone (rubble)', unit: 'cu.m', quantity: 0.2, wastageDefault: 5 },
+      { materialId: 'cement', material: 'Cement (OPC)', unit: 'bag (50kg)', quantity: 0.3, wastageDefault: 3 },
+      { materialId: 'sand', material: 'Sand (coarse)', unit: 'cu.m', quantity: 0.03, wastageDefault: 5 },
+    ],
+    labor: [
+      { role: 'Skilled Mason', unit: 'day', quantity: 0.3 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 0.4 },
+    ],
+    equipment: [],
+  },
+  {
+    id: 'side-drain-lined',
+    category: 'Drainage & Protection',
+    description: 'Lined side drain (V-shape, cement mortar)',
+    unit: 'r.m',
+    materials: [
+      { materialId: 'stone', material: 'Stone (rubble)', unit: 'cu.m', quantity: 0.15, wastageDefault: 5 },
+      { materialId: 'cement', material: 'Cement (OPC)', unit: 'bag (50kg)', quantity: 0.5, wastageDefault: 3 },
+      { materialId: 'sand', material: 'Sand (coarse)', unit: 'cu.m', quantity: 0.05, wastageDefault: 5 },
+    ],
+    labor: [
+      { role: 'Skilled Mason', unit: 'day', quantity: 0.3 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 0.5 },
+    ],
+    equipment: [],
+  },
+
+  // ═══════════════════════════════════════════
+  // ─── CULVERT WORK ───
+  // ═══════════════════════════════════════════
+  {
+    id: 'hume-pipe-culvert-600mm',
+    category: 'Culvert Work',
     description: 'Hume Pipe Culvert (600mm dia) laying',
     unit: 'r.m',
     materials: [
-      { materialId: 'pipe-hdpe', material: 'HDPE Pipe (various dia)', unit: 'r.m', quantity: 1.05, wastageDefault: 2 },
+      { materialId: 'hume-pipe-600', material: 'Hume Pipe (600mm dia)', unit: 'r.m', quantity: 1.05, wastageDefault: 2 },
       { materialId: 'cement', material: 'Cement (OPC)', unit: 'bag (50kg)', quantity: 1.0, wastageDefault: 3 },
       { materialId: 'sand', material: 'Sand (coarse)', unit: 'cu.m', quantity: 0.1, wastageDefault: 5 },
     ],
@@ -412,11 +1016,147 @@ export const RATE_ANALYSIS_NORMS: RateAnalysisNorm[] = [
       { role: 'Skilled Plumber', unit: 'day', quantity: 0.5 },
       { role: 'Unskilled Labor', unit: 'day', quantity: 2.0 },
     ],
+    equipment: [{ equipment: 'Excavator', unit: 'hr', quantity: 0.3 }],
+  },
+  {
+    id: 'hume-pipe-culvert-900mm',
+    category: 'Culvert Work',
+    description: 'Hume Pipe Culvert (900mm dia) laying',
+    unit: 'r.m',
+    materials: [
+      { materialId: 'hume-pipe-900', material: 'Hume Pipe (900mm dia)', unit: 'r.m', quantity: 1.05, wastageDefault: 2 },
+      { materialId: 'cement', material: 'Cement (OPC)', unit: 'bag (50kg)', quantity: 1.5, wastageDefault: 3 },
+      { materialId: 'sand', material: 'Sand (coarse)', unit: 'cu.m', quantity: 0.15, wastageDefault: 5 },
+    ],
+    labor: [
+      { role: 'Skilled Plumber', unit: 'day', quantity: 0.6 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 2.5 },
+    ],
     equipment: [
-      { equipment: 'Excavator', unit: 'hr', quantity: 0.3 },
+      { equipment: 'Excavator', unit: 'hr', quantity: 0.4 },
+      { equipment: 'Crane (10T)', unit: 'hr', quantity: 0.2 },
     ],
   },
-  // ─── Bridge Work ───
+  {
+    id: 'hume-pipe-culvert-1200mm',
+    category: 'Culvert Work',
+    description: 'Hume Pipe Culvert (1200mm dia) laying',
+    unit: 'r.m',
+    materials: [
+      { materialId: 'hume-pipe-1200', material: 'Hume Pipe (1200mm dia)', unit: 'r.m', quantity: 1.05, wastageDefault: 2 },
+      { materialId: 'cement', material: 'Cement (OPC)', unit: 'bag (50kg)', quantity: 2.0, wastageDefault: 3 },
+      { materialId: 'sand', material: 'Sand (coarse)', unit: 'cu.m', quantity: 0.2, wastageDefault: 5 },
+    ],
+    labor: [
+      { role: 'Skilled Plumber', unit: 'day', quantity: 0.8 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 3.0 },
+    ],
+    equipment: [
+      { equipment: 'Excavator', unit: 'hr', quantity: 0.5 },
+      { equipment: 'Crane (10T)', unit: 'hr', quantity: 0.3 },
+    ],
+  },
+  {
+    id: 'box-culvert-single',
+    category: 'Culvert Work',
+    description: 'RCC Box Culvert (single cell 1.5mx1.5m) M25',
+    unit: 'r.m',
+    materials: [
+      { materialId: 'cement', material: 'Cement (OPC)', unit: 'bag (50kg)', quantity: 18, wastageDefault: 3 },
+      { materialId: 'sand', material: 'Sand (coarse)', unit: 'cu.m', quantity: 0.72, wastageDefault: 5 },
+      { materialId: 'aggregate-20mm', material: 'Aggregate (20mm)', unit: 'cu.m', quantity: 1.44, wastageDefault: 3 },
+      { materialId: 'steel-bar', material: 'Steel Reinforcement Bar', unit: 'kg', quantity: 180, wastageDefault: 3 },
+      { materialId: 'binding-wire', material: 'Binding Wire (GI)', unit: 'kg', quantity: 2.7, wastageDefault: 5 },
+      { materialId: 'timber', material: 'Timber (Sal)', unit: 'cu.ft', quantity: 8, wastageDefault: 10 },
+      { materialId: 'plywood', material: 'Plywood (12mm)', unit: 'sq.m', quantity: 6, wastageDefault: 15 },
+      { materialId: 'water', material: 'Water', unit: 'litre', quantity: 350, wastageDefault: 5 },
+    ],
+    labor: [
+      { role: 'Skilled Mason', unit: 'day', quantity: 2.5 },
+      { role: 'Skilled Bar Bender', unit: 'day', quantity: 2.0 },
+      { role: 'Skilled Carpenter', unit: 'day', quantity: 1.5 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 8.0 },
+    ],
+    equipment: [
+      { equipment: 'Concrete Mixer', unit: 'hr', quantity: 3.0 },
+      { equipment: 'Vibrator', unit: 'hr', quantity: 2.0 },
+      { equipment: 'Excavator', unit: 'hr', quantity: 0.5 },
+    ],
+  },
+  {
+    id: 'box-culvert-double',
+    category: 'Culvert Work',
+    description: 'RCC Box Culvert (double cell 2x1.5mx1.5m) M25',
+    unit: 'r.m',
+    materials: [
+      { materialId: 'cement', material: 'Cement (OPC)', unit: 'bag (50kg)', quantity: 30, wastageDefault: 3 },
+      { materialId: 'sand', material: 'Sand (coarse)', unit: 'cu.m', quantity: 1.2, wastageDefault: 5 },
+      { materialId: 'aggregate-20mm', material: 'Aggregate (20mm)', unit: 'cu.m', quantity: 2.4, wastageDefault: 3 },
+      { materialId: 'steel-bar', material: 'Steel Reinforcement Bar', unit: 'kg', quantity: 300, wastageDefault: 3 },
+      { materialId: 'binding-wire', material: 'Binding Wire (GI)', unit: 'kg', quantity: 4.5, wastageDefault: 5 },
+      { materialId: 'timber', material: 'Timber (Sal)', unit: 'cu.ft', quantity: 14, wastageDefault: 10 },
+      { materialId: 'plywood', material: 'Plywood (12mm)', unit: 'sq.m', quantity: 10, wastageDefault: 15 },
+      { materialId: 'water', material: 'Water', unit: 'litre', quantity: 580, wastageDefault: 5 },
+    ],
+    labor: [
+      { role: 'Skilled Mason', unit: 'day', quantity: 4.0 },
+      { role: 'Skilled Bar Bender', unit: 'day', quantity: 3.5 },
+      { role: 'Skilled Carpenter', unit: 'day', quantity: 2.5 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 12.0 },
+    ],
+    equipment: [
+      { equipment: 'Concrete Mixer', unit: 'hr', quantity: 5.0 },
+      { equipment: 'Vibrator', unit: 'hr', quantity: 3.0 },
+      { equipment: 'Excavator', unit: 'hr', quantity: 1.0 },
+      { equipment: 'Crane (10T)', unit: 'hr', quantity: 0.5 },
+    ],
+  },
+  {
+    id: 'slab-culvert',
+    category: 'Culvert Work',
+    description: 'RCC Slab Culvert (2m span) M20',
+    unit: 'r.m',
+    materials: [
+      { materialId: 'cement', material: 'Cement (OPC)', unit: 'bag (50kg)', quantity: 12, wastageDefault: 3 },
+      { materialId: 'sand', material: 'Sand (coarse)', unit: 'cu.m', quantity: 0.6, wastageDefault: 5 },
+      { materialId: 'aggregate-20mm', material: 'Aggregate (20mm)', unit: 'cu.m', quantity: 1.2, wastageDefault: 3 },
+      { materialId: 'steel-bar', material: 'Steel Reinforcement Bar', unit: 'kg', quantity: 100, wastageDefault: 3 },
+      { materialId: 'binding-wire', material: 'Binding Wire (GI)', unit: 'kg', quantity: 1.5, wastageDefault: 5 },
+      { materialId: 'timber', material: 'Timber (Sal)', unit: 'cu.ft', quantity: 5, wastageDefault: 10 },
+      { materialId: 'water', material: 'Water', unit: 'litre', quantity: 230, wastageDefault: 5 },
+    ],
+    labor: [
+      { role: 'Skilled Mason', unit: 'day', quantity: 1.8 },
+      { role: 'Skilled Bar Bender', unit: 'day', quantity: 1.2 },
+      { role: 'Skilled Carpenter', unit: 'day', quantity: 1.0 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 6.0 },
+    ],
+    equipment: [
+      { equipment: 'Concrete Mixer', unit: 'hr', quantity: 2.0 },
+      { equipment: 'Vibrator', unit: 'hr', quantity: 1.5 },
+    ],
+  },
+  {
+    id: 'culvert-headwall',
+    category: 'Culvert Work',
+    description: 'Culvert head wall / wing wall (stone masonry)',
+    unit: 'cu.m',
+    materials: [
+      { materialId: 'stone', material: 'Stone (rubble)', unit: 'cu.m', quantity: 1.2, wastageDefault: 5 },
+      { materialId: 'cement', material: 'Cement (OPC)', unit: 'bag (50kg)', quantity: 3.0, wastageDefault: 3 },
+      { materialId: 'sand', material: 'Sand (coarse)', unit: 'cu.m', quantity: 0.3, wastageDefault: 5 },
+      { materialId: 'water', material: 'Water', unit: 'litre', quantity: 65, wastageDefault: 5 },
+    ],
+    labor: [
+      { role: 'Skilled Mason', unit: 'day', quantity: 1.8 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 2.5 },
+    ],
+    equipment: [],
+  },
+
+  // ═══════════════════════════════════════════
+  // ─── BRIDGE WORK ───
+  // ═══════════════════════════════════════════
   {
     id: 'rcc-m25-bridge',
     category: 'Bridge Work',
@@ -427,6 +1167,7 @@ export const RATE_ANALYSIS_NORMS: RateAnalysisNorm[] = [
       { materialId: 'sand', material: 'Sand (coarse)', unit: 'cu.m', quantity: 0.4, wastageDefault: 5 },
       { materialId: 'aggregate-20mm', material: 'Aggregate (20mm)', unit: 'cu.m', quantity: 0.8, wastageDefault: 3 },
       { materialId: 'steel-bar', material: 'Steel Reinforcement Bar', unit: 'kg', quantity: 120, wastageDefault: 2 },
+      { materialId: 'binding-wire', material: 'Binding Wire (GI)', unit: 'kg', quantity: 1.8, wastageDefault: 5 },
       { materialId: 'timber', material: 'Timber (Sal)', unit: 'cu.ft', quantity: 5, wastageDefault: 10 },
       { materialId: 'water', material: 'Water', unit: 'litre', quantity: 190, wastageDefault: 5 },
     ],
@@ -441,7 +1182,328 @@ export const RATE_ANALYSIS_NORMS: RateAnalysisNorm[] = [
       { equipment: 'Vibrator', unit: 'hr', quantity: 1.5 },
     ],
   },
-  // ─── Road Furniture ───
+  {
+    id: 'rcc-m30-bridge',
+    category: 'Bridge Work',
+    description: 'RCC M30 for bridge superstructure/pier',
+    unit: 'cu.m',
+    materials: [
+      { materialId: 'cement', material: 'Cement (OPC)', unit: 'bag (50kg)', quantity: 11.5, wastageDefault: 3 },
+      { materialId: 'sand', material: 'Sand (coarse)', unit: 'cu.m', quantity: 0.38, wastageDefault: 5 },
+      { materialId: 'aggregate-20mm', material: 'Aggregate (20mm)', unit: 'cu.m', quantity: 0.76, wastageDefault: 3 },
+      { materialId: 'steel-bar', material: 'Steel Reinforcement Bar', unit: 'kg', quantity: 150, wastageDefault: 2 },
+      { materialId: 'binding-wire', material: 'Binding Wire (GI)', unit: 'kg', quantity: 2.2, wastageDefault: 5 },
+      { materialId: 'timber', material: 'Timber (Sal)', unit: 'cu.ft', quantity: 6, wastageDefault: 10 },
+      { materialId: 'water', material: 'Water', unit: 'litre', quantity: 185, wastageDefault: 5 },
+    ],
+    labor: [
+      { role: 'Skilled Mason', unit: 'day', quantity: 2.0 },
+      { role: 'Skilled Bar Bender', unit: 'day', quantity: 1.5 },
+      { role: 'Skilled Carpenter', unit: 'day', quantity: 1.0 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 7.0 },
+    ],
+    equipment: [
+      { equipment: 'Batching Plant', unit: 'hr', quantity: 1.5 },
+      { equipment: 'Concrete Pump', unit: 'hr', quantity: 1.0 },
+      { equipment: 'Vibrator', unit: 'hr', quantity: 2.0 },
+      { equipment: 'Crane (10T)', unit: 'hr', quantity: 0.5 },
+    ],
+  },
+  {
+    id: 'bridge-pile-foundation',
+    category: 'Bridge Work',
+    description: 'Bored cast-in-situ pile (600mm dia, M25)',
+    unit: 'r.m',
+    materials: [
+      { materialId: 'cement', material: 'Cement (OPC)', unit: 'bag (50kg)', quantity: 3.0, wastageDefault: 5 },
+      { materialId: 'sand', material: 'Sand (coarse)', unit: 'cu.m', quantity: 0.12, wastageDefault: 5 },
+      { materialId: 'aggregate-20mm', material: 'Aggregate (20mm)', unit: 'cu.m', quantity: 0.24, wastageDefault: 5 },
+      { materialId: 'steel-bar', material: 'Steel Reinforcement Bar', unit: 'kg', quantity: 35, wastageDefault: 3 },
+      { materialId: 'binding-wire', material: 'Binding Wire (GI)', unit: 'kg', quantity: 0.5, wastageDefault: 5 },
+    ],
+    labor: [
+      { role: 'Skilled Mason', unit: 'day', quantity: 0.5 },
+      { role: 'Skilled Bar Bender', unit: 'day', quantity: 0.4 },
+      { role: 'Equipment Operator', unit: 'day', quantity: 0.3 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 2.0 },
+    ],
+    equipment: [
+      { equipment: 'Pile Driving Rig', unit: 'hr', quantity: 1.0 },
+      { equipment: 'Concrete Mixer', unit: 'hr', quantity: 0.5 },
+      { equipment: 'Crane (10T)', unit: 'hr', quantity: 0.3 },
+    ],
+  },
+  {
+    id: 'bridge-bearing',
+    category: 'Bridge Work',
+    description: 'Elastomeric bearing pad installation',
+    unit: 'nos',
+    materials: [
+      { materialId: 'bearing-pad', material: 'Elastomeric Bearing Pad', unit: 'nos', quantity: 1, wastageDefault: 0 },
+      { materialId: 'cement', material: 'Cement (OPC)', unit: 'bag (50kg)', quantity: 0.5, wastageDefault: 5 },
+      { materialId: 'sand', material: 'Sand (coarse)', unit: 'cu.m', quantity: 0.02, wastageDefault: 5 },
+    ],
+    labor: [
+      { role: 'Skilled Mason', unit: 'day', quantity: 0.5 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 0.5 },
+    ],
+    equipment: [{ equipment: 'Crane (10T)', unit: 'hr', quantity: 0.2 }],
+  },
+  {
+    id: 'bridge-expansion-joint',
+    category: 'Bridge Work',
+    description: 'Expansion joint installation',
+    unit: 'r.m',
+    materials: [
+      { materialId: 'expansion-joint', material: 'Expansion Joint Material', unit: 'r.m', quantity: 1.05, wastageDefault: 3 },
+      { materialId: 'steel-bar', material: 'Steel Reinforcement Bar', unit: 'kg', quantity: 10, wastageDefault: 3 },
+    ],
+    labor: [
+      { role: 'Skilled Mason', unit: 'day', quantity: 0.5 },
+      { role: 'Skilled Welder', unit: 'day', quantity: 0.3 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 0.5 },
+    ],
+    equipment: [],
+  },
+  {
+    id: 'bridge-railing',
+    category: 'Bridge Work',
+    description: 'RCC bridge railing/parapet',
+    unit: 'r.m',
+    materials: [
+      { materialId: 'cement', material: 'Cement (OPC)', unit: 'bag (50kg)', quantity: 1.5, wastageDefault: 3 },
+      { materialId: 'sand', material: 'Sand (coarse)', unit: 'cu.m', quantity: 0.06, wastageDefault: 5 },
+      { materialId: 'aggregate-20mm', material: 'Aggregate (20mm)', unit: 'cu.m', quantity: 0.12, wastageDefault: 3 },
+      { materialId: 'steel-bar', material: 'Steel Reinforcement Bar', unit: 'kg', quantity: 15, wastageDefault: 3 },
+      { materialId: 'binding-wire', material: 'Binding Wire (GI)', unit: 'kg', quantity: 0.2, wastageDefault: 5 },
+    ],
+    labor: [
+      { role: 'Skilled Mason', unit: 'day', quantity: 0.5 },
+      { role: 'Skilled Bar Bender', unit: 'day', quantity: 0.3 },
+      { role: 'Skilled Carpenter', unit: 'day', quantity: 0.3 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 1.0 },
+    ],
+    equipment: [
+      { equipment: 'Concrete Mixer', unit: 'hr', quantity: 0.3 },
+      { equipment: 'Vibrator', unit: 'hr', quantity: 0.2 },
+    ],
+  },
+  {
+    id: 'bridge-approach-slab',
+    category: 'Bridge Work',
+    description: 'Bridge approach slab (RCC M20)',
+    unit: 'cu.m',
+    materials: [
+      { materialId: 'cement', material: 'Cement (OPC)', unit: 'bag (50kg)', quantity: 8.5, wastageDefault: 3 },
+      { materialId: 'sand', material: 'Sand (coarse)', unit: 'cu.m', quantity: 0.42, wastageDefault: 5 },
+      { materialId: 'aggregate-20mm', material: 'Aggregate (20mm)', unit: 'cu.m', quantity: 0.84, wastageDefault: 3 },
+      { materialId: 'steel-bar', material: 'Steel Reinforcement Bar', unit: 'kg', quantity: 75, wastageDefault: 3 },
+      { materialId: 'binding-wire', material: 'Binding Wire (GI)', unit: 'kg', quantity: 1.1, wastageDefault: 5 },
+      { materialId: 'water', material: 'Water', unit: 'litre', quantity: 185, wastageDefault: 5 },
+    ],
+    labor: [
+      { role: 'Skilled Mason', unit: 'day', quantity: 1.0 },
+      { role: 'Skilled Bar Bender', unit: 'day', quantity: 0.8 },
+      { role: 'Skilled Carpenter', unit: 'day', quantity: 0.5 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 5.0 },
+    ],
+    equipment: [
+      { equipment: 'Concrete Mixer', unit: 'hr', quantity: 1.5 },
+      { equipment: 'Vibrator', unit: 'hr', quantity: 1.0 },
+    ],
+  },
+  {
+    id: 'steel-bridge-fabrication',
+    category: 'Bridge Work',
+    description: 'Structural steel fabrication & erection for bridge',
+    unit: 'kg',
+    materials: [
+      { materialId: 'structural-steel', material: 'Structural Steel Section', unit: 'kg', quantity: 1.05, wastageDefault: 3 },
+    ],
+    labor: [
+      { role: 'Skilled Welder', unit: 'day', quantity: 0.02 },
+      { role: 'Semi-skilled Labor', unit: 'day', quantity: 0.01 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 0.01 },
+    ],
+    equipment: [{ equipment: 'Crane (10T)', unit: 'hr', quantity: 0.005 }],
+  },
+
+  // ═══════════════════════════════════════════
+  // ─── BUILDING STRUCTURAL ───
+  // ═══════════════════════════════════════════
+  {
+    id: 'rcc-footing-m20',
+    category: 'Building Structural',
+    description: 'RCC Isolated Footing M20',
+    unit: 'cu.m',
+    materials: [
+      { materialId: 'cement', material: 'Cement (OPC)', unit: 'bag (50kg)', quantity: 8.5, wastageDefault: 3 },
+      { materialId: 'sand', material: 'Sand (coarse)', unit: 'cu.m', quantity: 0.42, wastageDefault: 5 },
+      { materialId: 'aggregate-20mm', material: 'Aggregate (20mm)', unit: 'cu.m', quantity: 0.84, wastageDefault: 3 },
+      { materialId: 'steel-bar', material: 'Steel Reinforcement Bar', unit: 'kg', quantity: 60, wastageDefault: 3 },
+      { materialId: 'binding-wire', material: 'Binding Wire (GI)', unit: 'kg', quantity: 0.9, wastageDefault: 5 },
+      { materialId: 'water', material: 'Water', unit: 'litre', quantity: 185, wastageDefault: 5 },
+    ],
+    labor: [
+      { role: 'Skilled Mason', unit: 'day', quantity: 1.0 },
+      { role: 'Skilled Bar Bender', unit: 'day', quantity: 0.6 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 4.0 },
+    ],
+    equipment: [
+      { equipment: 'Concrete Mixer', unit: 'hr', quantity: 1.5 },
+      { equipment: 'Vibrator', unit: 'hr', quantity: 1.0 },
+    ],
+  },
+  {
+    id: 'rcc-column-m20',
+    category: 'Building Structural',
+    description: 'RCC Column M20 (300x300mm)',
+    unit: 'cu.m',
+    materials: [
+      { materialId: 'cement', material: 'Cement (OPC)', unit: 'bag (50kg)', quantity: 8.5, wastageDefault: 3 },
+      { materialId: 'sand', material: 'Sand (coarse)', unit: 'cu.m', quantity: 0.42, wastageDefault: 5 },
+      { materialId: 'aggregate-20mm', material: 'Aggregate (20mm)', unit: 'cu.m', quantity: 0.84, wastageDefault: 3 },
+      { materialId: 'steel-bar', material: 'Steel Reinforcement Bar', unit: 'kg', quantity: 120, wastageDefault: 3 },
+      { materialId: 'binding-wire', material: 'Binding Wire (GI)', unit: 'kg', quantity: 1.8, wastageDefault: 5 },
+      { materialId: 'water', material: 'Water', unit: 'litre', quantity: 185, wastageDefault: 5 },
+    ],
+    labor: [
+      { role: 'Skilled Mason', unit: 'day', quantity: 1.2 },
+      { role: 'Skilled Bar Bender', unit: 'day', quantity: 1.0 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 5.0 },
+    ],
+    equipment: [
+      { equipment: 'Concrete Mixer', unit: 'hr', quantity: 1.5 },
+      { equipment: 'Vibrator', unit: 'hr', quantity: 1.0 },
+    ],
+  },
+  {
+    id: 'rcc-beam-m20',
+    category: 'Building Structural',
+    description: 'RCC Beam M20 (230x350mm)',
+    unit: 'cu.m',
+    materials: [
+      { materialId: 'cement', material: 'Cement (OPC)', unit: 'bag (50kg)', quantity: 8.5, wastageDefault: 3 },
+      { materialId: 'sand', material: 'Sand (coarse)', unit: 'cu.m', quantity: 0.42, wastageDefault: 5 },
+      { materialId: 'aggregate-20mm', material: 'Aggregate (20mm)', unit: 'cu.m', quantity: 0.84, wastageDefault: 3 },
+      { materialId: 'steel-bar', material: 'Steel Reinforcement Bar', unit: 'kg', quantity: 100, wastageDefault: 3 },
+      { materialId: 'binding-wire', material: 'Binding Wire (GI)', unit: 'kg', quantity: 1.5, wastageDefault: 5 },
+      { materialId: 'water', material: 'Water', unit: 'litre', quantity: 185, wastageDefault: 5 },
+    ],
+    labor: [
+      { role: 'Skilled Mason', unit: 'day', quantity: 1.2 },
+      { role: 'Skilled Bar Bender', unit: 'day', quantity: 1.0 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 5.0 },
+    ],
+    equipment: [
+      { equipment: 'Concrete Mixer', unit: 'hr', quantity: 1.5 },
+      { equipment: 'Vibrator', unit: 'hr', quantity: 1.0 },
+    ],
+  },
+  {
+    id: 'rcc-staircase',
+    category: 'Building Structural',
+    description: 'RCC Staircase M20 (waist slab type)',
+    unit: 'cu.m',
+    materials: [
+      { materialId: 'cement', material: 'Cement (OPC)', unit: 'bag (50kg)', quantity: 8.5, wastageDefault: 3 },
+      { materialId: 'sand', material: 'Sand (coarse)', unit: 'cu.m', quantity: 0.42, wastageDefault: 5 },
+      { materialId: 'aggregate-20mm', material: 'Aggregate (20mm)', unit: 'cu.m', quantity: 0.84, wastageDefault: 3 },
+      { materialId: 'steel-bar', material: 'Steel Reinforcement Bar', unit: 'kg', quantity: 90, wastageDefault: 3 },
+      { materialId: 'binding-wire', material: 'Binding Wire (GI)', unit: 'kg', quantity: 1.3, wastageDefault: 5 },
+      { materialId: 'water', material: 'Water', unit: 'litre', quantity: 185, wastageDefault: 5 },
+    ],
+    labor: [
+      { role: 'Skilled Mason', unit: 'day', quantity: 1.5 },
+      { role: 'Skilled Bar Bender', unit: 'day', quantity: 1.0 },
+      { role: 'Skilled Carpenter', unit: 'day', quantity: 1.0 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 6.0 },
+    ],
+    equipment: [
+      { equipment: 'Concrete Mixer', unit: 'hr', quantity: 1.5 },
+      { equipment: 'Vibrator', unit: 'hr', quantity: 1.0 },
+    ],
+  },
+  {
+    id: 'dpc-layer',
+    category: 'Building Structural',
+    description: 'Damp Proof Course (DPC) 50mm thick (1:2:4)',
+    unit: 'sq.m',
+    materials: [
+      { materialId: 'cement', material: 'Cement (OPC)', unit: 'bag (50kg)', quantity: 0.55, wastageDefault: 3 },
+      { materialId: 'sand', material: 'Sand (coarse)', unit: 'cu.m', quantity: 0.017, wastageDefault: 5 },
+      { materialId: 'aggregate-10mm', material: 'Aggregate (10mm)', unit: 'cu.m', quantity: 0.033, wastageDefault: 5 },
+      { materialId: 'waterproof-compound', material: 'Waterproofing Compound', unit: 'kg', quantity: 0.5, wastageDefault: 5 },
+    ],
+    labor: [
+      { role: 'Skilled Mason', unit: 'day', quantity: 0.1 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 0.15 },
+    ],
+    equipment: [],
+  },
+
+  // ═══════════════════════════════════════════
+  // ─── RETAINING WALL & PROTECTION ───
+  // ═══════════════════════════════════════════
+  {
+    id: 'retaining-wall-stone',
+    category: 'Retaining & Protection',
+    description: 'Stone masonry retaining wall (1:4 CM)',
+    unit: 'cu.m',
+    materials: [
+      { materialId: 'stone', material: 'Stone (rubble)', unit: 'cu.m', quantity: 1.25, wastageDefault: 5 },
+      { materialId: 'cement', material: 'Cement (OPC)', unit: 'bag (50kg)', quantity: 3.0, wastageDefault: 3 },
+      { materialId: 'sand', material: 'Sand (coarse)', unit: 'cu.m', quantity: 0.3, wastageDefault: 5 },
+      { materialId: 'water', material: 'Water', unit: 'litre', quantity: 65, wastageDefault: 5 },
+    ],
+    labor: [
+      { role: 'Skilled Mason', unit: 'day', quantity: 2.0 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 2.5 },
+    ],
+    equipment: [],
+  },
+  {
+    id: 'retaining-wall-rcc',
+    category: 'Retaining & Protection',
+    description: 'RCC Retaining Wall M20 (cantilever type)',
+    unit: 'cu.m',
+    materials: [
+      { materialId: 'cement', material: 'Cement (OPC)', unit: 'bag (50kg)', quantity: 8.5, wastageDefault: 3 },
+      { materialId: 'sand', material: 'Sand (coarse)', unit: 'cu.m', quantity: 0.42, wastageDefault: 5 },
+      { materialId: 'aggregate-20mm', material: 'Aggregate (20mm)', unit: 'cu.m', quantity: 0.84, wastageDefault: 3 },
+      { materialId: 'steel-bar', material: 'Steel Reinforcement Bar', unit: 'kg', quantity: 90, wastageDefault: 3 },
+      { materialId: 'binding-wire', material: 'Binding Wire (GI)', unit: 'kg', quantity: 1.3, wastageDefault: 5 },
+      { materialId: 'water', material: 'Water', unit: 'litre', quantity: 185, wastageDefault: 5 },
+    ],
+    labor: [
+      { role: 'Skilled Mason', unit: 'day', quantity: 1.2 },
+      { role: 'Skilled Bar Bender', unit: 'day', quantity: 0.9 },
+      { role: 'Skilled Carpenter', unit: 'day', quantity: 0.6 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 5.0 },
+    ],
+    equipment: [
+      { equipment: 'Concrete Mixer', unit: 'hr', quantity: 1.5 },
+      { equipment: 'Vibrator', unit: 'hr', quantity: 1.0 },
+    ],
+  },
+  {
+    id: 'breast-wall',
+    category: 'Retaining & Protection',
+    description: 'Dry stone breast wall',
+    unit: 'cu.m',
+    materials: [
+      { materialId: 'stone', material: 'Stone (rubble)', unit: 'cu.m', quantity: 1.3, wastageDefault: 5 },
+    ],
+    labor: [
+      { role: 'Skilled Mason', unit: 'day', quantity: 1.0 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 1.5 },
+    ],
+    equipment: [],
+  },
+
+  // ═══════════════════════════════════════════
+  // ─── ROAD FURNITURE ───
+  // ═══════════════════════════════════════════
   {
     id: 'road-marking',
     category: 'Road Furniture',
@@ -453,6 +1515,24 @@ export const RATE_ANALYSIS_NORMS: RateAnalysisNorm[] = [
     labor: [
       { role: 'Skilled Mason', unit: 'day', quantity: 0.02 },
       { role: 'Unskilled Labor', unit: 'day', quantity: 0.05 },
+    ],
+    equipment: [],
+  },
+  {
+    id: 'km-post',
+    category: 'Road Furniture',
+    description: 'RCC Kilometre post',
+    unit: 'nos',
+    materials: [
+      { materialId: 'cement', material: 'Cement (OPC)', unit: 'bag (50kg)', quantity: 0.5, wastageDefault: 5 },
+      { materialId: 'sand', material: 'Sand (coarse)', unit: 'cu.m', quantity: 0.02, wastageDefault: 5 },
+      { materialId: 'aggregate-10mm', material: 'Aggregate (10mm)', unit: 'cu.m', quantity: 0.04, wastageDefault: 5 },
+      { materialId: 'steel-bar', material: 'Steel Reinforcement Bar', unit: 'kg', quantity: 2, wastageDefault: 5 },
+      { materialId: 'enamel-paint', material: 'Enamel Paint', unit: 'litre', quantity: 0.2, wastageDefault: 5 },
+    ],
+    labor: [
+      { role: 'Skilled Mason', unit: 'day', quantity: 0.3 },
+      { role: 'Unskilled Labor', unit: 'day', quantity: 0.5 },
     ],
     equipment: [],
   },
