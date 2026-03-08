@@ -9,6 +9,8 @@ export function letterOfBidTemplate(profile: CompanyProfile | null, bid?: Partia
   const co = profile?.companyName || '[Company Name / कम्पनीको नाम]';
   const addr = profile?.address || '[Address / ठेगाना]';
   const rep = profile?.authorizedRepresentative || '[Authorized Representative / अधिकृत प्रतिनिधि]';
+  const designation = profile?.designation || '[Designation / पद]';
+  const pan = profile?.panVatNumber || '[PAN/VAT]';
   const project = bid?.projectName || '[Name of Contract / परियोजनाको नाम]';
   const employer = bid?.employer || '[Employer Name / नियोक्ताको नाम]';
   const employerAddr = bid?.employerAddress || '[Employer Address]';
