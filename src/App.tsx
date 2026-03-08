@@ -33,6 +33,7 @@ const App = () => (
             <Route path="/tracker" element={<BidTracker />} />
             <Route path="/documents" element={<Documents />} />
             <Route path="/analyze" element={<BidAnalysis />} />
+            <Route path="/boq-wizard" element={<BoqWizard />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -16,6 +16,7 @@ const NAV_ITEMS = [
   { to: '/company', label: 'Company Profile', labelNe: 'कम्पनी प्रोफाइल', icon: Building2 },
   { to: '/bid/new', label: 'New Bid', labelNe: 'नयाँ बोलपत्र', icon: FilePlus },
   { to: '/analyze', label: 'Analyze Document', labelNe: 'कागजात विश्लेषण', icon: FileSearch },
+  { to: '/boq-wizard', label: 'BoQ Wizard', labelNe: 'BoQ विजार्ड', icon: Upload },
   { to: '/templates', label: 'Templates', labelNe: 'नमुनाहरू', icon: FileText },
   { to: '/tracker', label: 'Bid Tracker', labelNe: 'बोलपत्र ट्र्याकर', icon: ClipboardList },
   { to: '/documents', label: 'Documents', labelNe: 'कागजातहरू', icon: FolderArchive },
