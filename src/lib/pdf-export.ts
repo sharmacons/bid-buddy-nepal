@@ -249,3 +249,126 @@ export function exportPriceAdjustmentPDF(params: {
   win.document.close();
   setTimeout(() => win.print(), 500);
 }
+
+const GANTT_COLORS = [
+  '#1e3a5f', '#2563eb', '#16a34a', '#ea580c',
+  '#be185d', '#7c3aed', '#0d9488', '#ca8a04',
+];
+
+export function exportWorkSchedulePDF(params: {
+  projectName: string;
+  employer: string;
+  ifbNumber: string;
+  contractId: string;
+  workSchedule: WorkScheduleItem[];
+  totalDurationWeeks: number;
+}) {
+  const { projectName, employer, ifbNumber, contractId, workSchedule, totalDurationWeeks } = params;
+  const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  const maxWeek = Math.max(...workSchedule.map(i => i.startWeek + i.duration - 1), totalDurationWeeks, 1);
+  const totalMonths = Math.ceil(maxWeek / 4);
+
+  const win = window.open('', '_blank');
+  if (!win) return;
+
+  // Build table rows
+  const tableRows = workSchedule.map((item, idx) => {
+    const monthCells = Array.from({ length: totalMonths }, (_, m) => {
+      const mStart = m * 4 + 1;
+      const mEnd = (m + 1) * 4;
+      const actStart = item.startWeek;
+      const actEnd = item.startWeek + item.duration - 1;
+      const overlap = actStart <= mEnd && actEnd >= mStart;
+      const color = GANTT_COLORS[idx % GANTT_COLORS.length];
+      return `<td style="padding:0;position:relative;height:22px;">
+        ${overlap ? `<div style="background:${color};height:14px;margin:4px 1px;border-radius:2px;opacity:${item.isMajor ? '1' : '0.6'};"></div>` : ''}
+      </td>`;
+    }).join('');
+
+    return `<tr>
+      <td style="text-align:center;padding:3px 4px;font-size:9px;">${idx + 1}</td>
+      <td style="padding:3px 6px;font-size:9px;white-space:nowrap;${item.isMajor ? 'font-weight:bold;' : ''}">${item.isMajor ? '● ' : ''}${item.activity}</td>
+      <td style="text-align:center;padding:3px 4px;font-size:9px;">${item.startWeek}</td>
+      <td style="text-align:center;padding:3px 4px;font-size:9px;">${item.duration}</td>
+      <td style="text-align:center;padding:3px 4px;font-size:9px;">${item.startWeek + item.duration - 1}</td>
+      ${monthCells}
+    </tr>`;
+  }).join('');
+
+  // Month headers
+  const monthHeaders = Array.from({ length: totalMonths }, (_, i) =>
+    `<th style="padding:3px 2px;font-size:8px;min-width:28px;text-align:center;">M${i + 1}</th>`
+  ).join('');
+
+  win.document.write(`<!DOCTYPE html>
+<html>
+<head>
+<title>Work Schedule - ${projectName || 'Bid Document'}</title>
+<style>
+  @page { size: A4 landscape; margin: 12mm 10mm; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Tahoma, sans-serif; font-size: 10px; color: #1a1a1a; }
+  .header { text-align: center; border-bottom: 3px double #1e3a5f; padding-bottom: 10px; margin-bottom: 12px; }
+  .header h1 { font-size: 16px; color: #1e3a5f; }
+  .header h2 { font-size: 11px; color: #444; font-weight: normal; margin-top: 2px; }
+  .info-row { display: flex; gap: 24px; margin-bottom: 8px; flex-wrap: wrap; }
+  .info-item { font-size: 10px; }
+  .info-item strong { color: #1e3a5f; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { border: 1px solid #bbb; }
+  th { background: #eef2f7; color: #1e3a5f; font-weight: 600; padding: 4px; font-size: 9px; }
+  tr:nth-child(even) { background: #f9fafb; }
+  .footer { margin-top: 16px; padding-top: 8px; border-top: 1px solid #ccc; font-size: 8px; color: #888; text-align: center; }
+  .legend { margin-top: 8px; font-size: 9px; color: #555; display: flex; gap: 16px; }
+  .legend span { display: flex; align-items: center; gap: 4px; }
+  .legend .dot { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+  @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+</style>
+</head>
+<body>
+  <div class="header">
+    <h1>CONSTRUCTION WORK SCHEDULE / BAR CHART</h1>
+    <h2>निर्माण कार्य तालिका / बार चार्ट</h2>
+  </div>
+
+  <div class="info-row">
+    <div class="info-item"><strong>Project:</strong> ${projectName || '—'}</div>
+    <div class="info-item"><strong>Employer:</strong> ${employer || '—'}</div>
+    <div class="info-item"><strong>IFB No:</strong> ${ifbNumber || '—'}</div>
+    <div class="info-item"><strong>Contract ID:</strong> ${contractId || '—'}</div>
+    <div class="info-item"><strong>Total Duration:</strong> ${maxWeek} weeks (${totalMonths} months)</div>
+    <div class="info-item"><strong>Date:</strong> ${today}</div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width:24px;">S.N.</th>
+        <th style="min-width:160px;text-align:left;padding-left:6px;">Description of Activity</th>
+        <th style="width:36px;">Start<br>(wk)</th>
+        <th style="width:36px;">Dur.<br>(wk)</th>
+        <th style="width:36px;">End<br>(wk)</th>
+        ${monthHeaders}
+      </tr>
+    </thead>
+    <tbody>
+      ${tableRows}
+    </tbody>
+  </table>
+
+  <div class="legend">
+    <span><span class="dot" style="background:#1e3a5f;"></span> Major Item (● marked)</span>
+    <span><span class="dot" style="background:#1e3a5f;opacity:0.5;"></span> Minor Item</span>
+    <span>Each column = 1 month (4 weeks)</span>
+  </div>
+
+  <div class="footer">
+    Generated by BidReady Nepal — बोलपत्र तयारी सहायक | ${today}<br>
+    This work schedule is indicative and subject to site conditions, weather, and resource availability.
+  </div>
+</body>
+</html>`);
+
+  win.document.close();
+  setTimeout(() => win.print(), 500);
+}
