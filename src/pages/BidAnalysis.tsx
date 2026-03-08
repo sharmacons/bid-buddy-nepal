@@ -365,8 +365,28 @@ export default function BidAnalysis() {
     conditions: { label: 'Bid Conditions', icon: Info },
   };
 
+  // Build highlighted original text
+  const getHighlightedText = useCallback(() => {
+    if (!uploadedText) return uploadedText;
+    const allValues = extractedFields
+      .filter(f => f.selected)
+      .map(f => editedValues[f.key] || f.value)
+      .filter(v => v.length > 3);
+    // Also add BOQ descriptions
+    boqItems.filter(i => boqSelected.has(i.id)).forEach(i => {
+      if (i.description.length > 3) allValues.push(i.description);
+    });
+    return allValues;
+  }, [uploadedText, extractedFields, editedValues, boqItems, boqSelected]);
+
+  // Find value in original text and scroll
+  const findInDocument = (value: string) => {
+    setHighlightedField(value);
+    setTimeout(() => setHighlightedField(null), 3000);
+  };
+
   return (
-    <div className="p-4 md:p-6 max-w-5xl mx-auto space-y-6">
+    <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
         <Sparkles className="h-7 w-7 text-primary" />
