@@ -288,7 +288,7 @@ export default function BidDetail() {
         });
       });
       docs.push({
-        title: 'Joint Venture Agreement (संयुक्त उपक्रम सम्झौता)',
+        title: 'Joint Venture Agreement',
         content: jvAgreementTemplate(profile, bid!.jvPartners, bid!),
       });
       docs.push({
