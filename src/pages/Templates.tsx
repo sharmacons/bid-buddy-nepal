@@ -13,6 +13,7 @@ import {
   jvAgreementTemplate, jvPowerOfAttorneyTemplate, jvInfoELI2Template,
   constructionScheduleTemplate,
 } from '@/lib/templates';
+import { detectActivitiesFromBOQ, generateWorkSchedule } from '@/lib/work-schedule';
 import { generatePrintPackageHTML } from '@/lib/letterhead';
 import { toast } from 'sonner';
 import { FileText, Copy, Printer, AlertTriangle, FolderOpen } from 'lucide-react';
@@ -46,11 +47,20 @@ export default function Templates() {
       { title: 'Mobilization Schedule (परिचालन तालिका)', content: mobilizationScheduleTemplate(bid || undefined) },
     ];
 
-    // Work schedule if available
-    if (bid?.workSchedule && bid.workSchedule.length > 0) {
+    // Work schedule — auto-generate from BOQ if not manually set
+    const workSchedule = (() => {
+      if (bid?.workSchedule && bid.workSchedule.length > 0) return bid.workSchedule;
+      if (bid?.boqItems && bid.boqItems.length > 0) {
+        const detected = detectActivitiesFromBOQ(bid.boqItems);
+        return generateWorkSchedule(detected, bid.totalDurationWeeks || 24);
+      }
+      return [];
+    })();
+
+    if (workSchedule.length > 0) {
       docs.push({
-        title: 'Construction Schedule (कार्य तालिका)',
-        content: constructionScheduleTemplate(bid.workSchedule, bid.totalDurationWeeks || 24),
+        title: 'Construction Schedule / Bar Chart',
+        content: constructionScheduleTemplate(workSchedule, bid?.totalDurationWeeks || 24),
       });
     }
 
@@ -86,13 +96,23 @@ export default function Templates() {
   }, [profile, selectedBid]);
 
   function handlePrintAll() {
+    // Auto-generate work schedule for print if needed
+    const workSchedule = (() => {
+      if (selectedBid?.workSchedule && selectedBid.workSchedule.length > 0) return selectedBid.workSchedule;
+      if (selectedBid?.boqItems && selectedBid.boqItems.length > 0) {
+        const detected = detectActivitiesFromBOQ(selectedBid.boqItems);
+        return generateWorkSchedule(detected, selectedBid.totalDurationWeeks || 24);
+      }
+      return undefined;
+    })();
+
     const printWindow = window.open('', '_blank');
     if (!printWindow) { toast.error('Please allow popups'); return; }
     printWindow.document.write(generatePrintPackageHTML({
       profile,
       projectName: selectedBid?.projectName || 'PPMO Standard Templates',
       documents: templates,
-      workSchedule: selectedBid?.workSchedule,
+      workSchedule,
       totalDurationWeeks: selectedBid?.totalDurationWeeks || 24,
     }));
     printWindow.document.close();
