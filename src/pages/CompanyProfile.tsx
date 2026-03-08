@@ -208,6 +208,7 @@ export default function CompanyProfile() {
       contactPhone: data.jvLeadPhone,
       contactEmail: data.jvLeadEmail,
       ...data,
+    profile.logoUrl = logoUrl || undefined;
     };
     saveCompanyProfile(profile);
     toast.success('JV profile saved!');
