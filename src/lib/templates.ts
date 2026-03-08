@@ -297,7 +297,8 @@ JV Partner's legal name:                      ${partner.legalName || '[Partner N
 JV Partner's country of constitution:         ${partner.country || 'Nepal'}
 JV Partner's year of constitution:            ${partner.yearOfConstitution || '[Year]'}
 JV Partner's legal address:                   ${partner.address || '[Address]'}
-JV Partner's PAN/VAT:                         ${partner.panVatNumber || '[PAN/VAT]'}
+JV Partner's PAN/VAT (Company):               ${partner.panVatNumber || '[Individual Company PAN]'}
+(Note: JV PAN/VAT is issued only after contract award)
 JV Partner's Registration No:                 ${partner.registrationNumber || '[Reg. No.]'}
 JV Partner's share in JV:                     ${partner.sharePercentage || '___'}%
 
