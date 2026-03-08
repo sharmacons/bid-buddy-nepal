@@ -137,12 +137,13 @@ ___________________________
 export function powerOfAttorneyTemplate(profile: CompanyProfile | null, bid?: Partial<BidData>): string {
   const co = profile?.companyName || '[Company Name / कम्पनीको नाम]';
   const rep = profile?.authorizedRepresentative || '[Name of Representative]';
+  const designation = profile?.designation || '[Designation]';
   const project = bid?.projectName || '[Project Name]';
   const employer = bid?.employer || '[Employer Name]';
 
   return `POWER OF ATTORNEY (अख्तियारनामा)
 
-Know all men by these presents, We ${co} do hereby irrevocably constitute, nominate, appoint, and authorize ${rep} as our true and lawful attorney (hereinafter referred to as the "Attorney") to do in our name and on our behalf, all such acts, deeds, and things as are necessary or required in connection with or incidental to submission of our bid for the ${project} proposed by ${employer} including but not limited to:
+Know all men by these presents, We ${co} do hereby irrevocably constitute, nominate, appoint, and authorize ${rep} (${designation}) as our true and lawful attorney (hereinafter referred to as the "Attorney") to do in our name and on our behalf, all such acts, deeds, and things as are necessary or required in connection with or incidental to submission of our bid for the ${project} proposed by ${employer} including but not limited to:
 
 1. Signing and submission of the Bid and all documents related thereto
 2. Attending the bid opening
@@ -156,7 +157,7 @@ For ${co}
 
 ___________________________
 [Signature]
-[Name, Designation]
+[${rep}, ${designation}]
 [Company Seal]
 
 Accepted:
