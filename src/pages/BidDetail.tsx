@@ -459,40 +459,65 @@ export default function BidDetail() {
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1">
-                        <Label className="text-xs">Legal Name</Label>
-                        <Input className="h-8 text-sm" value={partner.legalName} onChange={(e) => updateJVPartner(partner.id, 'legalName', e.target.value)} placeholder="Partner Company Name" />
+                        <Label className="text-xs">Company Legal Name *</Label>
+                        <Input className="h-8 text-sm" value={partner.legalName} onChange={(e) => updateJVPartner(partner.id, 'legalName', e.target.value)} placeholder="Blue Heights Construction Pvt. Ltd." />
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-xs">Share %</Label>
-                        <Input className="h-8 text-sm" type="number" value={partner.sharePercentage || ''} onChange={(e) => updateJVPartner(partner.id, 'sharePercentage', Number(e.target.value))} placeholder="40" />
+                        <Label className="text-xs">Share % (min 25%) *</Label>
+                        <Input className="h-8 text-sm" type="number" min={25} max={75} value={partner.sharePercentage || ''} onChange={(e) => updateJVPartner(partner.id, 'sharePercentage', Number(e.target.value))} placeholder="45" />
+                        {partner.sharePercentage > 0 && partner.sharePercentage < 25 && (
+                          <p className="text-[10px] text-destructive">Min 25% required</p>
+                        )}
                       </div>
                       <div className="space-y-1">
                         <Label className="text-xs">Address</Label>
-                        <Input className="h-8 text-sm" value={partner.address} onChange={(e) => updateJVPartner(partner.id, 'address', e.target.value)} />
+                        <Input className="h-8 text-sm" value={partner.address} onChange={(e) => updateJVPartner(partner.id, 'address', e.target.value)} placeholder="Tulshipur-16, Dang" />
                       </div>
                       <div className="space-y-1">
                         <Label className="text-xs">PAN/VAT Number</Label>
-                        <Input className="h-8 text-sm" value={partner.panVatNumber} onChange={(e) => updateJVPartner(partner.id, 'panVatNumber', e.target.value)} placeholder="123456789" />
+                        <Input className="h-8 text-sm" value={partner.panVatNumber} onChange={(e) => updateJVPartner(partner.id, 'panVatNumber', e.target.value)} placeholder="305284884" />
                       </div>
                       <div className="space-y-1">
                         <Label className="text-xs">Registration Number</Label>
                         <Input className="h-8 text-sm" value={partner.registrationNumber} onChange={(e) => updateJVPartner(partner.id, 'registrationNumber', e.target.value)} placeholder="REG-12345" />
                       </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs">Authorized Representative</Label>
-                        <Input className="h-8 text-sm" value={partner.authorizedRepresentative} onChange={(e) => updateJVPartner(partner.id, 'authorizedRepresentative', e.target.value)} />
+                      <div className="col-span-2 border-t pt-2 mt-1">
+                        <p className="text-xs font-semibold text-primary mb-2">👤 Representative Details</p>
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-xs">Designation (MD/Proprietor/Partner)</Label>
+                        <Label className="text-xs">Authorized Representative *</Label>
+                        <Input className="h-8 text-sm" value={partner.authorizedRepresentative} onChange={(e) => updateJVPartner(partner.id, 'authorizedRepresentative', e.target.value)} placeholder="Sushan Karki" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Gender (Mr./Mrs.)</Label>
+                        <Select value={partner.gender || 'male'} onValueChange={(v) => updateJVPartner(partner.id, 'gender', v)}>
+                          <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="male">Mr. (श्रीमान)</SelectItem>
+                            <SelectItem value="female">Mrs./Ms. (श्रीमती)</SelectItem>
+                            <SelectItem value="other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Father's Name (बुबाको नाम)</Label>
+                        <Input className="h-8 text-sm" value={partner.fatherName} onChange={(e) => updateJVPartner(partner.id, 'fatherName', e.target.value)} placeholder="Tribendra Singh" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Grandfather's Name (हजुरबुबाको नाम)</Label>
+                        <Input className="h-8 text-sm" value={partner.grandfatherName} onChange={(e) => updateJVPartner(partner.id, 'grandfatherName', e.target.value)} placeholder="Nim Bahadur" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Designation (MD/Proprietor)</Label>
                         <Input className="h-8 text-sm" value={partner.designation} onChange={(e) => updateJVPartner(partner.id, 'designation', e.target.value)} placeholder="Managing Director" />
                       </div>
                       <div className="space-y-1">
                         <Label className="text-xs">Phone</Label>
-                        <Input className="h-8 text-sm" value={partner.contactPhone} onChange={(e) => updateJVPartner(partner.id, 'contactPhone', e.target.value)} />
+                        <Input className="h-8 text-sm" value={partner.contactPhone} onChange={(e) => updateJVPartner(partner.id, 'contactPhone', e.target.value)} placeholder="9860774396" />
                       </div>
                       <div className="space-y-1">
                         <Label className="text-xs">Email</Label>
-                        <Input className="h-8 text-sm" value={partner.contactEmail} onChange={(e) => updateJVPartner(partner.id, 'contactEmail', e.target.value)} />
+                        <Input className="h-8 text-sm" value={partner.contactEmail} onChange={(e) => updateJVPartner(partner.id, 'contactEmail', e.target.value)} placeholder="company@gmail.com" />
                       </div>
                     </div>
                   </div>
