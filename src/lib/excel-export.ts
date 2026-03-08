@@ -267,26 +267,33 @@ export async function exportWorkScheduleExcel(params: {
     const rowNum = 5 + idx;
     const row = ganttSheet.getRow(rowNum);
     const isCritical = criticalIds.has(item.id);
-    const barColor = isCritical ? CRITICAL_COLOR : BAR_COLORS[idx % BAR_COLORS.length];
+    const isOverdue = overdueIds.has(item.id);
+    const hasConflict = conflictMap.has(item.id);
+    const barColor = isOverdue ? OVERDUE_FG : isCritical ? CRITICAL_COLOR : BAR_COLORS[idx % BAR_COLORS.length];
 
     // SN column
     const snCell = row.getCell(1);
     snCell.value = idx + 1;
-    snCell.font = { size: 9, bold: isCritical };
+    snCell.font = { size: 9, bold: isCritical || isOverdue };
     snCell.alignment = { horizontal: 'center', vertical: 'middle' };
     snCell.border = thinBorder();
-    if (isCritical) snCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: CRITICAL_BG } };
+    if (isOverdue) snCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: OVERDUE_BG } };
+    else if (hasConflict) snCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: CONFLICT_BG } };
+    else if (isCritical) snCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: CRITICAL_BG } };
 
     // Activity name
     const nameCell = row.getCell(2);
-    nameCell.value = item.activity;
-    nameCell.font = { size: 9, bold: isCritical || item.isMajor, color: { argb: isCritical ? 'B91C1C' : '1A1A1A' } };
+    const statusPrefix = isOverdue ? '⏰ ' : hasConflict ? '🔄 ' : '';
+    nameCell.value = statusPrefix + item.activity;
+    nameCell.font = { size: 9, bold: isCritical || item.isMajor || isOverdue, color: { argb: isOverdue ? OVERDUE_FG : hasConflict ? CONFLICT_FG : isCritical ? 'B91C1C' : '1A1A1A' } };
     nameCell.alignment = { vertical: 'middle', wrapText: true };
     nameCell.border = thinBorder();
-    if (isCritical) nameCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: CRITICAL_BG } };
+    if (isOverdue) nameCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: OVERDUE_BG } };
+    else if (hasConflict) nameCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: CONFLICT_BG } };
+    else if (isCritical) nameCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: CRITICAL_BG } };
     else if (item.isMajor) nameCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: MAJOR_BG } };
 
-    // Week cells — fill bar cells with color
+    // Week cells — fill bar cells with color, use dashed pattern for overdue portion
     for (let w = 0; w < totalDurationWeeks; w++) {
       const cell = row.getCell(3 + w);
       const weekNum = w + 1;
@@ -300,16 +307,19 @@ export async function exportWorkScheduleExcel(params: {
       };
 
       if (isBar) {
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: barColor } };
-        // Show duration text in the middle cell of the bar
+        // Overdue portion (beyond totalDurationWeeks) gets striped pattern indicator
+        if (isOverdue && weekNum > totalDurationWeeks) {
+          cell.fill = { type: 'pattern', pattern: 'darkUp', fgColor: { argb: OVERDUE_FG }, bgColor: { argb: OVERDUE_BG } };
+        } else {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: barColor } };
+        }
         const barMiddle = item.startWeek + Math.floor(item.duration / 2) - 1;
         if (w === barMiddle) {
-          cell.value = `${item.duration}w`;
+          cell.value = isOverdue ? `${item.duration}w ⚠` : `${item.duration}w`;
           cell.font = { size: 7, bold: true, color: { argb: 'FFFFFF' } };
           cell.alignment = { horizontal: 'center', vertical: 'middle' };
         }
       } else {
-        // Light alternating background for non-bar cells
         if (idx % 2 === 1) {
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FAFAFA' } };
         }
