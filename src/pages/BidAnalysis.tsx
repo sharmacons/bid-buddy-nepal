@@ -99,56 +99,35 @@ export default function BidAnalysis() {
   function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.type !== 'application/pdf') {
-      toast.error('Please upload a PDF file');
-      return;
-    }
     if (file.size > 20 * 1024 * 1024) {
       toast.error('File size must be under 20MB');
       return;
     }
     setUploadedFile({ name: file.name, size: file.size });
-    
-    // Try to read text content for AI extraction
-    const reader = new FileReader();
-    reader.onload = () => {
-      // Store raw text for potential AI extraction  
-      const text = reader.result as string;
-      // PDF is binary, so we store a note that it was uploaded
-      setUploadedText(`[PDF uploaded: ${file.name}, ${(file.size / 1024).toFixed(0)} KB]`);
-    };
-    reader.readAsText(file);
-    toast.success('Document uploaded! Use "AI Extract" to auto-fill fields or fill manually.');
+    toast.success('Document uploaded! Now paste the document text below for AI analysis.');
   }
 
   async function handleAIExtract() {
-    if (!uploadedFile) {
-      toast.error('Upload a PDF document first');
+    if (!uploadedText.trim()) {
+      toast.error('Please paste the bid document text in the text area below');
       return;
     }
     setIsExtracting(true);
-    toast.info('AI is analyzing the document...');
-    
-    // Since we can't read PDF binary directly, use any text user provides or file metadata
-    const promptText = `Bidding document: ${uploadedFile.name}. 
-Please extract typical PPMO bid information. The file name suggests: ${uploadedFile.name}. 
-${projectName ? `Project seems to be: ${projectName}` : ''}
-${employer ? `Employer: ${employer}` : ''}
-${uploadedText}`;
+    toast.info('AI is analyzing the document text...');
     
     try {
-      const result = await extractBidInfo(promptText);
+      const result = await extractBidInfo(uploadedText);
       if (result) {
-        if (result.projectName && !projectName) setProjectName(result.projectName);
-        if (result.employer && !employer) setEmployer(result.employer);
-        if (result.employerAddress && !employerAddress) setEmployerAddress(result.employerAddress);
-        if (result.ifbNumber && !ifbNumber) setIfbNumber(result.ifbNumber);
-        if (result.contractId && !contractId) setContractId(result.contractId);
-        if (result.submissionDeadline && !submissionDate) setSubmissionDate(result.submissionDeadline);
+        if (result.projectName) setProjectName(result.projectName);
+        if (result.employer) setEmployer(result.employer);
+        if (result.employerAddress) setEmployerAddress(result.employerAddress);
+        if (result.ifbNumber) setIfbNumber(result.ifbNumber);
+        if (result.contractId) setContractId(result.contractId);
+        if (result.submissionDeadline) setSubmissionDate(result.submissionDeadline);
         if (result.bidValidity) setBidValidity(result.bidValidity);
-        if (result.completionPeriod && !completionPeriodDays) setCompletionPeriodDays(result.completionPeriod);
-        if (result.bidSecurityAmount && !bidSecurityAmount) setBidSecurityAmount(result.bidSecurityAmount);
-        if (result.estimatedCost && !estimatedCost) setEstimatedCost(result.estimatedCost);
+        if (result.completionPeriod) setCompletionPeriodDays(result.completionPeriod);
+        if (result.bidSecurityAmount) setBidSecurityAmount(result.bidSecurityAmount);
+        if (result.estimatedCost) setEstimatedCost(result.estimatedCost);
         if (result.isJV !== undefined) setIsJV(result.isJV);
         
         if (result.boqItems && result.boqItems.length > 0) {
@@ -163,7 +142,7 @@ ${uploadedText}`;
           setBoqItems(prev => [...prev, ...newItems]);
         }
         
-        toast.success('AI extracted bid details! Review and adjust as needed.');
+        toast.success('AI extracted bid details! Check Details and BOQ tabs.');
       }
     } finally {
       setIsExtracting(false);
