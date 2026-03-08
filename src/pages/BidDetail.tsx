@@ -198,26 +198,21 @@ export default function BidDetail() {
   }
 
   function generateAllDocuments() {
-    // Core documents for all bid types
     const docs = [
       { title: 'Letter of Bid (बोलपत्र पत्र)', content: letterOfBidTemplate(profile, bid!) },
       { title: 'Bid Security — Bank Guarantee (बोलपत्र जमानत)', content: bidSecurityTemplate(profile, bid!) },
       { title: 'Power of Attorney (अख्तियारनामा)', content: powerOfAttorneyTemplate(profile, bid!) },
+      { title: 'Declaration of Undertaking (घोषणा पत्र)', content: declarationTemplate(profile, bid!) },
       { title: 'Bidder Information — ELI-1', content: bidderInfoELI1Template(profile) },
       { title: 'Running Contracts — ELI-3', content: runningContractsELI3Template(bid!.runningContracts.map((c) => ({
         name: c.name, sourceOfFund: c.sourceOfFund, dateOfAcceptance: c.dateOfAcceptance,
         status: c.status, takingOverDate: c.takingOverDate,
       }))) },
-    ];
-
-    // Technical documents
-    docs.push(
       { title: 'Method Statement (कार्यविधि)', content: methodStatementTemplate(bid!) },
       { title: 'Site Organization (स्थलीय संगठन)', content: siteOrganizationTemplate(profile, bid!) },
       { title: 'Mobilization Schedule (परिचालन तालिका)', content: mobilizationScheduleTemplate(bid!) },
-    );
+    ];
 
-    // Work schedule (auto-linked from BOQ)
     if (bid!.workSchedule.length > 0) {
       docs.push({
         title: 'Construction Schedule (कार्य तालिका)',
@@ -225,17 +220,33 @@ export default function BidDetail() {
       });
     }
 
-    // JV-specific documents — auto-switch based on isJV flag
+    // JV-specific documents — auto-switch
     if (bid!.isJV && bid!.jvPartners.length > 0) {
+      // Each partner gets ELI-2 + Declaration
       bid!.jvPartners.forEach((p, i) => {
         docs.push({
           title: `JV Partner ${i + 1} — ELI-2: ${p.legalName || 'Partner'}`,
           content: jvInfoELI2Template(p, profile?.companyName || bid!.projectName),
         });
+        // Declaration for each partner
+        const partnerProfile = {
+          companyName: p.legalName, address: p.address, panVatNumber: p.panVatNumber,
+          registrationNumber: p.registrationNumber, authorizedRepresentative: p.authorizedRepresentative,
+          gender: p.gender, fatherName: p.fatherName, grandfatherName: p.grandfatherName,
+          designation: p.designation, contactPhone: p.contactPhone, contactEmail: p.contactEmail,
+        };
+        docs.push({
+          title: `Declaration — ${p.legalName || `Partner ${i + 1}`}`,
+          content: declarationTemplate(partnerProfile, bid!),
+        });
       });
       docs.push({
         title: 'Joint Venture Agreement (संयुक्त उपक्रम सम्झौता)',
         content: jvAgreementTemplate(profile, bid!.jvPartners, bid!),
+      });
+      docs.push({
+        title: 'JV Power of Attorney (संयुक्त उपक्रम अख्तियारनामा)',
+        content: jvPowerOfAttorneyTemplate(profile, bid!.jvPartners, bid!),
       });
     }
 
