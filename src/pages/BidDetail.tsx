@@ -19,6 +19,7 @@ import {
   jvAgreementTemplate, methodStatementTemplate, siteOrganizationTemplate,
   constructionScheduleTemplate, mobilizationScheduleTemplate,
 } from '@/lib/templates';
+import { generatePrintPackageHTML } from '@/lib/letterhead';
 import { toast } from 'sonner';
 import { Trash2, Save, FileText, CheckCircle2, Printer, Plus, Users, Calendar } from 'lucide-react';
 
