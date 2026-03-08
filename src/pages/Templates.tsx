@@ -15,6 +15,8 @@ import {
 } from '@/lib/templates';
 import { detectActivitiesFromBOQ, generateWorkSchedule } from '@/lib/work-schedule';
 import { generatePrintPackageHTML } from '@/lib/letterhead';
+import GanttChart from '@/components/GanttChart';
+import { WorkScheduleItem } from '@/lib/types';
 import { toast } from 'sonner';
 import { FileText, Copy, Printer, AlertTriangle, FolderOpen } from 'lucide-react';
 
