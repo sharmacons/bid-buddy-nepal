@@ -127,10 +127,6 @@ export async function exportWorkScheduleExcel(params: {
   });
   headerRow.height = 26;
 
-  // Merge header for project info
-  dataSheet.mergeCells('A1:J1');
-  dataSheet.mergeCells('A2:J2');
-
   // Data rows
   workSchedule.forEach((item, idx) => {
     const isCritical = criticalIds.has(item.id);
