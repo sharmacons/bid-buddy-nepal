@@ -149,11 +149,55 @@ export function wrapDocumentWithLetterhead(params: {
  * Generate Gantt chart HTML for work schedule with color coding and flow lines
  */
 function generateGanttChartHTML(
-  workSchedule: Array<{ activity: string; duration: number; startWeek: number; isMajor?: boolean }>,
+  workSchedule: Array<{ id?: string; activity: string; duration: number; startWeek: number; isMajor?: boolean; dependencies?: string[] }>,
   totalDurationWeeks: number,
 ): string {
   if (!workSchedule || workSchedule.length === 0) return '';
 
+  // Import critical path computation inline
+  const itemsWithIds = workSchedule.map((item, idx) => ({
+    ...item,
+    id: item.id || `ws-${idx}`,
+    isMajor: item.isMajor ?? false,
+    dependencies: item.dependencies || (idx > 0 ? [workSchedule[idx - 1].id || `ws-${idx - 1}`] : []),
+  }));
+
+  // Simple CPM: forward pass + backward pass
+  const byId = new Map(itemsWithIds.map(i => [i.id, i]));
+  const ES = new Map<string, number>();
+  const EF = new Map<string, number>();
+  for (const item of itemsWithIds) {
+    const deps = (item.dependencies).filter(d => byId.has(d));
+    const es = deps.length > 0
+      ? Math.max(...deps.map(d => EF.get(d) ?? (byId.get(d)!.startWeek + byId.get(d)!.duration - 1)))
+      : item.startWeek - 1;
+    ES.set(item.id, es);
+    EF.set(item.id, es + item.duration);
+  }
+  const projectEnd = Math.max(...itemsWithIds.map(i => EF.get(i.id) ?? 0));
+  const successors = new Map<string, string[]>();
+  for (const item of itemsWithIds) {
+    for (const dep of item.dependencies) {
+      if (!successors.has(dep)) successors.set(dep, []);
+      successors.get(dep)!.push(item.id);
+    }
+  }
+  const LF = new Map<string, number>();
+  const LS = new Map<string, number>();
+  for (let i = itemsWithIds.length - 1; i >= 0; i--) {
+    const item = itemsWithIds[i];
+    const succs = (successors.get(item.id) || []).filter(s => byId.has(s));
+    const lf = succs.length > 0 ? Math.min(...succs.map(s => LS.get(s) ?? projectEnd)) : projectEnd;
+    LF.set(item.id, lf);
+    LS.set(item.id, lf - item.duration);
+  }
+  const criticalIds = new Set<string>();
+  for (const item of itemsWithIds) {
+    const float = (LS.get(item.id) ?? 0) - (ES.get(item.id) ?? 0);
+    if (float <= 0) criticalIds.add(item.id);
+  }
+
+  const CRITICAL_COLOR = '#dc2626';
   const maxWeek = Math.max(...workSchedule.map(i => i.startWeek + i.duration - 1), totalDurationWeeks, 1);
   const totalMonths = Math.ceil(maxWeek / 4);
 
@@ -186,7 +230,8 @@ function generateGanttChartHTML(
     'demobilization': '#6b7280',
   };
 
-  function getColor(activity: string): string {
+  function getColor(activity: string, id: string): string {
+    if (criticalIds.has(id)) return CRITICAL_COLOR;
     const lower = activity.toLowerCase();
     for (const [key, color] of Object.entries(PHASE_COLORS)) {
       if (lower.includes(key)) return color;
@@ -200,8 +245,9 @@ function generateGanttChartHTML(
   ).join('');
 
   // Table rows with colored bars and flow connector lines
-  const tableRows = workSchedule.map((item, idx) => {
-    const color = getColor(item.activity);
+  const tableRows = itemsWithIds.map((item, idx) => {
+    const isCritical = criticalIds.has(item.id);
+    const color = getColor(item.activity, item.id);
     const monthCells = Array.from({ length: totalMonths }, (_, m) => {
       const mStart = m * 4 + 1;
       const mEnd = (m + 1) * 4;
@@ -209,25 +255,28 @@ function generateGanttChartHTML(
       const actEnd = item.startWeek + item.duration - 1;
       const overlap = actStart <= mEnd && actEnd >= mStart;
 
-      // Calculate bar position within month cell
       if (overlap) {
         const cellStart = Math.max(actStart, mStart);
         const cellEnd = Math.min(actEnd, mEnd);
         const leftPct = ((cellStart - mStart) / 4) * 100;
         const widthPct = ((cellEnd - cellStart + 1) / 4) * 100;
+        const barBorder = isCritical ? 'border:1.5px solid #991b1b;' : '';
         return `<td class="gantt-cell">
-          <div class="gantt-bar" style="background:${color};left:${leftPct}%;width:${widthPct}%;opacity:${item.isMajor ? '1' : '0.7'};">
-            ${leftPct === 0 && item.isMajor ? `<span class="gantt-bar-label">${item.duration}w</span>` : ''}
+          <div class="gantt-bar" style="background:${color};left:${leftPct}%;width:${widthPct}%;opacity:${isCritical ? '1' : item.isMajor ? '1' : '0.7'};${barBorder}">
+            ${leftPct === 0 && (item.isMajor || isCritical) ? `<span class="gantt-bar-label">${item.duration}w</span>` : ''}
           </div>
         </td>`;
       }
       return `<td class="gantt-cell"></td>`;
     }).join('');
 
-    return `<tr class="${item.isMajor ? 'gantt-major-row' : ''}">
+    const rowStyle = isCritical ? 'background:#fef2f2;' : item.isMajor ? 'background:#f0f7ff;' : '';
+    const criticalMarker = isCritical ? '<span style="color:#dc2626;font-weight:bold;">⚡</span> ' : '';
+
+    return `<tr style="${rowStyle}">
       <td class="gantt-sn">${idx + 1}</td>
-      <td class="gantt-activity" style="border-left: 4px solid ${color};">
-        ${item.isMajor ? '<strong>' : ''}${item.activity}${item.isMajor ? '</strong>' : ''}
+      <td class="gantt-activity" style="border-left: 4px solid ${color};${isCritical ? 'font-weight:bold;color:#991b1b;' : ''}">
+        ${criticalMarker}${item.isMajor && !isCritical ? '<strong>' : ''}${item.activity}${item.isMajor && !isCritical ? '</strong>' : ''}
       </td>
       <td class="gantt-dur">${item.startWeek}</td>
       <td class="gantt-dur">${item.duration}w</td>
@@ -243,14 +292,19 @@ function generateGanttChartHTML(
     const prev = workSchedule[idx - 1];
     const prevEnd = prev.startWeek + prev.duration - 1;
     const currStart = item.startWeek;
+    const isCritical = criticalIds.has(itemsWithIds[idx].id) && criticalIds.has(itemsWithIds[idx - 1].id);
+    const lineColor = isCritical ? CRITICAL_COLOR : '#1e3a5f';
+    const lineWidth = isCritical ? '3' : '2';
     if (currStart <= prevEnd + 2) {
       const y1 = idx * 28 - 4;
       const y2 = idx * 28 + 14;
-      return `<line x1="8" y1="${y1}" x2="8" y2="${y2}" stroke="#1e3a5f" stroke-width="2" stroke-dasharray="4,2"/>
-              <polygon points="4,${y2} 12,${y2} 8,${y2+6}" fill="#1e3a5f"/>`;
+      return `<line x1="8" y1="${y1}" x2="8" y2="${y2}" stroke="${lineColor}" stroke-width="${lineWidth}" stroke-dasharray="${isCritical ? '0' : '4,2'}"/>
+              <polygon points="4,${y2} 12,${y2} 8,${y2+6}" fill="${lineColor}"/>`;
     }
     return '';
   }).join('');
+
+  const criticalCount = criticalIds.size;
 
   return `
     <div class="gantt-container">
@@ -278,20 +332,20 @@ function generateGanttChartHTML(
       </div>
     </div>
     <div class="gantt-legend">
-      <div class="gantt-legend-title">Legend — Color-Coded by Construction Phase:</div>
+      <div class="gantt-legend-title">Legend:</div>
       <div class="gantt-legend-items">
+        <span><i style="background:${CRITICAL_COLOR};border:1.5px solid #991b1b;"></i> <strong>Critical Path (${criticalCount} activities)</strong></span>
         <span><i style="background:#0d9488;"></i> Mobilization</span>
         <span><i style="background:#b45309;"></i> Earthwork</span>
         <span><i style="background:#ea580c;"></i> Pavement Layers</span>
         <span><i style="background:#1e3a5f;"></i> Bituminous</span>
         <span><i style="background:#7c3aed;"></i> Concrete/RCC</span>
         <span><i style="background:#2563eb;"></i> Drainage</span>
-        <span><i style="background:#dc2626;"></i> Bridge</span>
         <span><i style="background:#16a34a;"></i> Bio-Engineering</span>
         <span><i style="background:#6b7280;"></i> Demobilization</span>
       </div>
       <div style="font-size:8px;color:#888;margin-top:4px;">
-        Bold rows = Major items | Arrow lines = Work flow sequence | Each column = 1 month (4 weeks)
+        ⚡ = Critical path (zero float) | Bold rows = Major items | Arrow lines = Work flow sequence | Each column = 1 month (4 weeks)
       </div>
     </div>
   `;
