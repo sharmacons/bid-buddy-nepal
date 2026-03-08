@@ -11,6 +11,7 @@ import BidDetail from "./pages/BidDetail";
 import Templates from "./pages/Templates";
 import BidTracker from "./pages/BidTracker";
 import Documents from "./pages/Documents";
+import BidAnalysis from "./pages/BidAnalysis";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
             <Route path="/templates" element={<Templates />} />
             <Route path="/tracker" element={<BidTracker />} />
             <Route path="/documents" element={<Documents />} />
+            <Route path="/analyze" element={<BidAnalysis />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
