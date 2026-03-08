@@ -256,6 +256,7 @@ c) Contracts running under all types of foreign assistance`;
 
 export function jvAgreementTemplate(profile: CompanyProfile | null, partners: JVPartner[], bid?: Partial<BidData>): string {
   const lead = profile?.companyName || '[Lead Partner Name]';
+  const leadDesignation = profile?.designation || '[Designation]';
   const project = bid?.projectName || '[Project Name]';
   const employer = bid?.employer || '[Employer Name]';
 
@@ -264,6 +265,8 @@ export function jvAgreementTemplate(profile: CompanyProfile | null, partners: JV
     partnersList += `
 ${i + 2}. Partner ${i + 2}: ${p.legalName || '[Partner Name]'}
    Address: ${p.address || '[Address]'}
+   PAN/VAT: ${p.panVatNumber || '[PAN/VAT]'}
+   Registration No: ${p.registrationNumber || '[Reg. No.]'}
    Share: ${p.sharePercentage || '___'}%`;
   });
 
@@ -275,6 +278,7 @@ BETWEEN:
 
 1. Lead Partner: ${lead}
    Address: ${profile?.address || '[Address]'}
+   PAN/VAT: ${profile?.panVatNumber || '[PAN/VAT]'}
    Share: ____%${partnersList}
 
 (hereinafter collectively referred to as "the Joint Venture")
@@ -302,12 +306,14 @@ SIGNED BY THE AUTHORIZED REPRESENTATIVES:
 
 For ${lead} (Lead Partner):
 Name: ${profile?.authorizedRepresentative || '[Name]'}
+Designation: ${leadDesignation}
 Signature: ___________________________
 Date: _______________
 [Seal]
 ${partners.map((p, i) => `
 For ${p.legalName || `[Partner ${i + 2}]`}:
 Name: ${p.authorizedRepresentative || '[Name]'}
+Designation: ${p.designation || '[MD/Proprietor/Partner]'}
 Signature: ___________________________
 Date: _______________
 [Seal]`).join('\n')}`;
