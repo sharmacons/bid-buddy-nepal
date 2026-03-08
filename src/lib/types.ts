@@ -2,6 +2,35 @@ export type BidType = 'ncb-single' | 'ncb-double' | 'sealed-quotation' | 'icb';
 
 export type BidStatus = 'preparing' | 'submitted' | 'won' | 'lost';
 
+export interface JVPartner {
+  id: string;
+  legalName: string;
+  country: string;
+  yearOfConstitution: string;
+  address: string;
+  authorizedRepresentative: string;
+  contactPhone: string;
+  contactEmail: string;
+  sharePercentage: number;
+}
+
+export interface RunningContract {
+  id: string;
+  name: string;
+  sourceOfFund: string;
+  dateOfAcceptance: string;
+  status: 'yet-to-sign' | 'running' | 'substantially-completed';
+  takingOverDate?: string;
+}
+
+export interface WorkScheduleItem {
+  id: string;
+  activity: string;
+  duration: number; // in weeks
+  startWeek: number;
+  isMajor: boolean;
+}
+
 export interface CompanyProfile {
   companyName: string;
   address: string;
@@ -10,13 +39,15 @@ export interface CompanyProfile {
   authorizedRepresentative: string;
   contactPhone: string;
   contactEmail: string;
+  yearOfConstitution?: string;
+  country?: string;
 }
 
 export interface StoredDocument {
   id: string;
   name: string;
   type: DocumentTag;
-  dataUrl: string; // base64 data URL
+  dataUrl: string;
   uploadedAt: string;
   size: number;
 }
@@ -28,6 +59,7 @@ export type DocumentTag =
   | 'financial-statement'
   | 'bank-guarantee'
   | 'power-of-attorney'
+  | 'jv-agreement'
   | 'other';
 
 export interface ChecklistItem {
@@ -52,19 +84,35 @@ export interface BidData {
   id: string;
   projectName: string;
   employer: string;
+  employerAddress?: string;
   bidType: BidType;
   status: BidStatus;
   submissionDeadline: string;
   createdAt: string;
   checklist: ChecklistItem[];
   boqItems: BOQItem[];
+  // JV
+  isJV: boolean;
+  jvPartners: JVPartner[];
+  jvLeadPartner?: string;
+  // Running contracts
+  runningContracts: RunningContract[];
+  // Work schedule
+  workSchedule: WorkScheduleItem[];
+  totalDurationWeeks?: number;
   // Template fields
+  ifbNumber?: string;
+  contractId?: string;
   bidAmount?: string;
+  bidAmountWords?: string;
   bidValidity?: string;
   completionPeriod?: string;
+  commencementDays?: string;
   bidSecurityAmount?: string;
+  performanceSecurityPercent?: string;
   methodology?: string;
-  workSchedule?: string;
+  siteOrganization?: string;
+  mobilizationPlan?: string;
   notes?: string;
 }
 
@@ -89,5 +137,22 @@ export const DOCUMENT_TAG_LABELS: Record<DocumentTag, string> = {
   'financial-statement': 'Financial Statement',
   'bank-guarantee': 'Bank Guarantee Template',
   'power-of-attorney': 'Power of Attorney',
+  'jv-agreement': 'JV Agreement',
   other: 'Other',
 };
+
+// Common road construction BOQ items for auto-generating work schedule
+export const COMMON_ROAD_WORK_ITEMS = [
+  { activity: 'Site Clearance & Mobilization', defaultDuration: 2, isMajor: true },
+  { activity: 'Earthwork - Excavation', defaultDuration: 6, isMajor: true },
+  { activity: 'Earthwork - Embankment / Fill', defaultDuration: 4, isMajor: true },
+  { activity: 'Sub-base Course', defaultDuration: 3, isMajor: true },
+  { activity: 'Base Course (Granular)', defaultDuration: 3, isMajor: true },
+  { activity: 'Bituminous Surface / Seal Coat', defaultDuration: 2, isMajor: true },
+  { activity: 'Drainage Works (Side Drain, Cross Drain)', defaultDuration: 4, isMajor: true },
+  { activity: 'Retaining Wall / Gabion Wall', defaultDuration: 4, isMajor: false },
+  { activity: 'Bridge / Culvert Construction', defaultDuration: 6, isMajor: false },
+  { activity: 'Bio-Engineering / Slope Protection', defaultDuration: 2, isMajor: false },
+  { activity: 'Road Furniture & Signage', defaultDuration: 1, isMajor: false },
+  { activity: 'Demobilization & Cleanup', defaultDuration: 1, isMajor: false },
+];

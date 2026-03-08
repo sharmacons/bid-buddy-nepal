@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { saveBid } from '@/lib/storage';
 import { getChecklistForType } from '@/lib/checklists';
@@ -19,11 +20,15 @@ export default function NewBid() {
   const [bidType, setBidType] = useState<BidType>(preselected || 'ncb-single');
   const [projectName, setProjectName] = useState('');
   const [employer, setEmployer] = useState('');
+  const [employerAddress, setEmployerAddress] = useState('');
   const [deadline, setDeadline] = useState('');
+  const [ifbNumber, setIfbNumber] = useState('');
+  const [contractId, setContractId] = useState('');
+  const [isJV, setIsJV] = useState(false);
 
   function handleCreate() {
     if (!projectName || !employer || !deadline) {
-      toast.error('Please fill all fields');
+      toast.error('Please fill all required fields');
       return;
     }
     const id = crypto.randomUUID();
@@ -31,12 +36,19 @@ export default function NewBid() {
       id,
       projectName,
       employer,
+      employerAddress,
       bidType,
       status: 'preparing',
       submissionDeadline: deadline,
       createdAt: new Date().toISOString(),
       checklist: getChecklistForType(bidType),
       boqItems: [],
+      isJV,
+      jvPartners: [],
+      runningContracts: [],
+      workSchedule: [],
+      ifbNumber,
+      contractId,
     });
     toast.success('Bid created!');
     navigate(`/bid/${id}`);
@@ -58,7 +70,7 @@ export default function NewBid() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label>Bid Type (बोलपत्र प्रकार)</Label>
+            <Label>Bid Type (बोलपत्र प्रकार) *</Label>
             <Select value={bidType} onValueChange={(v) => setBidType(v as BidType)}>
               <SelectTrigger>
                 <SelectValue />
@@ -72,30 +84,66 @@ export default function NewBid() {
           </div>
 
           <div className="space-y-2">
-            <Label>Project Name (परियोजनाको नाम)</Label>
+            <Label>Project Name (परियोजनाको नाम) *</Label>
             <Input
               value={projectName}
               onChange={(e) => setProjectName(e.target.value)}
-              placeholder="e.g., Road Construction - Kathmandu Ring Road Section"
+              placeholder="e.g., Upgrading of Baglung-Rakse-Doholi Road"
             />
           </div>
 
           <div className="space-y-2">
-            <Label>Employer / Procuring Entity (नियोक्ता)</Label>
+            <Label>Employer / Procuring Entity (नियोक्ता) *</Label>
             <Input
               value={employer}
               onChange={(e) => setEmployer(e.target.value)}
-              placeholder="e.g., Department of Roads"
+              placeholder="e.g., Road Infrastructure Development Office, Gulmi"
             />
           </div>
 
           <div className="space-y-2">
-            <Label>Submission Deadline (बोलपत्र पेश गर्ने अन्तिम मिति)</Label>
+            <Label>Employer Address (नियोक्ताको ठेगाना)</Label>
+            <Input
+              value={employerAddress}
+              onChange={(e) => setEmployerAddress(e.target.value)}
+              placeholder="e.g., Gulmi, Nepal"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label>IFB Number (बोलपत्र नम्बर)</Label>
+              <Input
+                value={ifbNumber}
+                onChange={(e) => setIfbNumber(e.target.value)}
+                placeholder="e.g., 07/079-80"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Contract ID (ठेक्का नम्बर)</Label>
+              <Input
+                value={contractId}
+                onChange={(e) => setContractId(e.target.value)}
+                placeholder="e.g., RIDO/GUL/W/NCB/..."
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Submission Deadline (अन्तिम मिति) *</Label>
             <Input
               type="date"
               value={deadline}
               onChange={(e) => setDeadline(e.target.value)}
             />
+          </div>
+
+          <div className="flex items-center justify-between p-3 rounded-lg border">
+            <div>
+              <Label>Joint Venture (संयुक्त उपक्रम)</Label>
+              <p className="text-xs text-muted-foreground">Are you bidding as a JV?</p>
+            </div>
+            <Switch checked={isJV} onCheckedChange={setIsJV} />
           </div>
 
           <Button onClick={handleCreate} className="w-full gap-2">
