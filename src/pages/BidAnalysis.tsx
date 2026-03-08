@@ -250,7 +250,7 @@ export default function BidAnalysis() {
         <FileText className="h-7 w-7 text-primary" />
         <div>
           <h1 className="text-2xl font-bold font-heading">Bid Document Analysis</h1>
-          <p className="text-sm text-muted-foreground">बोलपत्र कागजात विश्लेषण — Upload & extract key details</p>
+          <p className="text-sm text-muted-foreground">Upload & extract key details using AI</p>
         </div>
       </div>
 
