@@ -311,13 +311,26 @@ ${uploadedText}`;
               </div>
 
               {uploadedFile && (
-                <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                  <FileText className="h-5 w-5 text-primary" />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">{uploadedFile.name}</p>
-                    <p className="text-xs text-muted-foreground">{(uploadedFile.size / 1024).toFixed(0)} KB</p>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                    <FileText className="h-5 w-5 text-primary" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">{uploadedFile.name}</p>
+                      <p className="text-xs text-muted-foreground">{(uploadedFile.size / 1024).toFixed(0)} KB</p>
+                    </div>
+                    <Badge variant="outline" className="text-accent">Uploaded ✓</Badge>
                   </div>
-                  <Badge variant="outline" className="text-green-600">Uploaded ✓</Badge>
+                  <Button 
+                    onClick={handleAIExtract} 
+                    disabled={isExtracting}
+                    className="w-full gap-2 bg-gradient-to-r from-primary to-primary/80"
+                  >
+                    {isExtracting ? (
+                      <><Loader2 className="h-4 w-4 animate-spin" /> AI Analyzing...</>
+                    ) : (
+                      <><Sparkles className="h-4 w-4" /> AI Extract — Auto-Fill Fields from Document</>
+                    )}
+                  </Button>
                 </div>
               )}
 
