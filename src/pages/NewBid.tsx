@@ -262,8 +262,9 @@ export default function NewBid() {
                         <Input className="h-9 text-sm" value={partner.address} onChange={(e) => updatePartner(idx, 'address', e.target.value)} placeholder="Tulshipur-16, Dang" />
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-xs">PAN/VAT Number</Label>
+                        <Label className="text-xs">PAN/VAT Number (Individual Company)</Label>
                         <Input className="h-9 text-sm" value={partner.panVatNumber} onChange={(e) => updatePartner(idx, 'panVatNumber', e.target.value)} placeholder="305284884" />
+                        <p className="text-[10px] text-muted-foreground">Note: JV PAN is issued only after contract award. Enter each partner's own company PAN here.</p>
                       </div>
                       <div className="space-y-1">
                         <Label className="text-xs">Registration Number</Label>
