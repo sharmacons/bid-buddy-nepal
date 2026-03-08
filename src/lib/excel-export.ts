@@ -111,6 +111,8 @@ export async function exportWorkScheduleExcel(params: {
     { key: 'predecessors', width: 18 },
     { key: 'major', width: 10 },
     { key: 'critical', width: 10 },
+    { key: 'status', width: 14 },
+    { key: 'conflicts', width: 30 },
   ];
 
   // Header row
