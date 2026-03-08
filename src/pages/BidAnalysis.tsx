@@ -26,10 +26,11 @@ import {
 } from '@/lib/price-index';
 import { exportPriceAdjustmentPDF, exportWorkSchedulePDF } from '@/lib/pdf-export';
 import GanttChart from '@/components/GanttChart';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Upload, FileText, Calculator, Calendar, TrendingUp, AlertTriangle, CheckCircle,
   ArrowRight, ArrowLeft, Info, FileDown, Sparkles, Loader2, Cpu, BarChart3,
-  ClipboardList, Eye, EyeOff, ChevronDown, ChevronUp, Link2,
+  ClipboardList, Eye, EyeOff, ChevronDown, ChevronUp, Link2, Columns2, List,
 } from 'lucide-react';
 
 // Extracted info field for the selectable list
@@ -43,6 +44,62 @@ interface ExtractedField {
 }
 
 type WizardPhase = 'upload' | 'analyzing' | 'review' | 'actions';
+
+// Component to display original document with highlighted extracted values
+function OriginalDocumentView({ text, highlightValues, activeHighlight }: {
+  text: string;
+  highlightValues: string[];
+  activeHighlight: string | null;
+}) {
+  const ref = useRef<HTMLPreElement>(null);
+
+  useEffect(() => {
+    if (activeHighlight && ref.current) {
+      const mark = ref.current.querySelector('mark[data-active="true"]');
+      if (mark) mark.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [activeHighlight]);
+
+  if (!text) return <p className="p-4 text-sm text-muted-foreground">No document text available</p>;
+
+  // Build regex from values, sorted longest-first to match greedily
+  const escaped = highlightValues
+    .filter(v => v && v.length > 3)
+    .sort((a, b) => b.length - a.length)
+    .map(v => v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+
+  if (escaped.length === 0) {
+    return <pre className="p-4 text-xs font-mono whitespace-pre-wrap text-foreground leading-relaxed">{text}</pre>;
+  }
+
+  const regex = new RegExp(`(${escaped.join('|')})`, 'gi');
+  const parts = text.split(regex);
+
+  return (
+    <pre ref={ref} className="p-4 text-xs font-mono whitespace-pre-wrap text-foreground/80 leading-relaxed">
+      {parts.map((part, i) => {
+        const isMatch = escaped.some(e => part.toLowerCase() === e.toLowerCase().replace(/\\/g, ''));
+        const isActive = activeHighlight && part.toLowerCase().includes(activeHighlight.toLowerCase());
+        if (isMatch) {
+          return (
+            <mark
+              key={i}
+              data-active={isActive ? 'true' : 'false'}
+              className={`rounded px-0.5 ${
+                isActive
+                  ? 'bg-primary text-primary-foreground font-semibold'
+                  : 'bg-primary/20 text-foreground'
+              }`}
+            >
+              {part}
+            </mark>
+          );
+        }
+        return <span key={i}>{part}</span>;
+      })}
+    </pre>
+  );
+}
 
 export default function BidAnalysis() {
   const navigate = useNavigate();
@@ -78,6 +135,9 @@ export default function BidAnalysis() {
 
   // Expanded sections
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['project', 'dates', 'financial', 'boq']));
+  // Comparison view
+  const [showComparison, setShowComparison] = useState(false);
+  const [highlightedField, setHighlightedField] = useState<string | null>(null);
 
   // File upload & auto-trigger analysis
   const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -361,8 +421,28 @@ export default function BidAnalysis() {
     conditions: { label: 'Bid Conditions', icon: Info },
   };
 
+  // Build highlighted original text
+  const getHighlightedText = useCallback((): string[] => {
+    if (!uploadedText) return [];
+    const allValues = extractedFields
+      .filter(f => f.selected)
+      .map(f => editedValues[f.key] || f.value)
+      .filter(v => v.length > 3);
+    // Also add BOQ descriptions
+    boqItems.filter(i => boqSelected.has(i.id)).forEach(i => {
+      if (i.description.length > 3) allValues.push(i.description);
+    });
+    return allValues;
+  }, [uploadedText, extractedFields, editedValues, boqItems, boqSelected]);
+
+  // Find value in original text and scroll
+  const findInDocument = (value: string) => {
+    setHighlightedField(value);
+    setTimeout(() => setHighlightedField(null), 3000);
+  };
+
   return (
-    <div className="p-4 md:p-6 max-w-5xl mx-auto space-y-6">
+    <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
         <Sparkles className="h-7 w-7 text-primary" />
@@ -468,12 +548,21 @@ export default function BidAnalysis() {
           )}
 
           {/* Selection controls */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <p className="text-sm font-medium">
               <span className="text-primary">{selectedFieldCount}</span> of {extractedFields.length} fields selected
               {boqItems.length > 0 && <> · <span className="text-primary">{selectedBoqCount}</span> of {boqItems.length} BOQ items</>}
             </p>
             <div className="flex gap-2">
+              <Button
+                variant={showComparison ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setShowComparison(!showComparison)}
+                className="gap-1.5"
+              >
+                <Columns2 className="h-3.5 w-3.5" />
+                {showComparison ? 'Hide Original' : 'Compare with Original'}
+              </Button>
               <Button variant="outline" size="sm" onClick={() => setExtractedFields(prev => prev.map(f => ({ ...f, selected: true })))}>
                 Select All Fields
               </Button>
@@ -482,6 +571,34 @@ export default function BidAnalysis() {
               </Button>
             </div>
           </div>
+
+          {/* Main content: comparison split or single column */}
+          <div className={showComparison ? 'grid grid-cols-1 lg:grid-cols-2 gap-4' : ''}>
+            {/* Left panel: Original Document (only shown in comparison mode) */}
+            {showComparison && (
+              <div className="space-y-2 lg:sticky lg:top-4 lg:self-start">
+                <Card className="h-full">
+                  <CardHeader className="py-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-primary" />
+                      Original Document Text
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <ScrollArea className="h-[calc(100vh-220px)] rounded-lg border border-border bg-muted/20 p-0">
+                      <OriginalDocumentView
+                        text={uploadedText}
+                        highlightValues={getHighlightedText()}
+                        activeHighlight={highlightedField}
+                      />
+                    </ScrollArea>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {/* Right panel: Extracted data */}
+            <div className="space-y-4">
 
           {/* Categorized fields */}
           {categories.map(cat => {
@@ -521,6 +638,15 @@ export default function BidAnalysis() {
                           <div className="flex items-center gap-2">
                             <span className="text-xs font-medium text-muted-foreground">{field.label}</span>
                             {field.labelNe && <span className="text-[10px] text-muted-foreground/60">({field.labelNe})</span>}
+                            {showComparison && (
+                              <button
+                                type="button"
+                                className="text-[10px] text-primary hover:underline ml-auto"
+                                onClick={(e) => { e.stopPropagation(); findInDocument(editedValues[field.key] || field.value); }}
+                              >
+                                <Eye className="h-3 w-3 inline mr-0.5" />find
+                              </button>
+                            )}
                           </div>
                           <Input
                             className="h-8 text-sm mt-1 border-none bg-transparent px-0 focus:bg-background focus:px-2 focus:border"
@@ -740,6 +866,8 @@ export default function BidAnalysis() {
               </CardContent>
             </Card>
           )}
+            </div>{/* end right panel */}
+          </div>{/* end grid/comparison wrapper */}
         </div>
       )}
 
