@@ -24,6 +24,7 @@ import { generatePrintPackageHTML } from '@/lib/letterhead';
 import { suggestContent } from '@/lib/ai-assist';
 import { toast } from 'sonner';
 import { Trash2, Save, FileText, CheckCircle2, Printer, Plus, Users, Calendar, Upload, Sparkles, Loader2 } from 'lucide-react';
+import GanttChart from '@/components/GanttChart';
 
 export default function BidDetail() {
   const { id } = useParams<{ id: string }>();
@@ -695,27 +696,10 @@ export default function BidDetail() {
                       </Button>
                     </div>
                   ))}
-                  {/* Visual bar chart */}
-                  <div className="mt-4 p-3 rounded-lg bg-muted/30 overflow-x-auto">
-                    <h4 className="text-xs font-semibold mb-2">Bar Chart Preview</h4>
-                    <div className="min-w-[600px]">
-                      {bid.workSchedule.map((item) => {
-                        const maxWeek = bid.totalDurationWeeks || Math.max(...bid.workSchedule.map((i) => i.startWeek + i.duration), 24);
-                        const leftPercent = ((item.startWeek - 1) / maxWeek) * 100;
-                        const widthPercent = (item.duration / maxWeek) * 100;
-                        return (
-                          <div key={item.id} className="flex items-center gap-2 mb-1">
-                            <span className="text-[10px] w-32 truncate shrink-0">{item.activity}</span>
-                            <div className="flex-1 h-5 bg-muted rounded relative">
-                              <div
-                                className={`absolute h-full rounded ${item.isMajor ? 'bg-primary' : 'bg-primary/50'}`}
-                                style={{ left: `${leftPercent}%`, width: `${widthPercent}%` }}
-                              />
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
+                  {/* Visual Gantt Chart */}
+                  <div className="mt-4">
+                    <h4 className="text-xs font-semibold mb-2">Gantt Chart</h4>
+                    <GanttChart items={bid.workSchedule} totalWeeks={bid.totalDurationWeeks || 24} />
                   </div>
                 </div>
               )}
