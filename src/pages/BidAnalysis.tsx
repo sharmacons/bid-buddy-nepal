@@ -205,10 +205,11 @@ export default function BidAnalysis() {
       </div>
 
       <Tabs defaultValue="upload" className="space-y-4">
-        <TabsList className="grid grid-cols-4 w-full">
+        <TabsList className="grid grid-cols-5 w-full">
           <TabsTrigger value="upload">📄 Upload</TabsTrigger>
           <TabsTrigger value="details">📋 Details</TabsTrigger>
           <TabsTrigger value="boq">📊 BOQ</TabsTrigger>
+          <TabsTrigger value="schedule">📅 Schedule</TabsTrigger>
           <TabsTrigger value="price-adj">💰 Price Adj.</TabsTrigger>
         </TabsList>
 
