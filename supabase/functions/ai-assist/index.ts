@@ -302,7 +302,7 @@ All monetary amounts in NPR. Dates in YYYY-MM-DD format. Be thorough.`;
     const data = await response.json();
 
     // Handle tool call responses
-    if (type === "extract-bid-info" || type === "parse-boq" || type === "generate-schedule") {
+    if (type === "extract-bid-info" || type === "parse-boq" || type === "generate-schedule" || type === "full-analysis") {
       const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
       if (toolCall) {
         const extracted = JSON.parse(toolCall.function.arguments);
