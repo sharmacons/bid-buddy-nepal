@@ -227,8 +227,20 @@ export default function Templates() {
               Construction Schedule — Gantt Chart
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <GanttChart items={workScheduleItems} totalWeeks={selectedBid?.totalDurationWeeks || 24} />
+            <Button variant="outline" size="sm" className="gap-2" onClick={() => {
+              exportWorkSchedulePDF({
+                projectName: selectedBid?.projectName || '',
+                employer: selectedBid?.employer || '',
+                ifbNumber: selectedBid?.ifbNumber || '',
+                contractId: selectedBid?.contractId || '',
+                workSchedule: workScheduleItems,
+                totalDurationWeeks: selectedBid?.totalDurationWeeks || 24,
+              });
+            }}>
+              <Download className="h-3 w-3" /> Export Gantt Chart PDF (Landscape)
+            </Button>
           </CardContent>
         </Card>
       )}
