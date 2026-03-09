@@ -15,7 +15,7 @@ import {
   constructionScheduleTemplate,
 } from '@/lib/templates';
 import { detectActivitiesFromBOQ, generateWorkSchedule } from '@/lib/work-schedule';
-import { generatePrintPackageHTML } from '@/lib/letterhead';
+import { generatePrintPackageHTML, wrapDocumentWithLetterhead } from '@/lib/letterhead';
 import { exportWorkSchedulePDF } from '@/lib/pdf-export';
 import { exportWorkScheduleExcel } from '@/lib/excel-export';
 import GanttChart from '@/components/GanttChart';
@@ -129,11 +129,20 @@ export default function Templates() {
   function handlePrintSingle(content: string, title: string) {
     const printWindow = window.open('', '_blank');
     if (!printWindow) { toast.error('Please allow popups'); return; }
-    printWindow.document.write(generatePrintPackageHTML({
-      profile, projectName: selectedBid?.projectName || title,
-      documents: [{ title, content }], totalDurationWeeks: selectedBid?.totalDurationWeeks || 24,
+    printWindow.document.write(wrapDocumentWithLetterhead({
+      profile, title, content, fontSize, lineHeight,
     }));
     printWindow.document.close();
+  }
+
+  function handleExportPDF(content: string, title: string) {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) { toast.error('Please allow popups'); return; }
+    printWindow.document.write(wrapDocumentWithLetterhead({
+      profile, title, content, fontSize, lineHeight,
+    }));
+    printWindow.document.close();
+    setTimeout(() => printWindow.print(), 500);
   }
 
   const currentDoc = templates[selectedDocIndex] || templates[0];
@@ -265,6 +274,9 @@ export default function Templates() {
                     </Button>
                     <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => handlePrintSingle(currentContent, currentDoc.title)}>
                       <Printer className="h-3 w-3" /> Print
+                    </Button>
+                    <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => handleExportPDF(currentContent, currentDoc.title)}>
+                      <Download className="h-3 w-3" /> PDF
                     </Button>
                   </div>
                 </div>
