@@ -110,8 +110,10 @@ export function wrapDocumentWithLetterhead(params: {
   title: string;
   content: string;
   isLandscape?: boolean;
+  fontSize?: number;
+  lineHeight?: number;
 }): string {
-  const { profile, title, content, isLandscape } = params;
+  const { profile, title, content, isLandscape, fontSize = 12, lineHeight: lh = 1.6 } = params;
   const letterhead = generateLetterheadHTML(profile);
   const footer = generateFooterHTML(profile);
 
@@ -120,15 +122,15 @@ export function wrapDocumentWithLetterhead(params: {
 <head>
 <title>${title}</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Mukta:wght@400;600;700;800&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Mukta:wght@400;600;700;800&display=swap');
   @page { size: A4${isLandscape ? ' landscape' : ''}; margin: 20mm 15mm; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: 'Times New Roman', serif; font-size: 12pt; line-height: 1.6; color: #000; }
+  body { font-family: 'Source Sans 3', 'Mukta', serif; font-size: ${fontSize}pt; line-height: ${lh}; color: #000; }
   ${LETTERHEAD_CSS}
-  pre { white-space: pre-wrap; font-family: 'Times New Roman', serif; font-size: 12pt; line-height: 1.6; }
-  h1.doc-title { text-align: center; font-size: 14pt; margin: 16px 0 12px; font-weight: bold; text-decoration: underline; }
+  pre { white-space: pre-wrap; font-family: 'Source Sans 3', 'Mukta', serif; font-size: ${fontSize}pt; line-height: ${lh}; }
+  h1.doc-title { text-align: center; font-size: ${Math.round(fontSize * 1.2)}pt; margin: 16px 0 12px; font-weight: bold; text-decoration: underline; }
   table { width: 100%; border-collapse: collapse; margin: 10pt 0; }
-  td, th { border: 1px solid #000; padding: 4pt 8pt; text-align: left; font-size: 11pt; }
+  td, th { border: 1px solid #000; padding: 4pt 8pt; text-align: left; font-size: ${fontSize - 1}pt; }
   .page-break { page-break-before: always; }
   @media print {
     .no-print { display: none; }
