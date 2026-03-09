@@ -15,6 +15,7 @@ import BidAnalysis from "./pages/BidAnalysis";
 import BoqWizard from "./pages/BoqWizard";
 import RateAnalysis from "./pages/RateAnalysis";
 import CashFlow from "./pages/CashFlow";
+import PpmoPortal from "./pages/PpmoPortal";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +39,7 @@ const App = () => (
             <Route path="/boq-wizard" element={<BoqWizard />} />
             <Route path="/rate-analysis" element={<RateAnalysis />} />
             <Route path="/cash-flow" element={<CashFlow />} />
+            <Route path="/ppmo" element={<PpmoPortal />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
