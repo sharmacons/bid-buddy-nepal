@@ -22,6 +22,7 @@ const NAV_ITEMS = [
   { to: '/boq-wizard', label: 'BoQ Wizard', labelNe: 'BoQ विजार्ड', icon: Upload },
   { to: '/rate-analysis', label: 'Rate Analysis', labelNe: 'दर विश्लेषण', icon: Calculator },
   { to: '/cash-flow', label: 'Cash Flow', labelNe: 'नगद प्रवाह', icon: TrendingUp },
+  { to: '/ppmo', label: 'PPMO / e-GP', labelNe: 'PPMO / ई-जीपी', icon: Globe },
   { to: '/templates', label: 'Templates', labelNe: 'नमुनाहरू', icon: FileText },
   { to: '/tracker', label: 'Bid Tracker', labelNe: 'बोलपत्र ट्र्याकर', icon: ClipboardList },
   { to: '/documents', label: 'Documents', labelNe: 'कागजातहरू', icon: FolderArchive },

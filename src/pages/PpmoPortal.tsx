@@ -144,7 +144,7 @@ export default function PpmoPortal() {
         onlyMainContent: true,
         waitFor: 3000,
       });
-      const md = res?.data?.markdown || res?.markdown || '';
+      const md = res?.data?.markdown || (res as any)?.markdown || '';
       if (md) {
         setScrapedContent(md);
       } else {

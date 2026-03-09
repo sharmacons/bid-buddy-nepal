@@ -39,6 +39,7 @@ const App = () => (
             <Route path="/boq-wizard" element={<BoqWizard />} />
             <Route path="/rate-analysis" element={<RateAnalysis />} />
             <Route path="/cash-flow" element={<CashFlow />} />
+            <Route path="/ppmo" element={<PpmoPortal />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
