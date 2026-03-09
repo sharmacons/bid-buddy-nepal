@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { Download, Calculator, FileSpreadsheet, Settings, Layers } from 'lucide-react';
+import { Download, Calculator, FileSpreadsheet, Settings, Layers, FileText } from 'lucide-react';
 import {
   RATE_ANALYSIS_NORMS,
   STANDARD_MATERIALS,
