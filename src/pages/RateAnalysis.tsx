@@ -6,57 +6,97 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useToast } from '@/hooks/use-toast';
-import { Download, Calculator, FileSpreadsheet, Settings, Layers, FileText } from 'lucide-react';
+import { Download, Calculator, FileSpreadsheet, Settings, Layers, FileText, Search, HelpCircle, Plus, Trash2, ChevronDown, Info } from 'lucide-react';
 import {
   RATE_ANALYSIS_NORMS,
   STANDARD_MATERIALS,
   STANDARD_LABOR,
   STANDARD_EQUIPMENT,
   calculateRateAnalysis,
+  type RateAnalysisNorm,
   type RateAnalysisResult,
   type MaterialRate,
+  type MaterialRequirement,
+  type LaborRequirement,
+  type EquipmentRequirement,
 } from '@/lib/rate-analysis-norms';
 import { exportRateAnalysisExcel } from '@/lib/rate-analysis-export';
 import { exportRateAnalysisPDF } from '@/lib/rate-analysis-pdf';
 
+const CUSTOM_NORMS_KEY = 'bidready-custom-norms';
+
+function loadCustomNorms(): RateAnalysisNorm[] {
+  try {
+    const raw = localStorage.getItem(CUSTOM_NORMS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+function saveCustomNorms(norms: RateAnalysisNorm[]) {
+  localStorage.setItem(CUSTOM_NORMS_KEY, JSON.stringify(norms));
+}
+
 export default function RateAnalysis() {
   const { toast } = useToast();
 
-  // Project name
   const [projectName, setProjectName] = useState('');
-
-  // Global settings
   const [overheadPercent, setOverheadPercent] = useState(15);
   const [wastagePercent, setWastagePercent] = useState(2);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [expandedNormId, setExpandedNormId] = useState<string | null>(null);
 
-  // Material market rates (user input)
   const [materialRates, setMaterialRates] = useState<MaterialRate[]>(
     () => STANDARD_MATERIALS.map(m => ({ ...m }))
   );
-
-  // Labor rates
   const [laborRates, setLaborRates] = useState(
     () => STANDARD_LABOR.map(l => ({ ...l, rate: l.defaultRate }))
   );
-
-  // Equipment rates
   const [equipmentRates, setEquipmentRates] = useState(
     () => STANDARD_EQUIPMENT.map(e => ({ ...e, rate: e.defaultRate }))
   );
 
-  // Selected norms for analysis
   const [selectedNorms, setSelectedNorms] = useState<Set<string>>(new Set());
+  const [customNorms, setCustomNorms] = useState<RateAnalysisNorm[]>(loadCustomNorms);
 
-  // Group norms by category
+  // Custom norm form state
+  const [newNorm, setNewNorm] = useState({
+    description: '', category: '', unit: 'cu.m',
+    materials: [] as MaterialRequirement[],
+    labor: [] as LaborRequirement[],
+    equipment: [] as EquipmentRequirement[],
+  });
+
+  // All norms (standard + custom)
+  const allNorms = useMemo(() => [...RATE_ANALYSIS_NORMS, ...customNorms], [customNorms]);
+
+  // Group norms by category (filtered by search)
   const groupedNorms = useMemo(() => {
-    const groups: Record<string, typeof RATE_ANALYSIS_NORMS> = {};
-    RATE_ANALYSIS_NORMS.forEach(n => {
+    const query = searchQuery.toLowerCase().trim();
+    const filtered = query
+      ? allNorms.filter(n =>
+          n.description.toLowerCase().includes(query) ||
+          n.category.toLowerCase().includes(query) ||
+          n.unit.toLowerCase().includes(query) ||
+          n.materials.some(m => m.material.toLowerCase().includes(query))
+        )
+      : allNorms;
+
+    const groups: Record<string, RateAnalysisNorm[]> = {};
+    filtered.forEach(n => {
       if (!groups[n.category]) groups[n.category] = [];
       groups[n.category].push(n);
     });
     return groups;
-  }, []);
+  }, [allNorms, searchQuery]);
+
+  // All categories for custom norm dropdown
+  const allCategories = useMemo(() => {
+    const cats = new Set(allNorms.map(n => n.category));
+    return Array.from(cats).sort();
+  }, [allNorms]);
 
   // Compute results
   const results: RateAnalysisResult[] = useMemo(() => {
@@ -65,10 +105,10 @@ export default function RateAnalysis() {
     const labMap = new Map(laborRates.map(l => [l.role, l.rate]));
     const eqMap = new Map(equipmentRates.map(e => [e.equipment, e.rate]));
 
-    return RATE_ANALYSIS_NORMS
+    return allNorms
       .filter(n => selectedNorms.has(n.id))
       .map(n => calculateRateAnalysis(n, matMap, labMap, eqMap, overheadPercent, wastagePercent));
-  }, [selectedNorms, materialRates, laborRates, equipmentRates, overheadPercent, wastagePercent]);
+  }, [selectedNorms, materialRates, laborRates, equipmentRates, overheadPercent, wastagePercent, allNorms]);
 
   const handleMaterialRateChange = (idx: number, value: string) => {
     setMaterialRates(prev => {
@@ -118,7 +158,7 @@ export default function RateAnalysis() {
       return;
     }
     const missingRates = materialRates.filter(m => {
-      const needed = RATE_ANALYSIS_NORMS.filter(n => selectedNorms.has(n.id))
+      const needed = allNorms.filter(n => selectedNorms.has(n.id))
         .flatMap(n => n.materials.map(mat => mat.materialId));
       return needed.includes(m.materialId) && m.marketRate <= 0;
     });
@@ -131,7 +171,7 @@ export default function RateAnalysis() {
       overheadPercent,
       wastagePercent,
       results,
-      norms: RATE_ANALYSIS_NORMS.filter(n => selectedNorms.has(n.id)),
+      norms: allNorms.filter(n => selectedNorms.has(n.id)),
     });
     toast({ title: 'Excel exported!', description: 'Rate analysis downloaded as .xlsx' });
   };
@@ -146,18 +186,106 @@ export default function RateAnalysis() {
       overheadPercent,
       wastagePercent,
       results,
-      norms: RATE_ANALYSIS_NORMS.filter(n => selectedNorms.has(n.id)),
+      norms: allNorms.filter(n => selectedNorms.has(n.id)),
     });
     toast({ title: 'PDF ready!', description: 'Use browser Print → Save as PDF' });
   };
 
-  // Count materials needed for selected norms
   const neededMaterialIds = useMemo(() => {
     const ids = new Set<string>();
-    RATE_ANALYSIS_NORMS.filter(n => selectedNorms.has(n.id))
+    allNorms.filter(n => selectedNorms.has(n.id))
       .forEach(n => n.materials.forEach(m => ids.add(m.materialId)));
     return ids;
-  }, [selectedNorms]);
+  }, [selectedNorms, allNorms]);
+
+  // ── Custom Norm Handlers ──
+  const addCustomNorm = () => {
+    if (!newNorm.description.trim()) {
+      toast({ title: 'Enter a description', variant: 'destructive' });
+      return;
+    }
+    if (!newNorm.category.trim()) {
+      toast({ title: 'Enter a category', variant: 'destructive' });
+      return;
+    }
+    const norm: RateAnalysisNorm = {
+      id: `custom-${Date.now()}`,
+      category: newNorm.category,
+      description: newNorm.description,
+      unit: newNorm.unit,
+      materials: newNorm.materials,
+      labor: newNorm.labor,
+      equipment: newNorm.equipment,
+    };
+    const updated = [...customNorms, norm];
+    setCustomNorms(updated);
+    saveCustomNorms(updated);
+    setNewNorm({ description: '', category: '', unit: 'cu.m', materials: [], labor: [], equipment: [] });
+    toast({ title: 'Custom norm added!', description: norm.description });
+  };
+
+  const deleteCustomNorm = (id: string) => {
+    const updated = customNorms.filter(n => n.id !== id);
+    setCustomNorms(updated);
+    saveCustomNorms(updated);
+    setSelectedNorms(prev => { const next = new Set(prev); next.delete(id); return next; });
+    toast({ title: 'Custom norm deleted' });
+  };
+
+  const addMaterialToNorm = () => {
+    setNewNorm(prev => ({
+      ...prev,
+      materials: [...prev.materials, { materialId: '', material: '', unit: 'kg', quantity: 0, wastageDefault: 3 }],
+    }));
+  };
+
+  const addLaborToNorm = () => {
+    setNewNorm(prev => ({
+      ...prev,
+      labor: [...prev.labor, { role: '', unit: 'day', quantity: 0 }],
+    }));
+  };
+
+  const addEquipmentToNorm = () => {
+    setNewNorm(prev => ({
+      ...prev,
+      equipment: [...prev.equipment, { equipment: '', unit: 'hr', quantity: 0 }],
+    }));
+  };
+
+  const updateNewMaterial = (idx: number, field: string, value: string | number) => {
+    setNewNorm(prev => {
+      const mats = [...prev.materials];
+      mats[idx] = { ...mats[idx], [field]: value, ...(field === 'material' ? { materialId: String(value).toLowerCase().replace(/\s+/g, '-') } : {}) };
+      return { ...prev, materials: mats };
+    });
+  };
+
+  const updateNewLabor = (idx: number, field: string, value: string | number) => {
+    setNewNorm(prev => {
+      const labs = [...prev.labor];
+      labs[idx] = { ...labs[idx], [field]: value };
+      return { ...prev, labor: labs };
+    });
+  };
+
+  const updateNewEquipment = (idx: number, field: string, value: string | number) => {
+    setNewNorm(prev => {
+      const eqs = [...prev.equipment];
+      eqs[idx] = { ...eqs[idx], [field]: value };
+      return { ...prev, equipment: eqs };
+    });
+  };
+
+  const removeNewMaterial = (idx: number) => {
+    setNewNorm(prev => ({ ...prev, materials: prev.materials.filter((_, i) => i !== idx) }));
+  };
+  const removeNewLabor = (idx: number) => {
+    setNewNorm(prev => ({ ...prev, labor: prev.labor.filter((_, i) => i !== idx) }));
+  };
+  const removeNewEquipment = (idx: number) => {
+    setNewNorm(prev => ({ ...prev, equipment: prev.equipment.filter((_, i) => i !== idx) }));
+  };
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
@@ -206,46 +334,160 @@ export default function RateAnalysis() {
       </Card>
 
       <Tabs defaultValue="items" className="space-y-4">
-        <TabsList className="grid grid-cols-4 w-full max-w-lg">
+        <TabsList className="grid grid-cols-5 w-full max-w-2xl">
           <TabsTrigger value="items" className="gap-1"><Layers className="h-3 w-3" /> Work Items</TabsTrigger>
           <TabsTrigger value="materials" className="gap-1">Materials</TabsTrigger>
           <TabsTrigger value="labor" className="gap-1">Labor</TabsTrigger>
+          <TabsTrigger value="custom" className="gap-1"><Plus className="h-3 w-3" /> Custom</TabsTrigger>
           <TabsTrigger value="results" className="gap-1"><Calculator className="h-3 w-3" /> Results</TabsTrigger>
         </TabsList>
 
-        {/* ── Work Items Selection ── */}
+        {/* ── Work Items Selection with Search ── */}
         <TabsContent value="items">
+          {/* Search Bar */}
+          <Card className="mb-4">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+                <Input
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  placeholder="Search norms... e.g. 'RCC column', 'culvert', 'plastering', 'M20', 'brick'"
+                  className="flex-1"
+                />
+                {searchQuery && (
+                  <Button variant="ghost" size="sm" onClick={() => setSearchQuery('')}>Clear</Button>
+                )}
+              </div>
+              {searchQuery && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  Found {Object.values(groupedNorms).reduce((s, g) => s + g.length, 0)} norms matching "{searchQuery}"
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Help Info */}
+          <Card className="mb-4 border-primary/20 bg-primary/5">
+            <CardContent className="p-3 flex items-start gap-2">
+              <HelpCircle className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <div className="text-xs text-muted-foreground space-y-1">
+                <p><strong>How to use:</strong> Search or browse norms below. Click <Info className="h-3 w-3 inline" /> to see material/labor/equipment breakdown for any norm. Select items you need, then go to Materials tab to enter rates.</p>
+                <p>Can't find a norm? Use the <strong>Custom</strong> tab to add your own work items with custom material & labor requirements.</p>
+              </div>
+            </CardContent>
+          </Card>
+
           <div className="space-y-4">
+            {Object.keys(groupedNorms).length === 0 && searchQuery && (
+              <Card>
+                <CardContent className="py-8 text-center text-muted-foreground">
+                  <Search className="h-8 w-8 mx-auto mb-2 opacity-40" />
+                  <p>No norms found for "{searchQuery}"</p>
+                  <p className="text-xs mt-1">Try different keywords or add a custom norm in the Custom tab</p>
+                </CardContent>
+              </Card>
+            )}
             {Object.entries(groupedNorms).map(([category, norms]) => (
               <Card key={category}>
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm font-semibold">{category}</CardTitle>
+                    <CardTitle className="text-sm font-semibold">{category} <Badge variant="secondary" className="ml-1 text-xs">{norms.length}</Badge></CardTitle>
                     <Button variant="ghost" size="sm" onClick={() => selectAllCategory(category)}>
                       {norms.every(n => selectedNorms.has(n.id)) ? 'Deselect All' : 'Select All'}
                     </Button>
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-2">
+                <CardContent className="space-y-1">
                   {norms.map(norm => (
-                    <label key={norm.id} className="flex items-start gap-3 p-2 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors">
-                      <Checkbox
-                        checked={selectedNorms.has(norm.id)}
-                        onCheckedChange={() => toggleNorm(norm.id)}
-                        className="mt-0.5"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium">{norm.description}</p>
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          <Badge variant="outline" className="text-xs">Unit: {norm.unit}</Badge>
-                          <Badge variant="secondary" className="text-xs">{norm.materials.length} materials</Badge>
-                          <Badge variant="secondary" className="text-xs">{norm.labor.length} labor</Badge>
+                    <div key={norm.id} className="rounded-lg border border-border/50 overflow-hidden">
+                      <div className="flex items-start gap-3 p-2 hover:bg-muted/50 cursor-pointer transition-colors">
+                        <Checkbox
+                          checked={selectedNorms.has(norm.id)}
+                          onCheckedChange={() => toggleNorm(norm.id)}
+                          className="mt-1"
+                        />
+                        <div className="flex-1 min-w-0" onClick={() => toggleNorm(norm.id)}>
+                          <p className="text-sm font-medium">{norm.description}</p>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            <Badge variant="outline" className="text-xs">Unit: {norm.unit}</Badge>
+                            <Badge variant="secondary" className="text-xs">{norm.materials.length} materials</Badge>
+                            <Badge variant="secondary" className="text-xs">{norm.labor.length} labor</Badge>
+                            {norm.equipment.length > 0 && (
+                              <Badge variant="secondary" className="text-xs">{norm.equipment.length} equipment</Badge>
+                            )}
+                            {norm.id.startsWith('custom-') && (
+                              <Badge className="text-xs bg-accent text-accent-foreground">Custom</Badge>
+                            )}
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="shrink-0 h-7 w-7 p-0"
+                          onClick={(e) => { e.stopPropagation(); setExpandedNormId(expandedNormId === norm.id ? null : norm.id); }}
+                          title="View norm details"
+                        >
+                          <Info className="h-3.5 w-3.5 text-primary" />
+                        </Button>
+                      </div>
+
+                      {/* Expandable norm detail */}
+                      {expandedNormId === norm.id && (
+                        <div className="bg-muted/30 border-t border-border/50 p-3 space-y-2">
+                          <p className="text-xs font-semibold text-primary">Norm Details — {norm.description} (per {norm.unit})</p>
+                          {norm.materials.length > 0 && (
+                            <div>
+                              <p className="text-xs font-semibold mb-1">📦 Materials Required:</p>
+                              <div className="overflow-x-auto">
+                                <table className="w-full text-xs border-collapse">
+                                  <thead><tr className="bg-amber-100 dark:bg-amber-950/30">
+                                    <th className="text-left p-1 border border-border/50">Material</th>
+                                    <th className="text-center p-1 border border-border/50">Unit</th>
+                                    <th className="text-right p-1 border border-border/50">Qty</th>
+                                    <th className="text-right p-1 border border-border/50">Wastage %</th>
+                                  </tr></thead>
+                                  <tbody>
+                                    {norm.materials.map((m, mi) => (
+                                      <tr key={mi} className="bg-amber-50/50 dark:bg-amber-950/10">
+                                        <td className="p-1 border border-border/50">{m.material}</td>
+                                        <td className="p-1 border border-border/50 text-center">{m.unit}</td>
+                                        <td className="p-1 border border-border/50 text-right">{m.quantity}</td>
+                                        <td className="p-1 border border-border/50 text-right">{m.wastageDefault}%</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          )}
+                          {norm.labor.length > 0 && (
+                            <div>
+                              <p className="text-xs font-semibold mb-1">👷 Labor Required:</p>
+                              <div className="flex flex-wrap gap-2">
+                                {norm.labor.map((l, li) => (
+                                  <Badge key={li} variant="outline" className="text-xs bg-green-50 dark:bg-green-950/20">
+                                    {l.role}: {l.quantity} {l.unit}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                           {norm.equipment.length > 0 && (
-                            <Badge variant="secondary" className="text-xs">{norm.equipment.length} equipment</Badge>
+                            <div>
+                              <p className="text-xs font-semibold mb-1">🚜 Equipment Required:</p>
+                              <div className="flex flex-wrap gap-2">
+                                {norm.equipment.map((e, ei) => (
+                                  <Badge key={ei} variant="outline" className="text-xs bg-blue-50 dark:bg-blue-950/20">
+                                    {e.equipment}: {e.quantity} {e.unit}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
                           )}
                         </div>
-                      </div>
-                    </label>
+                      )}
+                    </div>
                   ))}
                 </CardContent>
               </Card>
@@ -293,7 +535,6 @@ export default function RateAnalysis() {
             </CardContent>
           </Card>
 
-          {/* Equipment rates */}
           <Card className="mt-4">
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Equipment Rates</CardTitle>
@@ -356,6 +597,178 @@ export default function RateAnalysis() {
           </Card>
         </TabsContent>
 
+        {/* ── Custom Norms Tab ── */}
+        <TabsContent value="custom">
+          <div className="space-y-4">
+            {/* Existing custom norms */}
+            {customNorms.length > 0 && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Your Custom Norms ({customNorms.length})</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {customNorms.map(norm => (
+                    <div key={norm.id} className="flex items-center justify-between p-2 rounded-lg border border-border">
+                      <div>
+                        <p className="text-sm font-medium">{norm.description}</p>
+                        <div className="flex gap-1 mt-1">
+                          <Badge variant="outline" className="text-xs">{norm.category}</Badge>
+                          <Badge variant="outline" className="text-xs">{norm.unit}</Badge>
+                          <Badge variant="secondary" className="text-xs">{norm.materials.length} mat</Badge>
+                          <Badge variant="secondary" className="text-xs">{norm.labor.length} labor</Badge>
+                        </div>
+                      </div>
+                      <Button variant="ghost" size="sm" className="text-destructive h-7 w-7 p-0" onClick={() => deleteCustomNorm(norm.id)}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Add new custom norm */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Plus className="h-4 w-4" /> Add Custom Norm
+                </CardTitle>
+                <CardDescription>Create your own work item with custom material, labor, and equipment requirements</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <Label className="text-xs">Description *</Label>
+                    <Input
+                      value={newNorm.description}
+                      onChange={e => setNewNorm(prev => ({ ...prev, description: e.target.value }))}
+                      placeholder="e.g., RCC Retaining Wall M25"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Category *</Label>
+                    <Input
+                      value={newNorm.category}
+                      onChange={e => setNewNorm(prev => ({ ...prev, category: e.target.value }))}
+                      placeholder="e.g., Building Structural"
+                      list="norm-categories"
+                    />
+                    <datalist id="norm-categories">
+                      {allCategories.map(c => <option key={c} value={c} />)}
+                    </datalist>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Unit *</Label>
+                    <Select value={newNorm.unit} onValueChange={v => setNewNorm(prev => ({ ...prev, unit: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {['cu.m', 'sq.m', 'r.m', 'nos', 'kg', 'litre', 'bag', 'set', 'l.s'].map(u =>
+                          <SelectItem key={u} value={u}>{u}</SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Materials */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <Label className="text-xs font-semibold">📦 Materials</Label>
+                    <Button variant="outline" size="sm" className="h-6 text-xs gap-1" onClick={addMaterialToNorm}>
+                      <Plus className="h-3 w-3" /> Add Material
+                    </Button>
+                  </div>
+                  {newNorm.materials.map((m, mi) => (
+                    <div key={mi} className="grid grid-cols-5 gap-2 mb-2 items-end">
+                      <div>
+                        <Label className="text-xs">Name</Label>
+                        <Input className="h-7 text-xs" value={m.material} onChange={e => updateNewMaterial(mi, 'material', e.target.value)} placeholder="Cement" />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Unit</Label>
+                        <Input className="h-7 text-xs" value={m.unit} onChange={e => updateNewMaterial(mi, 'unit', e.target.value)} placeholder="bag" />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Qty</Label>
+                        <Input className="h-7 text-xs" type="number" value={m.quantity || ''} onChange={e => updateNewMaterial(mi, 'quantity', parseFloat(e.target.value) || 0)} />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Wastage %</Label>
+                        <Input className="h-7 text-xs" type="number" value={m.wastageDefault || ''} onChange={e => updateNewMaterial(mi, 'wastageDefault', parseFloat(e.target.value) || 0)} />
+                      </div>
+                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive" onClick={() => removeNewMaterial(mi)}>
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Labor */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <Label className="text-xs font-semibold">👷 Labor</Label>
+                    <Button variant="outline" size="sm" className="h-6 text-xs gap-1" onClick={addLaborToNorm}>
+                      <Plus className="h-3 w-3" /> Add Labor
+                    </Button>
+                  </div>
+                  {newNorm.labor.map((l, li) => (
+                    <div key={li} className="grid grid-cols-4 gap-2 mb-2 items-end">
+                      <div>
+                        <Label className="text-xs">Role</Label>
+                        <Input className="h-7 text-xs" value={l.role} onChange={e => updateNewLabor(li, 'role', e.target.value)} placeholder="Skilled Mason" />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Unit</Label>
+                        <Input className="h-7 text-xs" value={l.unit} onChange={e => updateNewLabor(li, 'unit', e.target.value)} placeholder="day" />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Qty</Label>
+                        <Input className="h-7 text-xs" type="number" value={l.quantity || ''} onChange={e => updateNewLabor(li, 'quantity', parseFloat(e.target.value) || 0)} />
+                      </div>
+                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive" onClick={() => removeNewLabor(li)}>
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Equipment */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <Label className="text-xs font-semibold">🚜 Equipment</Label>
+                    <Button variant="outline" size="sm" className="h-6 text-xs gap-1" onClick={addEquipmentToNorm}>
+                      <Plus className="h-3 w-3" /> Add Equipment
+                    </Button>
+                  </div>
+                  {newNorm.equipment.map((e, ei) => (
+                    <div key={ei} className="grid grid-cols-4 gap-2 mb-2 items-end">
+                      <div>
+                        <Label className="text-xs">Name</Label>
+                        <Input className="h-7 text-xs" value={e.equipment} onChange={ev => updateNewEquipment(ei, 'equipment', ev.target.value)} placeholder="Concrete Mixer" />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Unit</Label>
+                        <Input className="h-7 text-xs" value={e.unit} onChange={ev => updateNewEquipment(ei, 'unit', ev.target.value)} placeholder="hr" />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Qty</Label>
+                        <Input className="h-7 text-xs" type="number" value={e.quantity || ''} onChange={ev => updateNewEquipment(ei, 'quantity', parseFloat(ev.target.value) || 0)} />
+                      </div>
+                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive" onClick={() => removeNewEquipment(ei)}>
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+
+                <Button onClick={addCustomNorm} className="gap-2 w-full sm:w-auto">
+                  <Plus className="h-4 w-4" /> Add Custom Norm
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
         {/* ── Results ── */}
         <TabsContent value="results">
           {results.length === 0 ? (
@@ -368,7 +781,6 @@ export default function RateAnalysis() {
             </Card>
           ) : (
             <div className="space-y-4">
-              {/* Summary table */}
               <Card>
                 <CardHeader className="pb-3">
                   <div className="flex items-center gap-2">
