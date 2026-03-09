@@ -213,21 +213,51 @@ export default function Templates() {
 
             {/* Document preview — exact PPMO format */}
             <Card>
-              <CardHeader className="pb-2 flex flex-row items-center justify-between">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-primary" />
-                  {currentDoc.title}
-                </CardTitle>
-                <div className="flex gap-1.5">
-                  <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => {
-                    navigator.clipboard.writeText(currentDoc.content);
-                    toast.success('Copied!');
-                  }}>
-                    <Copy className="h-3 w-3" /> Copy
-                  </Button>
-                  <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => handlePrintSingle(currentDoc.content, currentDoc.title)}>
-                    <Printer className="h-3 w-3" /> Print
-                  </Button>
+              <CardHeader className="pb-2 space-y-2">
+                <div className="flex flex-row items-center justify-between">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-primary" />
+                    {currentDoc.title}
+                  </CardTitle>
+                  <div className="flex gap-1.5">
+                    <Button variant={isEditing ? "default" : "outline"} size="sm" className="h-7 text-xs gap-1" onClick={() => setIsEditing(!isEditing)}>
+                      <Edit3 className="h-3 w-3" /> {isEditing ? 'Preview' : 'Edit'}
+                    </Button>
+                    <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => {
+                      navigator.clipboard.writeText(currentContent);
+                      toast.success('Copied!');
+                    }}>
+                      <Copy className="h-3 w-3" /> Copy
+                    </Button>
+                    <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => handlePrintSingle(currentContent, currentDoc.title)}>
+                      <Printer className="h-3 w-3" /> Print
+                    </Button>
+                  </div>
+                </div>
+                {/* Formatting toolbar */}
+                <div className="flex items-center gap-3 border rounded-md px-3 py-1.5 bg-muted/30">
+                  <div className="flex items-center gap-1.5">
+                    <Type className="h-3.5 w-3.5 text-muted-foreground" />
+                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setFontSize(s => Math.max(8, s - 1))}><Minus className="h-3 w-3" /></Button>
+                    <span className="text-xs font-mono w-8 text-center tabular-nums">{fontSize}pt</span>
+                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setFontSize(s => Math.min(18, s + 1))}><Plus className="h-3 w-3" /></Button>
+                  </div>
+                  <div className="w-px h-4 bg-border" />
+                  <div className="flex items-center gap-1.5">
+                    <AlignLeft className="h-3.5 w-3.5 text-muted-foreground" />
+                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setLineHeight(h => Math.max(1.0, +(h - 0.2).toFixed(1)))}><Minus className="h-3 w-3" /></Button>
+                    <span className="text-xs font-mono w-8 text-center tabular-nums">{lineHeight.toFixed(1)}</span>
+                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setLineHeight(h => Math.min(3.0, +(h + 0.2).toFixed(1)))}><Plus className="h-3 w-3" /></Button>
+                  </div>
+                  <div className="w-px h-4 bg-border" />
+                  {editedContents[selectedDocIndex] !== undefined && (
+                    <Button variant="ghost" size="sm" className="h-6 text-xs text-destructive hover:text-destructive" onClick={() => {
+                      const next = { ...editedContents };
+                      delete next[selectedDocIndex];
+                      setEditedContents(next);
+                      toast.success('Reset to original');
+                    }}>Reset</Button>
+                  )}
                 </div>
               </CardHeader>
               <CardContent>
@@ -236,16 +266,26 @@ export default function Templates() {
                   <div className="bg-white border border-border shadow-sm mx-auto max-w-[210mm] p-[25mm_20mm] min-h-[297mm]"
                     style={{
                       fontFamily: "'Source Sans 3', 'Mukta', serif",
-                      fontSize: '11pt',
-                      lineHeight: '1.6',
+                      fontSize: `${fontSize}pt`,
+                      lineHeight: lineHeight,
                       color: '#111',
                     }}
                   >
-                    <pre className="whitespace-pre-wrap font-[inherit] text-[inherit] leading-[inherit] m-0 p-0"
-                      style={{ tabSize: 4 }}
-                    >
-                      {currentDoc.content}
-                    </pre>
+                    {isEditing ? (
+                      <textarea
+                        className="w-full h-full min-h-[250mm] border-none outline-none resize-none bg-transparent font-[inherit] text-[inherit] leading-[inherit] m-0 p-0"
+                        style={{ tabSize: 4, fontFamily: 'inherit', fontSize: 'inherit', lineHeight: 'inherit', color: 'inherit' }}
+                        value={currentContent}
+                        onChange={(e) => setEditedContents(prev => ({ ...prev, [selectedDocIndex]: e.target.value }))}
+                        spellCheck={false}
+                      />
+                    ) : (
+                      <pre className="whitespace-pre-wrap font-[inherit] text-[inherit] leading-[inherit] m-0 p-0"
+                        style={{ tabSize: 4 }}
+                      >
+                        {currentContent}
+                      </pre>
+                    )}
                   </div>
                 </ScrollArea>
               </CardContent>
