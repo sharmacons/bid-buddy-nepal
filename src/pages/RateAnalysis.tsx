@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { Download, Calculator, FileSpreadsheet, Settings, Layers } from 'lucide-react';
+import { Download, Calculator, FileSpreadsheet, Settings, Layers, FileText } from 'lucide-react';
 import {
   RATE_ANALYSIS_NORMS,
   STANDARD_MATERIALS,
@@ -18,6 +18,7 @@ import {
   type MaterialRate,
 } from '@/lib/rate-analysis-norms';
 import { exportRateAnalysisExcel } from '@/lib/rate-analysis-export';
+import { exportRateAnalysisPDF } from '@/lib/rate-analysis-pdf';
 
 export default function RateAnalysis() {
   const { toast } = useToast();
@@ -135,6 +136,21 @@ export default function RateAnalysis() {
     toast({ title: 'Excel exported!', description: 'Rate analysis downloaded as .xlsx' });
   };
 
+  const handlePDFExport = () => {
+    if (results.length === 0) {
+      toast({ title: 'No items selected', description: 'Select work items and enter material rates first.', variant: 'destructive' });
+      return;
+    }
+    exportRateAnalysisPDF({
+      projectName,
+      overheadPercent,
+      wastagePercent,
+      results,
+      norms: RATE_ANALYSIS_NORMS.filter(n => selectedNorms.has(n.id)),
+    });
+    toast({ title: 'PDF ready!', description: 'Use browser Print → Save as PDF' });
+  };
+
   // Count materials needed for selected norms
   const neededMaterialIds = useMemo(() => {
     const ids = new Set<string>();
@@ -150,10 +166,16 @@ export default function RateAnalysis() {
           <h2 className="text-2xl font-bold font-heading text-foreground">Rate Analysis</h2>
           <p className="text-sm text-muted-foreground">दर विश्लेषण — DoR/DoLIDAR Standard Norms for Road, Bridge & Building Works</p>
         </div>
-        <Button onClick={handleExport} disabled={results.length === 0} className="gap-2">
-          <Download className="h-4 w-4" />
-          Export Excel (.xlsx)
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={handlePDFExport} disabled={results.length === 0} variant="outline" className="gap-2">
+            <FileText className="h-4 w-4" />
+            Export PDF
+          </Button>
+          <Button onClick={handleExport} disabled={results.length === 0} className="gap-2">
+            <Download className="h-4 w-4" />
+            Export Excel (.xlsx)
+          </Button>
+        </div>
       </div>
 
       {/* Project & Settings */}
@@ -349,11 +371,16 @@ export default function RateAnalysis() {
               {/* Summary table */}
               <Card>
                 <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
                     <CardTitle className="text-base">Rate Analysis Summary</CardTitle>
-                    <Button onClick={handleExport} size="sm" className="gap-1.5">
-                      <Download className="h-3.5 w-3.5" /> Export Excel
-                    </Button>
+                    <div className="ml-auto flex gap-2">
+                      <Button onClick={handlePDFExport} size="sm" variant="outline" className="gap-1.5">
+                        <FileText className="h-3.5 w-3.5" /> PDF
+                      </Button>
+                      <Button onClick={handleExport} size="sm" className="gap-1.5">
+                        <Download className="h-3.5 w-3.5" /> Excel
+                      </Button>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="overflow-x-auto">
