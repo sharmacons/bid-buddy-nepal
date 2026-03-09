@@ -129,11 +129,20 @@ export default function Templates() {
   function handlePrintSingle(content: string, title: string) {
     const printWindow = window.open('', '_blank');
     if (!printWindow) { toast.error('Please allow popups'); return; }
-    printWindow.document.write(generatePrintPackageHTML({
-      profile, projectName: selectedBid?.projectName || title,
-      documents: [{ title, content }], totalDurationWeeks: selectedBid?.totalDurationWeeks || 24,
+    printWindow.document.write(wrapDocumentWithLetterhead({
+      profile, title, content, fontSize, lineHeight,
     }));
     printWindow.document.close();
+  }
+
+  function handleExportPDF(content: string, title: string) {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) { toast.error('Please allow popups'); return; }
+    printWindow.document.write(wrapDocumentWithLetterhead({
+      profile, title, content, fontSize, lineHeight,
+    }));
+    printWindow.document.close();
+    setTimeout(() => printWindow.print(), 500);
   }
 
   const currentDoc = templates[selectedDocIndex] || templates[0];
