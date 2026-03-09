@@ -30,10 +30,24 @@ export default function Templates() {
   const [selectedBidId, setSelectedBidId] = useState<string>('');
   const [activeTab, setActiveTab] = useState('documents');
   const [selectedDocIndex, setSelectedDocIndex] = useState(0);
-  const [fontSize, setFontSize] = useState(11);
-  const [lineHeight, setLineHeight] = useState(1.6);
-  const [editedContents, setEditedContents] = useState<Record<number, string>>({});
+  const [fontSize, setFontSize] = useState(() => {
+    const saved = localStorage.getItem('tpl_fontSize');
+    return saved ? Number(saved) : 11;
+  });
+  const [lineHeight, setLineHeight] = useState(() => {
+    const saved = localStorage.getItem('tpl_lineHeight');
+    return saved ? Number(saved) : 1.6;
+  });
+  const [editedContents, setEditedContents] = useState<Record<string, string>>(() => {
+    try {
+      const saved = localStorage.getItem('tpl_editedContents');
+      return saved ? JSON.parse(saved) : {};
+    } catch { return {}; }
+  });
   const [isEditing, setIsEditing] = useState(false);
+
+  // Build a storage key from bid id + doc index for unique persistence
+  const storageKey = (bidId: string, docIdx: number) => `${bidId || 'default'}__${docIdx}`;
 
   const selectedBid = useMemo(() => bids.find(b => b.id === selectedBidId) || null, [bids, selectedBidId]);
 
