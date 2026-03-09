@@ -284,14 +284,20 @@ export default function Templates() {
                     <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setLineHeight(h => Math.min(3.0, +(h + 0.2).toFixed(1)))}><Plus className="h-3 w-3" /></Button>
                   </div>
                   <div className="w-px h-4 bg-border" />
-                  {editedContents[selectedDocIndex] !== undefined && (
+                  {editedContents[currentKey] !== undefined && (
                     <Button variant="ghost" size="sm" className="h-6 text-xs text-destructive hover:text-destructive" onClick={() => {
                       const next = { ...editedContents };
-                      delete next[selectedDocIndex];
+                      delete next[currentKey];
                       setEditedContents(next);
+                      localStorage.setItem('tpl_editedContents', JSON.stringify(next));
                       toast.success('Reset to original');
                     }}>Reset</Button>
                   )}
+                  <div className="ml-auto">
+                    <Button variant="outline" size="sm" className="h-6 text-xs gap-1" onClick={handleSave}>
+                      <Save className="h-3 w-3" /> Save All
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
