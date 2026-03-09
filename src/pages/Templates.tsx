@@ -275,6 +275,9 @@ export default function Templates() {
                     <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => handlePrintSingle(currentContent, currentDoc.title)}>
                       <Printer className="h-3 w-3" /> Print
                     </Button>
+                    <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => handleExportPDF(currentContent, currentDoc.title)}>
+                      <Download className="h-3 w-3" /> PDF
+                    </Button>
                   </div>
                 </div>
                 {/* Formatting toolbar */}
