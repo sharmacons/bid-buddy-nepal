@@ -3,10 +3,22 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { getBids, getCompanyProfile } from '@/lib/storage';
+import { getBids, getCompanyProfile, downloadBackup, restoreBackup, clearAllData, clearBidsAndDocuments } from '@/lib/storage';
 import { BID_TYPE_LABELS, BID_STATUS_LABELS, BidData } from '@/lib/types';
-import { FilePlus, AlertTriangle, CheckCircle2, Clock, Building2 } from 'lucide-react';
-import { useMemo } from 'react';
+import { FilePlus, AlertTriangle, CheckCircle2, Clock, Building2, Download, Upload, Trash2, RotateCcw, Shield } from 'lucide-react';
+import { useMemo, useRef, useState } from 'react';
+import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 function daysUntil(dateStr: string) {
   const diff = new Date(dateStr).getTime() - Date.now();
@@ -22,6 +34,37 @@ export default function Dashboard() {
   const bids = useMemo(() => getBids(), []);
   const profile = useMemo(() => getCompanyProfile(), []);
   const activeBids = bids.filter((b) => b.status === 'preparing');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleBackup = () => {
+    downloadBackup();
+    toast.success('Backup downloaded!', { description: 'Save this file safely to restore your data later.' });
+  };
+
+  const handleRestore = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const result = await restoreBackup(file);
+    if (result.success) {
+      toast.success('Backup restored!', { description: result.message });
+      setTimeout(() => window.location.reload(), 1000);
+    } else {
+      toast.error('Restore failed', { description: result.message });
+    }
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleClearAll = () => {
+    clearAllData();
+    toast.success('All data cleared!', { description: 'Starting fresh. Page will reload...' });
+    setTimeout(() => window.location.reload(), 1000);
+  };
+
+  const handleNewTender = () => {
+    clearBidsAndDocuments();
+    toast.success('Bid data cleared!', { description: 'Company profile kept. Ready for new tender. Reloading...' });
+    setTimeout(() => window.location.reload(), 1000);
+  };
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-8">
@@ -132,6 +175,88 @@ export default function Dashboard() {
           </Card>
         ))}
       </div>
+
+      {/* ═══ Data Management ═══ */}
+      <section>
+        <h2 className="text-lg font-semibold font-heading mb-3 flex items-center gap-2">
+          <Shield className="h-5 w-5 text-primary" />
+          Data Management
+        </h2>
+        <Card>
+          <CardContent className="p-4 space-y-4">
+            {/* Backup & Restore */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button variant="outline" className="gap-2 flex-1" onClick={handleBackup}>
+                <Download className="h-4 w-4" />
+                Backup All Data (.json)
+              </Button>
+              <Button variant="outline" className="gap-2 flex-1" onClick={() => fileInputRef.current?.click()}>
+                <Upload className="h-4 w-4" />
+                Restore from Backup
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".json"
+                className="hidden"
+                onChange={handleRestore}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              💡 Always backup before starting a new tender. Your backup includes company profile, all bids, documents, and custom rate analysis norms.
+            </p>
+
+            {/* New Tender / Clear */}
+            <div className="border-t border-border pt-4 flex flex-col sm:flex-row gap-3">
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" className="gap-2 flex-1 border-accent text-accent-foreground">
+                    <RotateCcw className="h-4 w-4" />
+                    New Tender (Keep Profile)
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Start New Tender?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will clear all bids, documents, and custom norms but <strong>keep your company profile</strong>.
+                      Make sure to backup first!
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleNewTender}>Clear & Start Fresh</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" className="gap-2 flex-1">
+                    <Trash2 className="h-4 w-4" />
+                    Clear All Data
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Clear ALL Data?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently delete <strong>everything</strong> — company profile, all bids, documents, and custom norms.
+                      This action cannot be undone. Please backup first!
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleClearAll} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                      Delete Everything
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
     </div>
   );
 }
