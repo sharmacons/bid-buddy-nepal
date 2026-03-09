@@ -37,6 +37,7 @@ const App = () => (
             <Route path="/analyze" element={<BidAnalysis />} />
             <Route path="/boq-wizard" element={<BoqWizard />} />
             <Route path="/rate-analysis" element={<RateAnalysis />} />
+            <Route path="/cash-flow" element={<CashFlow />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
