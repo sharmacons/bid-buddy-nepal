@@ -18,6 +18,7 @@ import {
   type MaterialRate,
 } from '@/lib/rate-analysis-norms';
 import { exportRateAnalysisExcel } from '@/lib/rate-analysis-export';
+import { exportRateAnalysisPDF } from '@/lib/rate-analysis-pdf';
 
 export default function RateAnalysis() {
   const { toast } = useToast();
