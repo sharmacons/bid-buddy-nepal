@@ -254,6 +254,9 @@ export default function Templates() {
                     <Button variant={isEditing ? "default" : "outline"} size="sm" className="h-7 text-xs gap-1" onClick={() => setIsEditing(!isEditing)}>
                       <Edit3 className="h-3 w-3" /> {isEditing ? 'Preview' : 'Edit'}
                     </Button>
+                    <Button variant="outline" size="sm" className="h-7 text-xs gap-1 text-success hover:text-success" onClick={handleSaveCurrentDoc}>
+                      <Save className="h-3 w-3" /> Save
+                    </Button>
                     <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => {
                       navigator.clipboard.writeText(currentContent);
                       toast.success('Copied!');
