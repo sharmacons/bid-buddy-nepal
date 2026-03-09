@@ -371,10 +371,17 @@ export default function RateAnalysis() {
               {/* Summary table */}
               <Card>
                 <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-base">Rate Analysis Summary</CardTitle>
-                    <Button onClick={handleExport} size="sm" className="gap-1.5">
-                      <Download className="h-3.5 w-3.5" /> Export Excel
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-base">Rate Analysis Summary</CardTitle>
+                      <div className="ml-auto flex gap-2">
+                        <Button onClick={handlePDFExport} size="sm" variant="outline" className="gap-1.5">
+                          <FileText className="h-3.5 w-3.5" /> PDF
+                        </Button>
+                        <Button onClick={handleExport} size="sm" className="gap-1.5">
+                          <Download className="h-3.5 w-3.5" /> Excel
+                        </Button>
+                      </div>
+                    </div>
                     </Button>
                   </div>
                 </CardHeader>
