@@ -21,7 +21,7 @@ import { exportWorkScheduleExcel } from '@/lib/excel-export';
 import GanttChart from '@/components/GanttChart';
 import { WorkScheduleItem } from '@/lib/types';
 import { toast } from 'sonner';
-import { FileText, Copy, Printer, AlertTriangle, FolderOpen, Calendar, Download, BarChart3, ClipboardList, Type, Minus, Plus, AlignLeft, Edit3 } from 'lucide-react';
+import { FileText, Copy, Printer, AlertTriangle, FolderOpen, Calendar, Download, BarChart3, ClipboardList, Type, Minus, Plus, AlignLeft, Edit3, Save } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 
 export default function Templates() {
@@ -30,10 +30,24 @@ export default function Templates() {
   const [selectedBidId, setSelectedBidId] = useState<string>('');
   const [activeTab, setActiveTab] = useState('documents');
   const [selectedDocIndex, setSelectedDocIndex] = useState(0);
-  const [fontSize, setFontSize] = useState(11);
-  const [lineHeight, setLineHeight] = useState(1.6);
-  const [editedContents, setEditedContents] = useState<Record<number, string>>({});
+  const [fontSize, setFontSize] = useState(() => {
+    const saved = localStorage.getItem('tpl_fontSize');
+    return saved ? Number(saved) : 11;
+  });
+  const [lineHeight, setLineHeight] = useState(() => {
+    const saved = localStorage.getItem('tpl_lineHeight');
+    return saved ? Number(saved) : 1.6;
+  });
+  const [editedContents, setEditedContents] = useState<Record<string, string>>(() => {
+    try {
+      const saved = localStorage.getItem('tpl_editedContents');
+      return saved ? JSON.parse(saved) : {};
+    } catch { return {}; }
+  });
   const [isEditing, setIsEditing] = useState(false);
+
+  // Build a storage key from bid id + doc index for unique persistence
+  const storageKey = (bidId: string, docIdx: number) => `${bidId || 'default'}__${docIdx}`;
 
   const selectedBid = useMemo(() => bids.find(b => b.id === selectedBidId) || null, [bids, selectedBidId]);
 
@@ -123,7 +137,24 @@ export default function Templates() {
   }
 
   const currentDoc = templates[selectedDocIndex] || templates[0];
-  const currentContent = editedContents[selectedDocIndex] ?? currentDoc.content;
+  const currentKey = storageKey(selectedBidId, selectedDocIndex);
+  const currentContent = editedContents[currentKey] ?? currentDoc.content;
+
+  function handleSave() {
+    localStorage.setItem('tpl_editedContents', JSON.stringify(editedContents));
+    localStorage.setItem('tpl_fontSize', String(fontSize));
+    localStorage.setItem('tpl_lineHeight', String(lineHeight));
+    toast.success('All changes saved');
+  }
+
+  function handleSaveCurrentDoc() {
+    const updated = { ...editedContents, [currentKey]: currentContent };
+    setEditedContents(updated);
+    localStorage.setItem('tpl_editedContents', JSON.stringify(updated));
+    localStorage.setItem('tpl_fontSize', String(fontSize));
+    localStorage.setItem('tpl_lineHeight', String(lineHeight));
+    toast.success(`"${currentDoc.title}" saved`);
+  }
 
   return (
     <div className="max-w-5xl mx-auto space-y-4">
@@ -223,6 +254,9 @@ export default function Templates() {
                     <Button variant={isEditing ? "default" : "outline"} size="sm" className="h-7 text-xs gap-1" onClick={() => setIsEditing(!isEditing)}>
                       <Edit3 className="h-3 w-3" /> {isEditing ? 'Preview' : 'Edit'}
                     </Button>
+                    <Button variant="outline" size="sm" className="h-7 text-xs gap-1 text-success hover:text-success" onClick={handleSaveCurrentDoc}>
+                      <Save className="h-3 w-3" /> Save
+                    </Button>
                     <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => {
                       navigator.clipboard.writeText(currentContent);
                       toast.success('Copied!');
@@ -250,14 +284,20 @@ export default function Templates() {
                     <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setLineHeight(h => Math.min(3.0, +(h + 0.2).toFixed(1)))}><Plus className="h-3 w-3" /></Button>
                   </div>
                   <div className="w-px h-4 bg-border" />
-                  {editedContents[selectedDocIndex] !== undefined && (
+                  {editedContents[currentKey] !== undefined && (
                     <Button variant="ghost" size="sm" className="h-6 text-xs text-destructive hover:text-destructive" onClick={() => {
                       const next = { ...editedContents };
-                      delete next[selectedDocIndex];
+                      delete next[currentKey];
                       setEditedContents(next);
+                      localStorage.setItem('tpl_editedContents', JSON.stringify(next));
                       toast.success('Reset to original');
                     }}>Reset</Button>
                   )}
+                  <div className="ml-auto">
+                    <Button variant="outline" size="sm" className="h-6 text-xs gap-1" onClick={handleSave}>
+                      <Save className="h-3 w-3" /> Save All
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
@@ -276,7 +316,7 @@ export default function Templates() {
                         className="w-full h-full min-h-[250mm] border-none outline-none resize-none bg-transparent font-[inherit] text-[inherit] leading-[inherit] m-0 p-0"
                         style={{ tabSize: 4, fontFamily: 'inherit', fontSize: 'inherit', lineHeight: 'inherit', color: 'inherit' }}
                         value={currentContent}
-                        onChange={(e) => setEditedContents(prev => ({ ...prev, [selectedDocIndex]: e.target.value }))}
+                        onChange={(e) => setEditedContents(prev => ({ ...prev, [currentKey]: e.target.value }))}
                         spellCheck={false}
                       />
                     ) : (
