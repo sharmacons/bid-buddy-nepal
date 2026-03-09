@@ -123,6 +123,7 @@ export default function Templates() {
   }
 
   const currentDoc = templates[selectedDocIndex] || templates[0];
+  const currentContent = editedContents[selectedDocIndex] ?? currentDoc.content;
 
   return (
     <div className="max-w-5xl mx-auto space-y-4">
