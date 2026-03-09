@@ -15,6 +15,7 @@ import BidAnalysis from "./pages/BidAnalysis";
 import BoqWizard from "./pages/BoqWizard";
 import RateAnalysis from "./pages/RateAnalysis";
 import CashFlow from "./pages/CashFlow";
+import PpmoPortal from "./pages/PpmoPortal";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
