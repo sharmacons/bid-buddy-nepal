@@ -136,6 +136,21 @@ export default function RateAnalysis() {
     toast({ title: 'Excel exported!', description: 'Rate analysis downloaded as .xlsx' });
   };
 
+  const handlePDFExport = () => {
+    if (results.length === 0) {
+      toast({ title: 'No items selected', description: 'Select work items and enter material rates first.', variant: 'destructive' });
+      return;
+    }
+    exportRateAnalysisPDF({
+      projectName,
+      overheadPercent,
+      wastagePercent,
+      results,
+      norms: RATE_ANALYSIS_NORMS.filter(n => selectedNorms.has(n.id)),
+    });
+    toast({ title: 'PDF ready!', description: 'Use browser Print → Save as PDF' });
+  };
+
   // Count materials needed for selected norms
   const neededMaterialIds = useMemo(() => {
     const ids = new Set<string>();
