@@ -9,6 +9,12 @@ const ACTIVITY_PATTERNS: {
   isMajor: boolean;
   order: number;
 }[] = [
+  // Top-level items that span full or early contract period
+  { keywords: ['insurance', 'contractor all risk', 'car policy', 'third party'], activity: 'Insurance (Contractor All Risk)', defaultDurationWeeks: -1, isMajor: true, order: 0.1 }, // -1 = full contract period
+  { keywords: ['camp', 'site office', 'temporary building', 'labour camp', 'labor camp'], activity: 'Camp Setup & Site Office', defaultDurationWeeks: 3, isMajor: true, order: 0.2 },
+  { keywords: ['diversion', 'traffic diversion', 'traffic management', 'detour', 'bypass'], activity: 'Traffic Diversion & Management', defaultDurationWeeks: 3, isMajor: true, order: 0.3 },
+  { keywords: ['preliminary', 'p/s', 'ps item', 'provisional sum', 'daywork', 'day work', 'contingency'], activity: 'Provisional Sum (PS) Items', defaultDurationWeeks: -1, isMajor: false, order: 0.4 }, // -1 = full contract period
+  // Standard construction activities
   { keywords: ['mobilization', 'mobilisation', 'site clearance', 'clearing', 'grubbing', 'site preparation'], activity: 'Site Clearance & Mobilization', defaultDurationWeeks: 2, isMajor: true, order: 1 },
   { keywords: ['survey', 'setting out', 'staking'], activity: 'Survey & Setting Out', defaultDurationWeeks: 1, isMajor: false, order: 2 },
   { keywords: ['excavation', 'earthwork', 'earth work', 'cutting', 'roadway excavation'], activity: 'Earthwork — Excavation', defaultDurationWeeks: 6, isMajor: true, order: 3 },
@@ -91,42 +97,58 @@ export function generateWorkSchedule(
 ): WorkScheduleItem[] {
   if (detectedActivities.length === 0) return [];
 
-  // Scale durations to fit total project duration
-  const rawTotal = detectedActivities.reduce((s, a) => s + a.durationWeeks, 0);
+  // Separate full-span items (duration -1) from sequential items
+  const fullSpanActivities = detectedActivities.filter(a => a.durationWeeks === -1);
+  const sequentialActivities = detectedActivities.filter(a => a.durationWeeks !== -1);
+
+  // Scale sequential durations to fit total project duration
+  const rawTotal = sequentialActivities.reduce((s, a) => s + a.durationWeeks, 0);
   const scaleFactor = rawTotal > 0 ? totalDurationWeeks / rawTotal : 1;
 
-  // Build sequential schedule with overlaps for efficiency
   const schedule: WorkScheduleItem[] = [];
+
+  // Add full-span items first (insurance, PS items) — span entire contract
+  for (const act of fullSpanActivities) {
+    schedule.push({
+      id: crypto.randomUUID(),
+      activity: act.activity,
+      duration: totalDurationWeeks,
+      startWeek: 1,
+      isMajor: act.isMajor,
+      dependencies: [],
+    });
+  }
+
+  // Build standard sequential schedule — no overlaps, activities one after another
   let currentWeek = 1;
 
-  for (let i = 0; i < detectedActivities.length; i++) {
-    const act = detectedActivities[i];
+  for (let i = 0; i < sequentialActivities.length; i++) {
+    const act = sequentialActivities[i];
     const scaledDuration = Math.max(1, Math.round(act.durationWeeks * scaleFactor));
     const itemId = crypto.randomUUID();
 
     // Each activity depends on its predecessor (sequential chain)
     const dependencies: string[] = [];
     if (i > 0) {
-      dependencies.push(schedule[i - 1].id);
+      const prevSeqIndex = schedule.length - 1;
+      dependencies.push(schedule[prevSeqIndex].id);
     }
+
+    // Clamp so we don't exceed total duration
+    const clampedStart = Math.min(currentWeek, totalDurationWeeks);
+    const clampedDuration = Math.min(scaledDuration, totalDurationWeeks - clampedStart + 1);
 
     schedule.push({
       id: itemId,
       activity: act.activity,
-      duration: scaledDuration,
-      startWeek: currentWeek,
+      duration: Math.max(1, clampedDuration),
+      startWeek: clampedStart,
       isMajor: act.isMajor,
       dependencies,
     });
 
-    // Overlap: next activity starts at ~60% of current for parallel work
-    const overlap = Math.max(1, Math.round(scaledDuration * 0.6));
-    currentWeek += overlap;
-
-    // Don't exceed total duration
-    if (currentWeek + 1 > totalDurationWeeks) {
-      currentWeek = Math.max(1, totalDurationWeeks - scaledDuration);
-    }
+    // Standard: next activity starts after current one ends (no overlap)
+    currentWeek += scaledDuration;
   }
 
   return schedule;
