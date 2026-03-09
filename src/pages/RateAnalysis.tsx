@@ -166,10 +166,16 @@ export default function RateAnalysis() {
           <h2 className="text-2xl font-bold font-heading text-foreground">Rate Analysis</h2>
           <p className="text-sm text-muted-foreground">दर विश्लेषण — DoR/DoLIDAR Standard Norms for Road, Bridge & Building Works</p>
         </div>
-        <Button onClick={handleExport} disabled={results.length === 0} className="gap-2">
-          <Download className="h-4 w-4" />
-          Export Excel (.xlsx)
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={handlePDFExport} disabled={results.length === 0} variant="outline" className="gap-2">
+            <FileText className="h-4 w-4" />
+            Export PDF
+          </Button>
+          <Button onClick={handleExport} disabled={results.length === 0} className="gap-2">
+            <Download className="h-4 w-4" />
+            Export Excel (.xlsx)
+          </Button>
+        </div>
       </div>
 
       {/* Project & Settings */}
