@@ -9,6 +9,12 @@ const ACTIVITY_PATTERNS: {
   isMajor: boolean;
   order: number;
 }[] = [
+  // Top-level items that span full or early contract period
+  { keywords: ['insurance', 'contractor all risk', 'car policy', 'third party'], activity: 'Insurance (Contractor All Risk)', defaultDurationWeeks: -1, isMajor: true, order: 0.1 }, // -1 = full contract period
+  { keywords: ['camp', 'site office', 'temporary building', 'labour camp', 'labor camp'], activity: 'Camp Setup & Site Office', defaultDurationWeeks: 3, isMajor: true, order: 0.2 },
+  { keywords: ['diversion', 'traffic diversion', 'traffic management', 'detour', 'bypass'], activity: 'Traffic Diversion & Management', defaultDurationWeeks: 3, isMajor: true, order: 0.3 },
+  { keywords: ['preliminary', 'p/s', 'ps item', 'provisional sum', 'daywork', 'day work', 'contingency'], activity: 'Provisional Sum (PS) Items', defaultDurationWeeks: -1, isMajor: false, order: 0.4 }, // -1 = full contract period
+  // Standard construction activities
   { keywords: ['mobilization', 'mobilisation', 'site clearance', 'clearing', 'grubbing', 'site preparation'], activity: 'Site Clearance & Mobilization', defaultDurationWeeks: 2, isMajor: true, order: 1 },
   { keywords: ['survey', 'setting out', 'staking'], activity: 'Survey & Setting Out', defaultDurationWeeks: 1, isMajor: false, order: 2 },
   { keywords: ['excavation', 'earthwork', 'earth work', 'cutting', 'roadway excavation'], activity: 'Earthwork — Excavation', defaultDurationWeeks: 6, isMajor: true, order: 3 },
