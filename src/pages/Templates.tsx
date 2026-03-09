@@ -30,6 +30,10 @@ export default function Templates() {
   const [selectedBidId, setSelectedBidId] = useState<string>('');
   const [activeTab, setActiveTab] = useState('documents');
   const [selectedDocIndex, setSelectedDocIndex] = useState(0);
+  const [fontSize, setFontSize] = useState(11);
+  const [lineHeight, setLineHeight] = useState(1.6);
+  const [editedContents, setEditedContents] = useState<Record<number, string>>({});
+  const [isEditing, setIsEditing] = useState(false);
 
   const selectedBid = useMemo(() => bids.find(b => b.id === selectedBidId) || null, [bids, selectedBidId]);
 
