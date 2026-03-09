@@ -137,7 +137,24 @@ export default function Templates() {
   }
 
   const currentDoc = templates[selectedDocIndex] || templates[0];
-  const currentContent = editedContents[selectedDocIndex] ?? currentDoc.content;
+  const currentKey = storageKey(selectedBidId, selectedDocIndex);
+  const currentContent = editedContents[currentKey] ?? currentDoc.content;
+
+  function handleSave() {
+    localStorage.setItem('tpl_editedContents', JSON.stringify(editedContents));
+    localStorage.setItem('tpl_fontSize', String(fontSize));
+    localStorage.setItem('tpl_lineHeight', String(lineHeight));
+    toast.success('All changes saved');
+  }
+
+  function handleSaveCurrentDoc() {
+    const updated = { ...editedContents, [currentKey]: currentContent };
+    setEditedContents(updated);
+    localStorage.setItem('tpl_editedContents', JSON.stringify(updated));
+    localStorage.setItem('tpl_fontSize', String(fontSize));
+    localStorage.setItem('tpl_lineHeight', String(lineHeight));
+    toast.success(`"${currentDoc.title}" saved`);
+  }
 
   return (
     <div className="max-w-5xl mx-auto space-y-4">
