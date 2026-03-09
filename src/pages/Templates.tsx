@@ -316,7 +316,7 @@ export default function Templates() {
                         className="w-full h-full min-h-[250mm] border-none outline-none resize-none bg-transparent font-[inherit] text-[inherit] leading-[inherit] m-0 p-0"
                         style={{ tabSize: 4, fontFamily: 'inherit', fontSize: 'inherit', lineHeight: 'inherit', color: 'inherit' }}
                         value={currentContent}
-                        onChange={(e) => setEditedContents(prev => ({ ...prev, [selectedDocIndex]: e.target.value }))}
+                        onChange={(e) => setEditedContents(prev => ({ ...prev, [currentKey]: e.target.value }))}
                         spellCheck={false}
                       />
                     ) : (
