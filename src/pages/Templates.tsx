@@ -21,7 +21,8 @@ import { exportWorkScheduleExcel } from '@/lib/excel-export';
 import GanttChart from '@/components/GanttChart';
 import { WorkScheduleItem } from '@/lib/types';
 import { toast } from 'sonner';
-import { FileText, Copy, Printer, AlertTriangle, FolderOpen, Calendar, Download, BarChart3, ClipboardList } from 'lucide-react';
+import { FileText, Copy, Printer, AlertTriangle, FolderOpen, Calendar, Download, BarChart3, ClipboardList, Type, Minus, Plus, AlignLeft, Edit3 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 
 export default function Templates() {
   const profile = getCompanyProfile();
