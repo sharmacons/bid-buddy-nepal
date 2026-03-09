@@ -15,7 +15,7 @@ import {
   constructionScheduleTemplate,
 } from '@/lib/templates';
 import { detectActivitiesFromBOQ, generateWorkSchedule } from '@/lib/work-schedule';
-import { generatePrintPackageHTML } from '@/lib/letterhead';
+import { generatePrintPackageHTML, wrapDocumentWithLetterhead } from '@/lib/letterhead';
 import { exportWorkSchedulePDF } from '@/lib/pdf-export';
 import { exportWorkScheduleExcel } from '@/lib/excel-export';
 import GanttChart from '@/components/GanttChart';
