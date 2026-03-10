@@ -1009,23 +1009,62 @@ export default function BoqWizard() {
                           <tr>
                             <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground w-10">SN</th>
                             <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground">Activity</th>
-                            <th className="px-3 py-2 text-center text-xs font-semibold text-muted-foreground w-20">Duration</th>
+                            <th className="px-3 py-2 text-center text-xs font-semibold text-muted-foreground w-24">Duration (w)</th>
+                            <th className="px-3 py-2 text-center text-xs font-semibold text-muted-foreground w-24">Overlap %</th>
                             <th className="px-3 py-2 text-center text-xs font-semibold text-muted-foreground w-20">Start</th>
                             <th className="px-3 py-2 text-center text-xs font-semibold text-muted-foreground w-20">End</th>
                             <th className="px-3 py-2 text-center text-xs font-semibold text-muted-foreground w-16">Major</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {workSchedule.map((item, i) => (
-                            <tr key={item.id} className="border-t border-border hover:bg-muted/20">
-                              <td className="px-3 py-2 text-muted-foreground">{i + 1}</td>
-                              <td className="px-3 py-2 font-medium">{item.activity}</td>
-                              <td className="px-3 py-2 text-center tabular-nums">{item.duration}w</td>
-                              <td className="px-3 py-2 text-center tabular-nums">W{item.startWeek}</td>
-                              <td className="px-3 py-2 text-center tabular-nums">W{item.startWeek + item.duration - 1}</td>
-                              <td className="px-3 py-2 text-center">{item.isMajor ? '★' : '—'}</td>
-                            </tr>
-                          ))}
+                          {workSchedule.map((item, i) => {
+                            const override = scheduleOverrides[item.id] || {};
+                            return (
+                              <tr key={item.id} className="border-t border-border hover:bg-muted/20">
+                                <td className="px-3 py-1.5 text-muted-foreground">{i + 1}</td>
+                                <td className="px-3 py-1.5 font-medium text-xs">{item.activity}</td>
+                                <td className="px-2 py-1">
+                                  <Input
+                                    type="number"
+                                    min={1}
+                                    max={totalDurationWeeks}
+                                    value={override.duration ?? item.duration}
+                                    onChange={(e) => {
+                                      const val = parseInt(e.target.value) || 1;
+                                      setScheduleOverrides(prev => ({
+                                        ...prev,
+                                        [item.id]: { ...prev[item.id], duration: Math.max(1, Math.min(val, totalDurationWeeks)) }
+                                      }));
+                                    }}
+                                    className="h-7 text-center text-xs w-16 mx-auto"
+                                  />
+                                </td>
+                                <td className="px-2 py-1">
+                                  {i === 0 ? (
+                                    <span className="text-xs text-muted-foreground text-center block">—</span>
+                                  ) : (
+                                    <Input
+                                      type="number"
+                                      min={0}
+                                      max={80}
+                                      value={override.overlapPercent ?? 0}
+                                      onChange={(e) => {
+                                        const val = parseInt(e.target.value) || 0;
+                                        setScheduleOverrides(prev => ({
+                                          ...prev,
+                                          [item.id]: { ...prev[item.id], overlapPercent: Math.max(0, Math.min(val, 80)) }
+                                        }));
+                                      }}
+                                      className="h-7 text-center text-xs w-16 mx-auto"
+                                    />
+                                  )}
+                                </td>
+                                <td className="px-3 py-1.5 text-center tabular-nums text-xs">W{item.startWeek}</td>
+                                <td className="px-3 py-1.5 text-center tabular-nums text-xs">W{item.startWeek + item.duration - 1}</td>
+                                <td className="px-3 py-1.5 text-center">{item.isMajor ? '★' : '—'}</td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>
