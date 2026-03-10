@@ -91,23 +91,40 @@ export function detectActivitiesFromBOQ(boqItems: BOQItem[]): DetectedActivity[]
   return Array.from(activityMap.values()).sort((a, b) => a.order - b.order);
 }
 
+// Define which activities can overlap with their predecessor (start before it finishes)
+// Key: activity name, Value: fraction of predecessor that must complete before this starts (0.5 = 50%)
+const OVERLAP_RULES: Record<string, number> = {
+  'Earthwork — Embankment / Fill': 0.5,       // Can start when 50% of excavation done
+  'Sub-base Course': 0.6,                      // Start when 60% of embankment done
+  'Base Course (Granular)': 0.5,               // Start when 50% of sub-base done
+  'Bituminous Surface / Asphalt': 0.6,         // Start when 60% of base course done
+  'Reinforcement Steel Works': 0.3,            // Start when 30% of concrete formwork done
+  'Formwork / Shuttering': 0.4,                // Can overlap with concrete works
+  'Drainage Works': 0.4,                       // Can run parallel to earthwork/embankment
+  'Bio-Engineering / Slope Protection': 0.5,   // Can start during later earthwork
+  'Road Furniture & Signage': 0.5,             // Can start during later surfacing
+  'Painting Works': 0.5,                       // Can overlap with road furniture
+  'Gabion Wall / Protection': 0.5,             // Can overlap with masonry
+  'Stone Masonry Works': 0.4,                  // Can overlap with concrete
+};
+
 export function generateWorkSchedule(
   detectedActivities: DetectedActivity[],
   totalDurationWeeks: number,
 ): WorkScheduleItem[] {
   if (detectedActivities.length === 0) return [];
 
-  // Separate full-span items (duration -1) from sequential items
   const fullSpanActivities = detectedActivities.filter(a => a.durationWeeks === -1);
   const sequentialActivities = detectedActivities.filter(a => a.durationWeeks !== -1);
 
-  // Scale sequential durations to fit total project duration
+  // Scale sequential durations to fit total project duration (with overlap budget)
   const rawTotal = sequentialActivities.reduce((s, a) => s + a.durationWeeks, 0);
-  const scaleFactor = rawTotal > 0 ? totalDurationWeeks / rawTotal : 1;
+  // Use a higher scale factor since overlaps will compress the timeline
+  const scaleFactor = rawTotal > 0 ? (totalDurationWeeks * 1.3) / rawTotal : 1;
 
   const schedule: WorkScheduleItem[] = [];
 
-  // Add full-span items first (insurance, PS items) — span entire contract
+  // Full-span items first
   for (const act of fullSpanActivities) {
     schedule.push({
       id: crypto.randomUUID(),
@@ -119,7 +136,7 @@ export function generateWorkSchedule(
     });
   }
 
-  // Build standard sequential schedule — no overlaps, activities one after another
+  // Sequential activities with realistic overlaps
   let currentWeek = 1;
 
   for (let i = 0; i < sequentialActivities.length; i++) {
@@ -127,15 +144,25 @@ export function generateWorkSchedule(
     const scaledDuration = Math.max(1, Math.round(act.durationWeeks * scaleFactor));
     const itemId = crypto.randomUUID();
 
-    // Each activity depends on its predecessor (sequential chain)
     const dependencies: string[] = [];
+    let startWeek = currentWeek;
+
     if (i > 0) {
-      const prevSeqIndex = schedule.length - 1;
-      dependencies.push(schedule[prevSeqIndex].id);
+      const prevItem = schedule[schedule.length - 1];
+      dependencies.push(prevItem.id);
+
+      // Check if this activity can overlap with its predecessor
+      const overlapFraction = OVERLAP_RULES[act.activity];
+      if (overlapFraction !== undefined) {
+        // Start after overlapFraction of predecessor is complete
+        const predecessorProgress = Math.round(prevItem.duration * overlapFraction);
+        startWeek = prevItem.startWeek + predecessorProgress;
+      }
+      // else: start after predecessor ends (no overlap)
     }
 
-    // Clamp so we don't exceed total duration
-    const clampedStart = Math.min(currentWeek, totalDurationWeeks);
+    // Clamp within project duration
+    const clampedStart = Math.min(Math.max(1, startWeek), totalDurationWeeks);
     const clampedDuration = Math.min(scaledDuration, totalDurationWeeks - clampedStart + 1);
 
     schedule.push({
@@ -147,8 +174,8 @@ export function generateWorkSchedule(
       dependencies,
     });
 
-    // Standard: next activity starts after current one ends (no overlap)
-    currentWeek += scaledDuration;
+    // Next activity default start = end of this one (overridden by overlap rules)
+    currentWeek = clampedStart + Math.max(1, clampedDuration);
   }
 
   return schedule;
