@@ -214,18 +214,33 @@ export default function BoqWizard() {
   const workSchedule = useMemo<WorkScheduleItem[]>(() => {
     if (selectedItems.length === 0) return [];
     const avgDuration = Math.max(1, Math.floor(totalDurationWeeks / selectedItems.length));
+    const items: WorkScheduleItem[] = [];
     let cw = 1;
-    return selectedItems.map((item, idx) => {
-      const duration = Math.max(1, Math.min(avgDuration + Math.floor(Math.random() * 2) - 1, totalDurationWeeks - cw + 1));
+    for (let idx = 0; idx < selectedItems.length; idx++) {
+      const item = selectedItems[idx];
+      const override = scheduleOverrides[item.id];
+      const baseDuration = override?.duration ?? Math.max(1, Math.min(avgDuration + Math.floor(Math.random() * 2) - 1, totalDurationWeeks - cw + 1));
+      const duration = Math.max(1, Math.min(baseDuration, totalDurationWeeks - cw + 1));
+      const overlapPct = override?.overlapPercent ?? 0;
+
+      let startWeek = cw;
+      if (idx > 0 && overlapPct > 0) {
+        const prevItem = items[idx - 1];
+        const overlapWeeks = Math.floor(prevItem.duration * (overlapPct / 100));
+        startWeek = Math.max(1, prevItem.startWeek + prevItem.duration - overlapWeeks);
+      }
+      startWeek = Math.min(startWeek, totalDurationWeeks);
+
       const ws: WorkScheduleItem = {
-        id: item.id, activity: item.description, duration, startWeek: cw,
+        id: item.id, activity: item.description, duration, startWeek,
         isMajor: item.amount > 0 && idx < Math.ceil(selectedItems.length * 0.4),
         dependencies: idx > 0 ? [selectedItems[idx - 1].id] : [],
       };
-      cw += Math.max(1, Math.floor(duration * 0.65));
-      return ws;
-    });
-  }, [selectedItems, totalDurationWeeks]);
+      items.push(ws);
+      cw = startWeek + duration;
+    }
+    return items;
+  }, [selectedItems, totalDurationWeeks, scheduleOverrides]);
 
   // WBS grouping
   const wbsGroups = useMemo(() => {
