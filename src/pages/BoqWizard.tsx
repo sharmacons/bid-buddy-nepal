@@ -1002,6 +1002,13 @@ export default function BoqWizard() {
               ) : (
                 <>
                   {/* Schedule table */}
+                  {Object.keys(scheduleOverrides).length > 0 && (
+                    <div className="flex justify-end mb-2">
+                      <Button variant="outline" size="sm" onClick={() => setScheduleOverrides({})}>
+                        Reset Overrides
+                      </Button>
+                    </div>
+                  )}
                   <div className="border rounded-lg overflow-hidden mb-4">
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
