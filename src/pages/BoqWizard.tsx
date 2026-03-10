@@ -1002,13 +1002,41 @@ export default function BoqWizard() {
               ) : (
                 <>
                   {/* Schedule table */}
-                  {Object.keys(scheduleOverrides).length > 0 && (
-                    <div className="flex justify-end mb-2">
-                      <Button variant="outline" size="sm" onClick={() => setScheduleOverrides({})}>
-                        Reset Overrides
-                      </Button>
+                  <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-muted-foreground">Overlap Profile:</span>
+                      {([
+                        { label: 'Conservative', desc: 'No overlap', values: () => 0 },
+                        { label: 'Standard', desc: '20-40%', values: (i: number) => i === 0 ? 0 : 30 },
+                        { label: 'Aggressive', desc: '50-70%', values: (i: number) => i === 0 ? 0 : 60 },
+                      ] as const).map(profile => (
+                        <Button
+                          key={profile.label}
+                          variant="outline"
+                          size="sm"
+                          className="text-xs"
+                          onClick={() => {
+                            const overrides: Record<string, { duration?: number; overlapPercent?: number }> = {};
+                            workSchedule.forEach((item, i) => {
+                              overrides[item.id] = {
+                                ...scheduleOverrides[item.id],
+                                overlapPercent: profile.values(i),
+                              };
+                            });
+                            setScheduleOverrides(overrides);
+                          }}
+                        >
+                          {profile.label}
+                          <span className="text-muted-foreground ml-1">({profile.desc})</span>
+                        </Button>
+                      ))}
                     </div>
-                  )}
+                    {Object.keys(scheduleOverrides).length > 0 && (
+                      <Button variant="outline" size="sm" className="text-xs" onClick={() => setScheduleOverrides({})}>
+                        Reset All
+                      </Button>
+                    )}
+                  </div>
                   <div className="border rounded-lg overflow-hidden mb-4">
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
