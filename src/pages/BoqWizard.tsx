@@ -176,6 +176,7 @@ export default function BoqWizard() {
   ]);
   const [quotedAmount, setQuotedAmount] = useState(0);
   const [workNature, setWorkNature] = useState<string>('road');
+  const [scheduleOverrides, setScheduleOverrides] = useState<Record<string, { duration?: number; overlapPercent?: number }>>({});
 
   // ─── REAL-TIME COMPUTED VALUES ───
   const selectedItems = useMemo(() => parsedItems.filter(i => i.selected), [parsedItems]);
