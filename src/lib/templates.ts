@@ -730,3 +730,189 @@ Project: ${project}
 
 Note: Mobilization to be completed within the commencement period specified in the contract.`;
 }
+
+// ==========================================
+// NEPALI निबेदन TEMPLATES
+// ==========================================
+
+// Date in Nepali format helper
+function nepaliDateStr(): string {
+  const d = new Date();
+  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+}
+
+// ==========================================
+// Running Bill निबेदन
+// ==========================================
+export function runningBillNibedanTemplate(profile: CompanyProfile | null, bid?: Partial<BidData>, billNumber?: string): string {
+  const co = profile?.companyName || '[कम्पनीको नाम]';
+  const addr = profile?.address || '[ठेगाना]';
+  const pan = profile?.panVatNumber || '[प्यान/भ्याट नं.]';
+  const rep = profile?.authorizedRepresentative || '[अधिकृत प्रतिनिधि]';
+  const desig = profile?.designation || '[पदनाम]';
+  const phone = profile?.contactPhone || '[फोन नं.]';
+  const project = bid?.projectName || '[योजनाको नाम]';
+  const employer = bid?.employer || '[नियोजकको नाम]';
+  const employerAddr = bid?.employerAddress || '[नियोजकको ठेगाना]';
+  const contractId = bid?.contractId || '[ठेक्का नं.]';
+  const billNo = billNumber || '[बिल नं.]';
+
+  return `मिति: ${nepaliDateStr()}
+
+श्रीमान् कार्यालय प्रमुख ज्यू,
+${employer},
+${employerAddr}
+
+विषय: Running Bill (चालु बिल) भुक्तानी सम्बन्धमा ।
+
+महोदय,
+
+उपरोक्त सम्बन्धमा यस ${co} ले ठेक्का नं. ${contractId} अन्तर्गत ${project} योजनाको निर्माण कार्य सम्पन्न गरिरहेको व्यहोरा विदितै छ ।
+
+उक्त योजनाको हालसम्म भएको कार्य प्रगतिको आधारमा Running Bill No. ${billNo} को भुक्तानी दिनु हुन अनुरोध गर्दछु ।
+
+संलग्न कागजातहरू:
+१. कार्य प्रगति विवरण (Work Progress Report)
+२. नाप जाँच किताब (Measurement Book)
+३. गुणस्तर परीक्षण प्रतिवेदन (Quality Test Reports)
+४. फोटोग्राफ (Site Photographs)
+५. Invoice / बिल
+
+अतः उपरोक्त बमोजिम चालु बिलको भुक्तानी प्रक्रिया अगाडि बढाई दिनु हुन विनम्र अनुरोध गर्दछु ।
+
+धन्यवाद ।
+
+भवदीय,
+
+
+…………………………
+${rep}
+${desig}
+${co}
+${addr}
+प्यान/भ्याट नं.: ${pan}
+सम्पर्क: ${phone}`;
+}
+
+// ==========================================
+// Lab Test निबेदन
+// ==========================================
+export function labTestNibedanTemplate(profile: CompanyProfile | null, bid?: Partial<BidData>): string {
+  const co = profile?.companyName || '[कम्पनीको नाम]';
+  const addr = profile?.address || '[ठेगाना]';
+  const pan = profile?.panVatNumber || '[प्यान/भ्याट नं.]';
+  const rep = profile?.authorizedRepresentative || '[अधिकृत प्रतिनिधि]';
+  const desig = profile?.designation || '[पदनाम]';
+  const phone = profile?.contactPhone || '[फोन नं.]';
+  const project = bid?.projectName || '[योजनाको नाम]';
+  const employer = bid?.employer || '[नियोजकको नाम]';
+  const employerAddr = bid?.employerAddress || '[नियोजकको ठेगाना]';
+  const contractId = bid?.contractId || '[ठेक्का नं.]';
+
+  return `मिति: ${nepaliDateStr()}
+
+श्रीमान् कार्यालय प्रमुख ज्यू,
+${employer},
+${employerAddr}
+
+विषय: प्रयोगशाला परीक्षण (Lab Test) सम्बन्धमा ।
+
+सन्दर्भ: ठेक्का नं. ${contractId} — ${project}
+
+महोदय,
+
+उपरोक्त सम्बन्धमा यस ${co} ले ठेक्का नं. ${contractId} अन्तर्गत ${project} योजनाको निर्माण कार्य गरिरहेको व्यहोरा विदितै छ ।
+
+उक्त योजनामा प्रयोग हुने निर्माण सामग्रीहरूको गुणस्तर सुनिश्चित गर्नको लागि प्रयोगशाला परीक्षण (Lab Test) गराउनु पर्ने भएकोले सोको लागि आवश्यक व्यवस्था मिलाई दिनु हुन अनुरोध गर्दछु ।
+
+परीक्षण गराउनु पर्ने सामग्रीहरू:
+
+| क्र.सं. | सामग्री (Material)           | परीक्षण (Test Type)                  | नमूना सं. |
+|---------|------------------------------|---------------------------------------|----------|
+| १       | माटो (Soil)                   | CBR Test / Proctor Test               |          |
+| २       | ढुङ्गा (Aggregate)           | Aggregate Crushing Value / LA Abrasion|          |
+| ३       | बालुवा (Sand)                 | Sieve Analysis / FM                   |          |
+| ४       | सिमेन्ट (Cement)              | Compressive Strength Test             |          |
+| ५       | विटुमिन (Bitumen)             | Penetration / Softening Point         |          |
+| ६       | कंक्रिट (Concrete)            | Cube Test (7/14/28 days)              |          |
+| ७       | रड (Reinforcement Steel)      | Tensile Strength Test                 |          |
+
+अतः उपरोक्त सामग्रीहरूको प्रयोगशाला परीक्षण गराउन स्वीकृति प्रदान गरी दिनु हुन विनम्र अनुरोध गर्दछु ।
+
+धन्यवाद ।
+
+भवदीय,
+
+
+…………………………
+${rep}
+${desig}
+${co}
+${addr}
+प्यान/भ्याट नं.: ${pan}
+सम्पर्क: ${phone}`;
+}
+
+// ==========================================
+// धरौटी रकम फिर्ता निबेदन (Security Deposit Refund)
+// ==========================================
+export function dharautiRakamFirtaNibedanTemplate(profile: CompanyProfile | null, bid?: Partial<BidData>): string {
+  const co = profile?.companyName || '[कम्पनीको नाम]';
+  const addr = profile?.address || '[ठेगाना]';
+  const pan = profile?.panVatNumber || '[प्यान/भ्याट नं.]';
+  const rep = profile?.authorizedRepresentative || '[अधिकृत प्रतिनिधि]';
+  const desig = profile?.designation || '[पदनाम]';
+  const phone = profile?.contactPhone || '[फोन नं.]';
+  const project = bid?.projectName || '[योजनाको नाम]';
+  const employer = bid?.employer || '[नियोजकको नाम]';
+  const employerAddr = bid?.employerAddress || '[नियोजकको ठेगाना]';
+  const contractId = bid?.contractId || '[ठेक्का नं.]';
+  const perfSecurity = bid?.performanceSecurityPercent || '५';
+
+  return `मिति: ${nepaliDateStr()}
+
+श्रीमान् कार्यालय प्रमुख ज्यू,
+${employer},
+${employerAddr}
+
+विषय: धरौटी रकम (Performance Security / Retention Money) फिर्ता सम्बन्धमा ।
+
+सन्दर्भ: ठेक्का नं. ${contractId} — ${project}
+
+महोदय,
+
+उपरोक्त सम्बन्धमा यस ${co} ले ठेक्का नं. ${contractId} अन्तर्गत ${project} योजनाको निर्माण कार्य सम्पन्न गरिसकेको / सार्वजनिक खरिद नियमावली बमोजिम Defect Liability Period (त्रुटी सच्याउने अवधि) पूरा भइसकेको व्यहोरा विदितै छ ।
+
+उक्त ठेक्का सम्झौता अनुसार ${perfSecurity}% Performance Security / Retention Money वापत रोकिएको धरौटी रकम फिर्ता दिनु हुन अनुरोध गर्दछु ।
+
+धरौटी रकम विवरण:
+┌──────────────────────────────────────────────────────┐
+│ ठेक्का रकम (Contract Amount):  NPR ________________ │
+│ धरौटी प्रतिशत:                 ${perfSecurity}%                │
+│ धरौटी रकम (Security Amount):   NPR ________________ │
+│ Retention Money:               NPR ________________ │
+│ जम्मा फिर्ता माग रकम:          NPR ________________ │
+└──────────────────────────────────────────────────────┘
+
+संलग्न कागजातहरू:
+१. कार्य सम्पन्न प्रमाणपत्र (Work Completion Certificate)
+२. अन्तिम बिल (Final Bill) — स्वीकृत प्रतिलिपि
+३. Defect Liability Period सम्पन्न प्रमाण
+४. कर चुक्ता प्रमाणपत्र (Tax Clearance Certificate)
+५. Bank Guarantee मूल प्रति (यदि लागू भएमा)
+
+अतः सार्वजनिक खरिद ऐन, २०६३ तथा सार्वजनिक खरिद नियमावली, २०६४ को प्रावधान अनुसार उपरोक्त धरौटी रकम यथाशीघ्र फिर्ता गरी दिनु हुन विनम्र अनुरोध गर्दछु ।
+
+धन्यवाद ।
+
+भवदीय,
+
+
+…………………………
+${rep}
+${desig}
+${co}
+${addr}
+प्यान/भ्याट नं.: ${pan}
+सम्पर्क: ${phone}`;
+}

@@ -13,6 +13,7 @@ import {
   methodStatementTemplate, siteOrganizationTemplate, mobilizationScheduleTemplate,
   jvAgreementTemplate, jvPowerOfAttorneyTemplate, jvInfoELI2Template,
   constructionScheduleTemplate,
+  runningBillNibedanTemplate, labTestNibedanTemplate, dharautiRakamFirtaNibedanTemplate,
 } from '@/lib/templates';
 import { detectActivitiesFromBOQ, generateWorkSchedule } from '@/lib/work-schedule';
 import { generatePrintPackageHTML, wrapDocumentWithLetterhead } from '@/lib/letterhead';
@@ -21,7 +22,7 @@ import { exportWorkScheduleExcel } from '@/lib/excel-export';
 import GanttChart from '@/components/GanttChart';
 import { WorkScheduleItem } from '@/lib/types';
 import { toast } from 'sonner';
-import { FileText, Copy, Printer, AlertTriangle, FolderOpen, Calendar, Download, BarChart3, ClipboardList, Type, Minus, Plus, AlignLeft, Edit3, Save } from 'lucide-react';
+import { FileText, Copy, Printer, AlertTriangle, FolderOpen, Calendar, Download, BarChart3, ClipboardList, Type, Minus, Plus, AlignLeft, Edit3, Save, FileSignature } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 
 export default function Templates() {
@@ -107,6 +108,18 @@ export default function Templates() {
 
     return docs;
   }, [profile, selectedBid, workScheduleItems]);
+
+  // Nepali निबेदन letter templates
+  const nibedanTemplates = useMemo(() => {
+    const bid = selectedBid;
+    return [
+      { title: 'Running Bill निबेदन (चालु बिल भुक्तानी)', content: runningBillNibedanTemplate(profile, bid || undefined) },
+      { title: 'Lab Test निबेदन (प्रयोगशाला परीक्षण)', content: labTestNibedanTemplate(profile, bid || undefined) },
+      { title: 'धरौटी रकम फिर्ता निबेदन (Security Deposit Refund)', content: dharautiRakamFirtaNibedanTemplate(profile, bid || undefined) },
+    ];
+  }, [profile, selectedBid]);
+
+  const [selectedNibedanIndex, setSelectedNibedanIndex] = useState(0);
 
   function handlePrintAll() {
     const workSchedule = (() => {
@@ -219,8 +232,9 @@ export default function Templates() {
 
       {/* Main tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="documents" className="gap-1.5"><ClipboardList className="h-3.5 w-3.5" /> Bid Documents</TabsTrigger>
+          <TabsTrigger value="nibedan" className="gap-1.5"><FileSignature className="h-3.5 w-3.5" /> निबेदन पत्र</TabsTrigger>
           <TabsTrigger value="schedule" className="gap-1.5"><Calendar className="h-3.5 w-3.5" /> Scheduling</TabsTrigger>
           <TabsTrigger value="wbs" className="gap-1.5"><BarChart3 className="h-3.5 w-3.5" /> WBS / Gantt</TabsTrigger>
         </TabsList>
@@ -338,6 +352,84 @@ export default function Templates() {
                         {currentContent}
                       </pre>
                     )}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* ═══ निबेदन TAB ═══ */}
+        <TabsContent value="nibedan" className="mt-4">
+          <div className="grid md:grid-cols-[260px_1fr] gap-4">
+            {/* Letter list sidebar */}
+            <Card className="h-fit">
+              <CardContent className="p-2">
+                <div className="space-y-0.5">
+                  {nibedanTemplates.map((tpl, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setSelectedNibedanIndex(i)}
+                      className={`w-full text-left px-3 py-2.5 rounded-md text-xs transition-colors ${
+                        selectedNibedanIndex === i
+                          ? 'bg-primary text-primary-foreground'
+                          : 'text-foreground hover:bg-muted'
+                      }`}
+                    >
+                      <FileSignature className="h-3.5 w-3.5 inline-block mr-1.5 -mt-0.5" />
+                      {tpl.title}
+                    </button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Letter preview */}
+            <Card>
+              <CardHeader className="pb-2 space-y-2">
+                <div className="flex flex-row items-center justify-between">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <FileSignature className="h-4 w-4 text-primary" />
+                    {nibedanTemplates[selectedNibedanIndex]?.title}
+                  </CardTitle>
+                  <div className="flex gap-1.5">
+                    <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => {
+                      navigator.clipboard.writeText(nibedanTemplates[selectedNibedanIndex]?.content || '');
+                      toast.success('Copied!');
+                    }}>
+                      <Copy className="h-3 w-3" /> Copy
+                    </Button>
+                    <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => {
+                      const tpl = nibedanTemplates[selectedNibedanIndex];
+                      if (tpl) handlePrintSingle(tpl.content, tpl.title);
+                    }}>
+                      <Printer className="h-3 w-3" /> Print
+                    </Button>
+                    <Button variant="default" size="sm" className="h-7 text-xs gap-1" onClick={() => {
+                      const tpl = nibedanTemplates[selectedNibedanIndex];
+                      if (tpl) handleExportPDF(tpl.content, tpl.title);
+                    }}>
+                      <Download className="h-3 w-3" /> PDF
+                    </Button>
+                  </div>
+                </div>
+                <CardDescription>नेपाली भाषामा — कम्पनी लेटरहेड सहित PDF निर्यात गर्नुहोस्</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-[600px]">
+                  <div className="bg-white border border-border shadow-sm mx-auto max-w-[210mm] p-[25mm_20mm] min-h-[297mm]"
+                    style={{
+                      fontFamily: "'Mukta', 'Source Sans 3', serif",
+                      fontSize: `${fontSize}pt`,
+                      lineHeight: lineHeight,
+                      color: '#111',
+                    }}
+                  >
+                    <pre className="whitespace-pre-wrap font-[inherit] text-[inherit] leading-[inherit] m-0 p-0"
+                      style={{ tabSize: 4 }}
+                    >
+                      {nibedanTemplates[selectedNibedanIndex]?.content}
+                    </pre>
                   </div>
                 </ScrollArea>
               </CardContent>
