@@ -232,8 +232,9 @@ export default function Templates() {
 
       {/* Main tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="documents" className="gap-1.5"><ClipboardList className="h-3.5 w-3.5" /> Bid Documents</TabsTrigger>
+          <TabsTrigger value="nibedan" className="gap-1.5"><FileSignature className="h-3.5 w-3.5" /> निबेदन पत्र</TabsTrigger>
           <TabsTrigger value="schedule" className="gap-1.5"><Calendar className="h-3.5 w-3.5" /> Scheduling</TabsTrigger>
           <TabsTrigger value="wbs" className="gap-1.5"><BarChart3 className="h-3.5 w-3.5" /> WBS / Gantt</TabsTrigger>
         </TabsList>
