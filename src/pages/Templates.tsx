@@ -109,6 +109,18 @@ export default function Templates() {
     return docs;
   }, [profile, selectedBid, workScheduleItems]);
 
+  // Nepali निबेदन letter templates
+  const nibedanTemplates = useMemo(() => {
+    const bid = selectedBid;
+    return [
+      { title: 'Running Bill निबेदन (चालु बिल भुक्तानी)', content: runningBillNibedanTemplate(profile, bid || undefined) },
+      { title: 'Lab Test निबेदन (प्रयोगशाला परीक्षण)', content: labTestNibedanTemplate(profile, bid || undefined) },
+      { title: 'धरौटी रकम फिर्ता निबेदन (Security Deposit Refund)', content: dharautiRakamFirtaNibedanTemplate(profile, bid || undefined) },
+    ];
+  }, [profile, selectedBid]);
+
+  const [selectedNibedanIndex, setSelectedNibedanIndex] = useState(0);
+
   function handlePrintAll() {
     const workSchedule = (() => {
       if (selectedBid?.workSchedule && selectedBid.workSchedule.length > 0) return selectedBid.workSchedule;
