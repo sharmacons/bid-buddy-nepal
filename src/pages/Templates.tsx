@@ -13,6 +13,7 @@ import {
   methodStatementTemplate, siteOrganizationTemplate, mobilizationScheduleTemplate,
   jvAgreementTemplate, jvPowerOfAttorneyTemplate, jvInfoELI2Template,
   constructionScheduleTemplate,
+  runningBillNibedanTemplate, labTestNibedanTemplate, dharautiRakamFirtaNibedanTemplate,
 } from '@/lib/templates';
 import { detectActivitiesFromBOQ, generateWorkSchedule } from '@/lib/work-schedule';
 import { generatePrintPackageHTML, wrapDocumentWithLetterhead } from '@/lib/letterhead';
