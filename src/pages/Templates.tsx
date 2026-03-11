@@ -359,6 +359,84 @@ export default function Templates() {
           </div>
         </TabsContent>
 
+        {/* ═══ निबेदन TAB ═══ */}
+        <TabsContent value="nibedan" className="mt-4">
+          <div className="grid md:grid-cols-[260px_1fr] gap-4">
+            {/* Letter list sidebar */}
+            <Card className="h-fit">
+              <CardContent className="p-2">
+                <div className="space-y-0.5">
+                  {nibedanTemplates.map((tpl, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setSelectedNibedanIndex(i)}
+                      className={`w-full text-left px-3 py-2.5 rounded-md text-xs transition-colors ${
+                        selectedNibedanIndex === i
+                          ? 'bg-primary text-primary-foreground'
+                          : 'text-foreground hover:bg-muted'
+                      }`}
+                    >
+                      <FileSignature className="h-3.5 w-3.5 inline-block mr-1.5 -mt-0.5" />
+                      {tpl.title}
+                    </button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Letter preview */}
+            <Card>
+              <CardHeader className="pb-2 space-y-2">
+                <div className="flex flex-row items-center justify-between">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <FileSignature className="h-4 w-4 text-primary" />
+                    {nibedanTemplates[selectedNibedanIndex]?.title}
+                  </CardTitle>
+                  <div className="flex gap-1.5">
+                    <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => {
+                      navigator.clipboard.writeText(nibedanTemplates[selectedNibedanIndex]?.content || '');
+                      toast.success('Copied!');
+                    }}>
+                      <Copy className="h-3 w-3" /> Copy
+                    </Button>
+                    <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => {
+                      const tpl = nibedanTemplates[selectedNibedanIndex];
+                      if (tpl) handlePrintSingle(tpl.content, tpl.title);
+                    }}>
+                      <Printer className="h-3 w-3" /> Print
+                    </Button>
+                    <Button variant="default" size="sm" className="h-7 text-xs gap-1" onClick={() => {
+                      const tpl = nibedanTemplates[selectedNibedanIndex];
+                      if (tpl) handleExportPDF(tpl.content, tpl.title);
+                    }}>
+                      <Download className="h-3 w-3" /> PDF
+                    </Button>
+                  </div>
+                </div>
+                <CardDescription>नेपाली भाषामा — कम्पनी लेटरहेड सहित PDF निर्यात गर्नुहोस्</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-[600px]">
+                  <div className="bg-white border border-border shadow-sm mx-auto max-w-[210mm] p-[25mm_20mm] min-h-[297mm]"
+                    style={{
+                      fontFamily: "'Mukta', 'Source Sans 3', serif",
+                      fontSize: `${fontSize}pt`,
+                      lineHeight: lineHeight,
+                      color: '#111',
+                    }}
+                  >
+                    <pre className="whitespace-pre-wrap font-[inherit] text-[inherit] leading-[inherit] m-0 p-0"
+                      style={{ tabSize: 4 }}
+                    >
+                      {nibedanTemplates[selectedNibedanIndex]?.content}
+                    </pre>
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
         {/* ═══ SCHEDULING TAB ═══ */}
         <TabsContent value="schedule" className="mt-4 space-y-4">
           {workScheduleItems.length > 0 ? (
