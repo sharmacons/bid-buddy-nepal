@@ -349,6 +349,249 @@ export default function BoqWizard() {
     } finally { setIsProcessing(false); }
   }, [uploadedFile, rawText, projectName]);
 
+  // ─── Bid Doc PDF Analysis ───
+  const handleBidDocUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 20 * 1024 * 1024) { toast.error('Max 20MB file size'); return; }
+    setBidDocFile(file);
+    toast.success(`"${file.name}" loaded`);
+  }, []);
+
+  const analyzeBidDocument = useCallback(async () => {
+    let text = bidDocText;
+    if (bidDocFile && !text.trim()) {
+      setBidDocStatus('Extracting text from file...');
+      setBidDocProgress(5);
+      try {
+        // Try reading as text first (works for .txt files)
+        const rawText = await bidDocFile.text();
+        if (rawText.trim().length > 100 && !rawText.includes('\x00')) {
+          text = rawText;
+        } else {
+          // For PDF files, try using pdfjs
+          try {
+            const pdfjsLib = await import('pdfjs-dist');
+            pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+            const arrayBuffer = await bidDocFile.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            let fullText = '';
+            for (let i = 1; i <= pdf.numPages; i++) {
+              const page = await pdf.getPage(i);
+              const content = await page.getTextContent();
+              fullText += content.items.map((item: any) => item.str).join(' ') + '\n';
+            }
+            text = fullText;
+          } catch (pdfErr) {
+            console.error('PDF parse error:', pdfErr);
+            toast.error('Could not extract text from PDF. Please paste the document text manually.');
+            return;
+          }
+        }
+      } catch (err) {
+        toast.error('Failed to read file');
+        return;
+      }
+    }
+
+    if (!text.trim()) { toast.error('No text to analyze. Paste or upload a document.'); return; }
+
+    setBidDocAnalyzing(true);
+    setBidDocProgress(10);
+    setBidDocStatus('Sending to AI for comprehensive analysis...');
+
+    const progressInterval = setInterval(() => {
+      setBidDocProgress(prev => Math.min(prev + Math.random() * 12, 85));
+    }, 800);
+
+    try {
+      setBidDocStatus('AI is extracting all information...');
+      const result = await fullBidAnalysis(text);
+      clearInterval(progressInterval);
+      setBidDocProgress(95);
+
+      if (result) {
+        setBidDocResult(result);
+        setBidDocStatus('Processing extracted data...');
+
+        // Build extracted info for display
+        const info: { label: string; value: string; key: string }[] = [];
+        const add = (label: string, value: string | undefined, key: string) => {
+          if (value?.trim()) info.push({ label, value: value.trim(), key });
+        };
+        add('Project Name (परियोजना)', result.projectName, 'projectName');
+        add('Employer (नियोक्ता)', result.employer, 'employer');
+        add('Employer Address', result.employerAddress, 'employerAddress');
+        add('District (जिल्ला)', result.district, 'district');
+        add('IFB Number', result.ifbNumber, 'ifbNumber');
+        add('Contract ID', result.contractId, 'contractId');
+        add('Lot Number', result.lotNumber, 'lotNumber');
+        add('Source of Fund', result.sourceOfFund, 'sourceOfFund');
+        add('Bid Type', result.bidType, 'bidType');
+        add('Submission Deadline', result.submissionDeadline, 'submissionDeadline');
+        add('Bid Opening Date', result.bidOpeningDate, 'bidOpeningDate');
+        add('Pre-Bid Meeting', result.preBidMeetingDate, 'preBidMeetingDate');
+        add('Site Visit Date', result.siteVisitDate, 'siteVisitDate');
+        add('Estimated Cost (NPR)', result.estimatedCost, 'estimatedCost');
+        add('Bid Security Amount', result.bidSecurityAmount, 'bidSecurityAmount');
+        add('Bid Validity (days)', result.bidValidity, 'bidValidity');
+        add('Completion Period (days)', result.completionPeriod, 'completionPeriod');
+        add('Commencement (days)', result.commencementDays, 'commencementDays');
+        add('Performance Security %', result.performanceSecurityPercent, 'performanceSecurityPercent');
+        add('Defect Liability', result.defectLiabilityPeriod, 'defectLiabilityPeriod');
+        add('JV Allowed', result.isJV !== undefined ? (result.isJV ? 'Yes' : 'No') : undefined, 'isJV');
+        add('Min Experience (years)', result.minimumExperienceYears?.toString(), 'minExperience');
+        add('Min Turnover', result.minimumTurnover, 'minTurnover');
+        if (result.summary) add('Summary', result.summary, 'summary');
+        setExtractedInfo(info);
+
+        // Auto-populate wizard fields
+        if (result.projectName) setProjectName(result.projectName);
+        if (result.completionPeriod) {
+          const days = parseInt(result.completionPeriod);
+          if (days > 0) setTotalDurationWeeks(Math.ceil(days / 7));
+        }
+
+        // Auto-populate BOQ items if found
+        if (result.boqItems && result.boqItems.length > 0) {
+          const boqItems: ParsedBoqRow[] = result.boqItems.map((item, idx) => ({
+            id: `bid-boq-${idx + 1}`,
+            sn: item.sn || String(idx + 1),
+            description: item.description || '',
+            unit: item.unit || 'LS',
+            quantity: Number(item.quantity) || 0,
+            rate: Number(item.rate) || 0,
+            amount: Number(item.amount) || (Number(item.quantity) * Number(item.rate)) || 0,
+            selected: true,
+            category: 'General',
+          }));
+          const rateMap = autoFillRates(boqItems);
+          const enhanced = boqItems.map(item => {
+            const match = rateMap.get(item.id);
+            if (match && (item.rate === 0)) {
+              return { ...item, rate: match.rate, amount: Math.round(item.quantity * match.rate), autoRate: { rate: match.rate, normDescription: match.normDescription, confidence: match.confidence } };
+            } else if (match) {
+              return { ...item, autoRate: { rate: match.rate, normDescription: match.normDescription, confidence: match.confidence } };
+            }
+            return item;
+          });
+          setParsedItems(enhanced);
+          toast.success(`${enhanced.length} BOQ items extracted from bid document and loaded into wizard!`);
+        }
+
+        setBidDocProgress(100);
+        setBidDocStatus('✅ Analysis complete!');
+        toast.success('Bid document analyzed successfully! Data populated across all tabs.');
+      } else {
+        toast.error('No results from analysis. Try pasting more text.');
+      }
+    } catch (err) {
+      clearInterval(progressInterval);
+      console.error(err);
+      toast.error('Analysis failed. Please try again.');
+    } finally {
+      setBidDocAnalyzing(false);
+    }
+  }, [bidDocFile, bidDocText]);
+
+  // ─── Excel BOQ Upload ───
+  const handleExcelUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 20 * 1024 * 1024) { toast.error('Max 20MB'); return; }
+    setExcelFile(file);
+    setExcelProcessing(true);
+
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+      const jsonData = XLSX.utils.sheet_to_json<any>(firstSheet, { defval: '' });
+
+      if (jsonData.length === 0) { toast.error('No data found in the Excel file.'); setExcelProcessing(false); return; }
+
+      // Try to detect columns (SN, Description, Unit, Quantity, Rate, Amount)
+      const headers = Object.keys(jsonData[0]).map(h => h.toLowerCase().trim());
+      const findCol = (keywords: string[]) => {
+        const key = Object.keys(jsonData[0]).find(k => keywords.some(kw => k.toLowerCase().includes(kw)));
+        return key || '';
+      };
+
+      const snCol = findCol(['sn', 's.n', 'no', '#', 'sl']);
+      const descCol = findCol(['description', 'item', 'particular', 'work', 'activity', 'desc']);
+      const unitCol = findCol(['unit', 'uom']);
+      const qtyCol = findCol(['quantity', 'qty', 'qnty']);
+      const rateCol = findCol(['rate', 'price', 'unit rate', 'unit price']);
+      const amountCol = findCol(['amount', 'total', 'amt']);
+
+      const items: ParsedBoqRow[] = [];
+      for (let i = 0; i < jsonData.length; i++) {
+        const row = jsonData[i];
+        const desc = String(row[descCol] || '').trim();
+        if (!desc || desc.toLowerCase().includes('description') || desc.toLowerCase().includes('particular')) continue;
+
+        const qty = parseFloat(row[qtyCol]) || 0;
+        const rate = parseFloat(row[rateCol]) || 0;
+        const amt = parseFloat(row[amountCol]) || (qty * rate);
+
+        items.push({
+          id: `xls-${items.length + 1}`,
+          sn: String(row[snCol] || items.length + 1),
+          description: desc,
+          unit: String(row[unitCol] || 'LS').trim(),
+          quantity: qty,
+          rate: rate,
+          amount: amt,
+          selected: true,
+          category: 'General',
+        });
+      }
+
+      if (items.length === 0) {
+        // Fallback: send to AI for parsing
+        const textContent = jsonData.map(r => Object.values(r).join('\t')).join('\n');
+        const { data, error } = await supabase.functions.invoke('ai-assist', {
+          body: { type: 'parse-boq', text: textContent, projectName },
+        });
+        if (!error && data?.result) {
+          const aiItems: ParsedBoqRow[] = (data.result as any[]).map((item: any, idx: number) => ({
+            id: `xls-${idx + 1}`, sn: item.sn || String(idx + 1), description: item.description || '', unit: item.unit || 'LS',
+            quantity: Number(item.quantity) || 0, rate: Number(item.rate) || 0, amount: Number(item.amount) || 0,
+            selected: true, category: item.category || 'General',
+          }));
+          const rateMap = autoFillRates(aiItems);
+          const enhanced = aiItems.map(item => {
+            const match = rateMap.get(item.id);
+            if (match && item.rate === 0) return { ...item, rate: match.rate, amount: Math.round(item.quantity * match.rate), autoRate: { rate: match.rate, normDescription: match.normDescription, confidence: match.confidence } };
+            else if (match) return { ...item, autoRate: { rate: match.rate, normDescription: match.normDescription, confidence: match.confidence } };
+            return item;
+          });
+          setParsedItems(enhanced);
+          toast.success(`${enhanced.length} items parsed via AI from Excel`);
+        } else {
+          toast.error('Could not parse Excel. Check column headers.');
+        }
+      } else {
+        const rateMap = autoFillRates(items);
+        const enhanced = items.map(item => {
+          const match = rateMap.get(item.id);
+          if (match && item.rate === 0) return { ...item, rate: match.rate, amount: Math.round(item.quantity * match.rate), autoRate: { rate: match.rate, normDescription: match.normDescription, confidence: match.confidence } };
+          else if (match) return { ...item, autoRate: { rate: match.rate, normDescription: match.normDescription, confidence: match.confidence } };
+          return item;
+        });
+        setParsedItems(enhanced);
+        toast.success(`${enhanced.length} BOQ items loaded from Excel!`);
+      }
+
+      setActiveTab('boq');
+    } catch (err) {
+      console.error('Excel parse error:', err);
+      toast.error('Failed to read Excel file.');
+    } finally {
+      setExcelProcessing(false);
+    }
+  }, [projectName]);
+
   function parseCSVManually(text: string): ParsedBoqRow[] {
     const lines = text.split('\n').filter(l => l.trim());
     const items: ParsedBoqRow[] = [];
