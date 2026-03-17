@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 import {
   Upload, FileSpreadsheet, Cpu, CheckSquare, BarChart3,
   Loader2, Trash2, Calculator, Sparkles, AlertCircle, IndianRupee, Plus, Download, Printer,
-  FolderTree, Calendar, Shield,
+  FolderTree, Calendar, Shield, FileText, Table2,
 } from 'lucide-react';
 import { BOQItem, WorkScheduleItem } from '@/lib/types';
 import GanttChart from '@/components/GanttChart';
@@ -34,6 +34,8 @@ import {
 } from '@/lib/bid-qualification';
 import { wrapDocumentWithLetterhead } from '@/lib/letterhead';
 import { getCompanyProfile } from '@/lib/storage';
+import { fullBidAnalysis, FullAnalysisResult } from '@/lib/ai-assist';
+import * as XLSX from 'xlsx';
 
 // ═══════════════════════════════════════════
 // ─── TYPES ───
@@ -143,7 +145,7 @@ ${htmlContent}
 // ═══════════════════════════════════════════
 
 export default function BoqWizard() {
-  const [activeTab, setActiveTab] = useState('upload');
+  const [activeTab, setActiveTab] = useState('bid-doc');
   const [projectName, setProjectName] = useState('');
   const [projectStartDate, setProjectStartDate] = useState('');
   const [totalDurationWeeks, setTotalDurationWeeks] = useState(24);
@@ -154,6 +156,21 @@ export default function BoqWizard() {
   const [processingProgress, setProcessingProgress] = useState(0);
   const [processingStatus, setProcessingStatus] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const bidDocInputRef = useRef<HTMLInputElement>(null);
+  const excelInputRef = useRef<HTMLInputElement>(null);
+
+  // Bid Doc analysis state
+  const [bidDocAnalyzing, setBidDocAnalyzing] = useState(false);
+  const [bidDocProgress, setBidDocProgress] = useState(0);
+  const [bidDocStatus, setBidDocStatus] = useState('');
+  const [bidDocText, setBidDocText] = useState('');
+  const [bidDocFile, setBidDocFile] = useState<File | null>(null);
+  const [bidDocResult, setBidDocResult] = useState<FullAnalysisResult | null>(null);
+  const [extractedInfo, setExtractedInfo] = useState<{ label: string; value: string; key: string }[]>([]);
+
+  // Excel BOQ upload state
+  const [excelFile, setExcelFile] = useState<File | null>(null);
+  const [excelProcessing, setExcelProcessing] = useState(false);
 
   // Cost estimation state
   const [estimationTab, setEstimationTab] = useState('engineers');
@@ -332,6 +349,249 @@ export default function BoqWizard() {
     } finally { setIsProcessing(false); }
   }, [uploadedFile, rawText, projectName]);
 
+  // ─── Bid Doc PDF Analysis ───
+  const handleBidDocUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 20 * 1024 * 1024) { toast.error('Max 20MB file size'); return; }
+    setBidDocFile(file);
+    toast.success(`"${file.name}" loaded`);
+  }, []);
+
+  const analyzeBidDocument = useCallback(async () => {
+    let text = bidDocText;
+    if (bidDocFile && !text.trim()) {
+      setBidDocStatus('Extracting text from file...');
+      setBidDocProgress(5);
+      try {
+        // Try reading as text first (works for .txt files)
+        const rawText = await bidDocFile.text();
+        if (rawText.trim().length > 100 && !rawText.includes('\x00')) {
+          text = rawText;
+        } else {
+          // For PDF files, try using pdfjs
+          try {
+            const pdfjsLib = await import('pdfjs-dist');
+            pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+            const arrayBuffer = await bidDocFile.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            let fullText = '';
+            for (let i = 1; i <= pdf.numPages; i++) {
+              const page = await pdf.getPage(i);
+              const content = await page.getTextContent();
+              fullText += content.items.map((item: any) => item.str).join(' ') + '\n';
+            }
+            text = fullText;
+          } catch (pdfErr) {
+            console.error('PDF parse error:', pdfErr);
+            toast.error('Could not extract text from PDF. Please paste the document text manually.');
+            return;
+          }
+        }
+      } catch (err) {
+        toast.error('Failed to read file');
+        return;
+      }
+    }
+
+    if (!text.trim()) { toast.error('No text to analyze. Paste or upload a document.'); return; }
+
+    setBidDocAnalyzing(true);
+    setBidDocProgress(10);
+    setBidDocStatus('Sending to AI for comprehensive analysis...');
+
+    const progressInterval = setInterval(() => {
+      setBidDocProgress(prev => Math.min(prev + Math.random() * 12, 85));
+    }, 800);
+
+    try {
+      setBidDocStatus('AI is extracting all information...');
+      const result = await fullBidAnalysis(text);
+      clearInterval(progressInterval);
+      setBidDocProgress(95);
+
+      if (result) {
+        setBidDocResult(result);
+        setBidDocStatus('Processing extracted data...');
+
+        // Build extracted info for display
+        const info: { label: string; value: string; key: string }[] = [];
+        const add = (label: string, value: string | undefined, key: string) => {
+          if (value?.trim()) info.push({ label, value: value.trim(), key });
+        };
+        add('Project Name (परियोजना)', result.projectName, 'projectName');
+        add('Employer (नियोक्ता)', result.employer, 'employer');
+        add('Employer Address', result.employerAddress, 'employerAddress');
+        add('District (जिल्ला)', result.district, 'district');
+        add('IFB Number', result.ifbNumber, 'ifbNumber');
+        add('Contract ID', result.contractId, 'contractId');
+        add('Lot Number', result.lotNumber, 'lotNumber');
+        add('Source of Fund', result.sourceOfFund, 'sourceOfFund');
+        add('Bid Type', result.bidType, 'bidType');
+        add('Submission Deadline', result.submissionDeadline, 'submissionDeadline');
+        add('Bid Opening Date', result.bidOpeningDate, 'bidOpeningDate');
+        add('Pre-Bid Meeting', result.preBidMeetingDate, 'preBidMeetingDate');
+        add('Site Visit Date', result.siteVisitDate, 'siteVisitDate');
+        add('Estimated Cost (NPR)', result.estimatedCost, 'estimatedCost');
+        add('Bid Security Amount', result.bidSecurityAmount, 'bidSecurityAmount');
+        add('Bid Validity (days)', result.bidValidity, 'bidValidity');
+        add('Completion Period (days)', result.completionPeriod, 'completionPeriod');
+        add('Commencement (days)', result.commencementDays, 'commencementDays');
+        add('Performance Security %', result.performanceSecurityPercent, 'performanceSecurityPercent');
+        add('Defect Liability', result.defectLiabilityPeriod, 'defectLiabilityPeriod');
+        add('JV Allowed', result.isJV !== undefined ? (result.isJV ? 'Yes' : 'No') : undefined, 'isJV');
+        add('Min Experience (years)', result.minimumExperienceYears?.toString(), 'minExperience');
+        add('Min Turnover', result.minimumTurnover, 'minTurnover');
+        if (result.summary) add('Summary', result.summary, 'summary');
+        setExtractedInfo(info);
+
+        // Auto-populate wizard fields
+        if (result.projectName) setProjectName(result.projectName);
+        if (result.completionPeriod) {
+          const days = parseInt(result.completionPeriod);
+          if (days > 0) setTotalDurationWeeks(Math.ceil(days / 7));
+        }
+
+        // Auto-populate BOQ items if found
+        if (result.boqItems && result.boqItems.length > 0) {
+          const boqItems: ParsedBoqRow[] = result.boqItems.map((item, idx) => ({
+            id: `bid-boq-${idx + 1}`,
+            sn: item.sn || String(idx + 1),
+            description: item.description || '',
+            unit: item.unit || 'LS',
+            quantity: Number(item.quantity) || 0,
+            rate: Number(item.rate) || 0,
+            amount: Number(item.amount) || (Number(item.quantity) * Number(item.rate)) || 0,
+            selected: true,
+            category: 'General',
+          }));
+          const rateMap = autoFillRates(boqItems);
+          const enhanced = boqItems.map(item => {
+            const match = rateMap.get(item.id);
+            if (match && (item.rate === 0)) {
+              return { ...item, rate: match.rate, amount: Math.round(item.quantity * match.rate), autoRate: { rate: match.rate, normDescription: match.normDescription, confidence: match.confidence } };
+            } else if (match) {
+              return { ...item, autoRate: { rate: match.rate, normDescription: match.normDescription, confidence: match.confidence } };
+            }
+            return item;
+          });
+          setParsedItems(enhanced);
+          toast.success(`${enhanced.length} BOQ items extracted from bid document and loaded into wizard!`);
+        }
+
+        setBidDocProgress(100);
+        setBidDocStatus('✅ Analysis complete!');
+        toast.success('Bid document analyzed successfully! Data populated across all tabs.');
+      } else {
+        toast.error('No results from analysis. Try pasting more text.');
+      }
+    } catch (err) {
+      clearInterval(progressInterval);
+      console.error(err);
+      toast.error('Analysis failed. Please try again.');
+    } finally {
+      setBidDocAnalyzing(false);
+    }
+  }, [bidDocFile, bidDocText]);
+
+  // ─── Excel BOQ Upload ───
+  const handleExcelUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 20 * 1024 * 1024) { toast.error('Max 20MB'); return; }
+    setExcelFile(file);
+    setExcelProcessing(true);
+
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+      const jsonData = XLSX.utils.sheet_to_json<any>(firstSheet, { defval: '' });
+
+      if (jsonData.length === 0) { toast.error('No data found in the Excel file.'); setExcelProcessing(false); return; }
+
+      // Try to detect columns (SN, Description, Unit, Quantity, Rate, Amount)
+      const headers = Object.keys(jsonData[0]).map(h => h.toLowerCase().trim());
+      const findCol = (keywords: string[]) => {
+        const key = Object.keys(jsonData[0]).find(k => keywords.some(kw => k.toLowerCase().includes(kw)));
+        return key || '';
+      };
+
+      const snCol = findCol(['sn', 's.n', 'no', '#', 'sl']);
+      const descCol = findCol(['description', 'item', 'particular', 'work', 'activity', 'desc']);
+      const unitCol = findCol(['unit', 'uom']);
+      const qtyCol = findCol(['quantity', 'qty', 'qnty']);
+      const rateCol = findCol(['rate', 'price', 'unit rate', 'unit price']);
+      const amountCol = findCol(['amount', 'total', 'amt']);
+
+      const items: ParsedBoqRow[] = [];
+      for (let i = 0; i < jsonData.length; i++) {
+        const row = jsonData[i];
+        const desc = String(row[descCol] || '').trim();
+        if (!desc || desc.toLowerCase().includes('description') || desc.toLowerCase().includes('particular')) continue;
+
+        const qty = parseFloat(row[qtyCol]) || 0;
+        const rate = parseFloat(row[rateCol]) || 0;
+        const amt = parseFloat(row[amountCol]) || (qty * rate);
+
+        items.push({
+          id: `xls-${items.length + 1}`,
+          sn: String(row[snCol] || items.length + 1),
+          description: desc,
+          unit: String(row[unitCol] || 'LS').trim(),
+          quantity: qty,
+          rate: rate,
+          amount: amt,
+          selected: true,
+          category: 'General',
+        });
+      }
+
+      if (items.length === 0) {
+        // Fallback: send to AI for parsing
+        const textContent = jsonData.map(r => Object.values(r).join('\t')).join('\n');
+        const { data, error } = await supabase.functions.invoke('ai-assist', {
+          body: { type: 'parse-boq', text: textContent, projectName },
+        });
+        if (!error && data?.result) {
+          const aiItems: ParsedBoqRow[] = (data.result as any[]).map((item: any, idx: number) => ({
+            id: `xls-${idx + 1}`, sn: item.sn || String(idx + 1), description: item.description || '', unit: item.unit || 'LS',
+            quantity: Number(item.quantity) || 0, rate: Number(item.rate) || 0, amount: Number(item.amount) || 0,
+            selected: true, category: item.category || 'General',
+          }));
+          const rateMap = autoFillRates(aiItems);
+          const enhanced = aiItems.map(item => {
+            const match = rateMap.get(item.id);
+            if (match && item.rate === 0) return { ...item, rate: match.rate, amount: Math.round(item.quantity * match.rate), autoRate: { rate: match.rate, normDescription: match.normDescription, confidence: match.confidence } };
+            else if (match) return { ...item, autoRate: { rate: match.rate, normDescription: match.normDescription, confidence: match.confidence } };
+            return item;
+          });
+          setParsedItems(enhanced);
+          toast.success(`${enhanced.length} items parsed via AI from Excel`);
+        } else {
+          toast.error('Could not parse Excel. Check column headers.');
+        }
+      } else {
+        const rateMap = autoFillRates(items);
+        const enhanced = items.map(item => {
+          const match = rateMap.get(item.id);
+          if (match && item.rate === 0) return { ...item, rate: match.rate, amount: Math.round(item.quantity * match.rate), autoRate: { rate: match.rate, normDescription: match.normDescription, confidence: match.confidence } };
+          else if (match) return { ...item, autoRate: { rate: match.rate, normDescription: match.normDescription, confidence: match.confidence } };
+          return item;
+        });
+        setParsedItems(enhanced);
+        toast.success(`${enhanced.length} BOQ items loaded from Excel!`);
+      }
+
+      setActiveTab('boq');
+    } catch (err) {
+      console.error('Excel parse error:', err);
+      toast.error('Failed to read Excel file.');
+    } finally {
+      setExcelProcessing(false);
+    }
+  }, [projectName]);
+
   function parseCSVManually(text: string): ParsedBoqRow[] {
     const lines = text.split('\n').filter(l => l.trim());
     const items: ParsedBoqRow[] = [];
@@ -461,7 +721,7 @@ export default function BoqWizard() {
     <div className="space-y-4 max-w-5xl mx-auto">
       <div>
         <h1 className="text-2xl font-bold font-heading text-foreground">BoQ Upload Wizard</h1>
-        <p className="text-sm text-muted-foreground mt-1">Upload → Edit → Estimate → Qualify → WBS → Gantt (all real-time)</p>
+        <p className="text-sm text-muted-foreground mt-1">Bid Doc → BOQ Excel → Edit → Estimate → Qualify → WBS → Gantt (all real-time)</p>
       </div>
 
       {/* Live summary bar */}
@@ -494,7 +754,9 @@ export default function BoqWizard() {
       )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-8">
+          <TabsTrigger value="bid-doc" className="text-xs gap-1"><FileText className="h-3 w-3" /> Bid Doc</TabsTrigger>
+          <TabsTrigger value="excel-boq" className="text-xs gap-1"><Table2 className="h-3 w-3" /> BOQ Excel</TabsTrigger>
           <TabsTrigger value="upload" className="text-xs gap-1"><Upload className="h-3 w-3" /> Upload</TabsTrigger>
           <TabsTrigger value="boq" className="text-xs gap-1"><CheckSquare className="h-3 w-3" /> BOQ</TabsTrigger>
           <TabsTrigger value="estimation" className="text-xs gap-1"><Calculator className="h-3 w-3" /> Estimate</TabsTrigger>
@@ -502,6 +764,177 @@ export default function BoqWizard() {
           <TabsTrigger value="wbs" className="text-xs gap-1"><FolderTree className="h-3 w-3" /> WBS</TabsTrigger>
           <TabsTrigger value="gantt" className="text-xs gap-1"><BarChart3 className="h-3 w-3" /> Gantt</TabsTrigger>
         </TabsList>
+
+        {/* ═══ BID DOC TAB ═══ */}
+        <TabsContent value="bid-doc" className="mt-4 space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5 text-primary" /> बोलपत्र कागजात विश्लेषण — Bid Document Analysis</CardTitle>
+              <CardDescription>Upload a complete bid document (PDF/TXT) and AI will extract all major items, dates, amounts, BOQ, and project details.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div className="border-2 border-dashed border-border rounded-xl p-8 text-center cursor-pointer hover:border-primary/50 hover:bg-muted/30 transition-colors" onClick={() => bidDocInputRef.current?.click()}>
+                <input ref={bidDocInputRef} type="file" accept=".pdf,.txt,.doc,.docx" className="hidden" onChange={handleBidDocUpload} />
+                <FileText className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                {bidDocFile ? (
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-foreground">{bidDocFile.name}</p>
+                    <p className="text-xs text-muted-foreground">{(bidDocFile.size / 1024).toFixed(1)} KB</p>
+                    <Button variant="ghost" size="sm" className="mt-1" onClick={(e) => { e.stopPropagation(); setBidDocFile(null); if (bidDocInputRef.current) bidDocInputRef.current.value = ''; }}>
+                      <Trash2 className="h-3 w-3 mr-1" /> Remove
+                    </Button>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Drop your Bid Document here (PDF, TXT)</p>
+                    <p className="text-xs text-muted-foreground/60 mt-1">AI will extract project info, dates, amounts, and BOQ items</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label>Or paste bid document text directly</Label>
+                <textarea className="w-full h-36 rounded-lg border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:ring-2 focus:ring-ring resize-none"
+                  placeholder="Paste the full bid document text here... AI will extract all information including project name, dates, financial details, eligibility criteria, and BOQ items."
+                  value={bidDocText} onChange={e => setBidDocText(e.target.value)}
+                />
+              </div>
+
+              {(bidDocFile || bidDocText.trim()) && (
+                <Button className="w-full" onClick={analyzeBidDocument} disabled={bidDocAnalyzing}>
+                  {bidDocAnalyzing ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />{bidDocStatus}</> : <><Cpu className="h-4 w-4 mr-2" /> Analyze Full Bid Document with AI</>}
+                </Button>
+              )}
+              {bidDocAnalyzing && <Progress value={bidDocProgress} />}
+            </CardContent>
+          </Card>
+
+          {/* Extracted Info Display */}
+          {extractedInfo.length > 0 && (
+            <Card className="border-primary/30">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary" /> Extracted Information ({extractedInfo.length} items found)</CardTitle>
+                <CardDescription>Data auto-populated into wizard tabs. BOQ items loaded into BOQ tab.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="border rounded-lg overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted/60">
+                      <tr>
+                        <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground">Field</th>
+                        <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground">Extracted Value</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {extractedInfo.map((info, i) => (
+                        <tr key={i} className="border-t border-border hover:bg-muted/20">
+                          <td className="px-3 py-2 text-xs font-medium text-muted-foreground">{info.label}</td>
+                          <td className="px-3 py-2 text-xs font-medium text-foreground">{info.value}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {bidDocResult?.boqItems && bidDocResult.boqItems.length > 0 && (
+                  <div className="mt-3 p-3 bg-accent/10 rounded-lg">
+                    <p className="text-xs font-medium text-accent">✅ {bidDocResult.boqItems.length} BOQ items extracted and loaded into the BOQ tab</p>
+                  </div>
+                )}
+
+                <div className="flex gap-2 mt-4">
+                  <Button size="sm" onClick={() => setActiveTab('boq')} disabled={parsedItems.length === 0}>
+                    <CheckSquare className="h-3.5 w-3.5 mr-1" /> View BOQ Items ({parsedItems.length})
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setActiveTab('estimation')} disabled={parsedItems.length === 0}>
+                    <Calculator className="h-3.5 w-3.5 mr-1" /> View Estimation
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setActiveTab('gantt')} disabled={parsedItems.length === 0}>
+                    <BarChart3 className="h-3.5 w-3.5 mr-1" /> View Gantt
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {bidDocResult?.specialConditions && bidDocResult.specialConditions.length > 0 && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">विशेष शर्तहरू — Special Conditions</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-1.5">
+                  {bidDocResult.specialConditions.map((c, i) => (
+                    <li key={i} className="text-xs flex items-start gap-2">
+                      <AlertCircle className="h-3.5 w-3.5 text-destructive/70 shrink-0 mt-0.5" />
+                      <span>{c}</span>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        {/* ═══ EXCEL BOQ TAB ═══ */}
+        <TabsContent value="excel-boq" className="mt-4 space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><Table2 className="h-5 w-5 text-primary" /> BOQ Excel Upload — एक्सेल बोक्यू अपलोड</CardTitle>
+              <CardDescription>Upload an Excel (.xls/.xlsx) file with BOQ items. Columns are auto-detected (SN, Description, Unit, Quantity, Rate, Amount).</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div className="border-2 border-dashed border-border rounded-xl p-8 text-center cursor-pointer hover:border-primary/50 hover:bg-muted/30 transition-colors" onClick={() => excelInputRef.current?.click()}>
+                <input ref={excelInputRef} type="file" accept=".xls,.xlsx" className="hidden" onChange={handleExcelUpload} />
+                <FileSpreadsheet className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                {excelFile ? (
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-foreground">{excelFile.name}</p>
+                    <p className="text-xs text-muted-foreground">{(excelFile.size / 1024).toFixed(1)} KB</p>
+                    {excelProcessing && <Loader2 className="h-5 w-5 animate-spin mx-auto mt-2 text-primary" />}
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Drop your Excel BOQ file here (.xls, .xlsx)</p>
+                    <p className="text-xs text-muted-foreground/60 mt-1">Auto-detects columns: SN, Description, Unit, Quantity, Rate, Amount</p>
+                  </div>
+                )}
+              </div>
+
+              {parsedItems.length > 0 && (
+                <div className="p-3 bg-accent/10 rounded-lg flex items-center justify-between">
+                  <p className="text-xs font-medium text-accent">✅ {parsedItems.length} BOQ items loaded — data flows to all tabs automatically</p>
+                  <Button size="sm" onClick={() => setActiveTab('boq')}>
+                    <CheckSquare className="h-3.5 w-3.5 mr-1" /> Edit BOQ
+                  </Button>
+                </div>
+              )}
+
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <h4 className="text-xs font-semibold mb-2">Expected Excel Format:</h4>
+                <div className="border rounded overflow-hidden">
+                  <table className="w-full text-xs">
+                    <thead className="bg-muted">
+                      <tr>
+                        <th className="px-2 py-1.5 text-left">SN</th>
+                        <th className="px-2 py-1.5 text-left">Description</th>
+                        <th className="px-2 py-1.5 text-left">Unit</th>
+                        <th className="px-2 py-1.5 text-right">Quantity</th>
+                        <th className="px-2 py-1.5 text-right">Rate</th>
+                        <th className="px-2 py-1.5 text-right">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className="border-t"><td className="px-2 py-1">1</td><td className="px-2 py-1">Earthwork Excavation</td><td className="px-2 py-1">cum</td><td className="px-2 py-1 text-right">5000</td><td className="px-2 py-1 text-right">450</td><td className="px-2 py-1 text-right">2,250,000</td></tr>
+                      <tr className="border-t"><td className="px-2 py-1">2</td><td className="px-2 py-1">Sub-base Course</td><td className="px-2 py-1">cum</td><td className="px-2 py-1 text-right">2500</td><td className="px-2 py-1 text-right">2800</td><td className="px-2 py-1 text-right">7,000,000</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-2">Column headers are auto-detected. Similar column names like "Item", "Particular", "Qty" also work.</p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         {/* ═══ UPLOAD TAB ═══ */}
         <TabsContent value="upload" className="mt-4 space-y-4">
