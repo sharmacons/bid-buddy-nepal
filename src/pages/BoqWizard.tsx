@@ -866,7 +866,7 @@ export default function BoqWizard() {
                 <ul className="space-y-1.5">
                   {bidDocResult.specialConditions.map((c, i) => (
                     <li key={i} className="text-xs flex items-start gap-2">
-                      <AlertCircle className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />
+                      <AlertCircle className="h-3.5 w-3.5 text-destructive/70 shrink-0 mt-0.5" />
                       <span>{c}</span>
                     </li>
                   ))}
