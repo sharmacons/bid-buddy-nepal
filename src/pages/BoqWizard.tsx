@@ -145,7 +145,7 @@ ${htmlContent}
 // ═══════════════════════════════════════════
 
 export default function BoqWizard() {
-  const [activeTab, setActiveTab] = useState('upload');
+  const [activeTab, setActiveTab] = useState('bid-doc');
   const [projectName, setProjectName] = useState('');
   const [projectStartDate, setProjectStartDate] = useState('');
   const [totalDurationWeeks, setTotalDurationWeeks] = useState(24);
