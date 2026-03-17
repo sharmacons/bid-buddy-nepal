@@ -156,6 +156,21 @@ export default function BoqWizard() {
   const [processingProgress, setProcessingProgress] = useState(0);
   const [processingStatus, setProcessingStatus] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const bidDocInputRef = useRef<HTMLInputElement>(null);
+  const excelInputRef = useRef<HTMLInputElement>(null);
+
+  // Bid Doc analysis state
+  const [bidDocAnalyzing, setBidDocAnalyzing] = useState(false);
+  const [bidDocProgress, setBidDocProgress] = useState(0);
+  const [bidDocStatus, setBidDocStatus] = useState('');
+  const [bidDocText, setBidDocText] = useState('');
+  const [bidDocFile, setBidDocFile] = useState<File | null>(null);
+  const [bidDocResult, setBidDocResult] = useState<FullAnalysisResult | null>(null);
+  const [extractedInfo, setExtractedInfo] = useState<{ label: string; value: string; key: string }[]>([]);
+
+  // Excel BOQ upload state
+  const [excelFile, setExcelFile] = useState<File | null>(null);
+  const [excelProcessing, setExcelProcessing] = useState(false);
 
   // Cost estimation state
   const [estimationTab, setEstimationTab] = useState('engineers');
