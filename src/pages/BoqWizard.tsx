@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 import {
   Upload, FileSpreadsheet, Cpu, CheckSquare, BarChart3,
   Loader2, Trash2, Calculator, Sparkles, AlertCircle, IndianRupee, Plus, Download, Printer,
-  FolderTree, Calendar, Shield,
+  FolderTree, Calendar, Shield, FileText, Table2,
 } from 'lucide-react';
 import { BOQItem, WorkScheduleItem } from '@/lib/types';
 import GanttChart from '@/components/GanttChart';
@@ -34,6 +34,8 @@ import {
 } from '@/lib/bid-qualification';
 import { wrapDocumentWithLetterhead } from '@/lib/letterhead';
 import { getCompanyProfile } from '@/lib/storage';
+import { fullBidAnalysis, FullAnalysisResult } from '@/lib/ai-assist';
+import * as XLSX from 'xlsx';
 
 // ═══════════════════════════════════════════
 // ─── TYPES ───
