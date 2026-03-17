@@ -721,7 +721,7 @@ export default function BoqWizard() {
     <div className="space-y-4 max-w-5xl mx-auto">
       <div>
         <h1 className="text-2xl font-bold font-heading text-foreground">BoQ Upload Wizard</h1>
-        <p className="text-sm text-muted-foreground mt-1">Upload → Edit → Estimate → Qualify → WBS → Gantt (all real-time)</p>
+        <p className="text-sm text-muted-foreground mt-1">Bid Doc → BOQ Excel → Edit → Estimate → Qualify → WBS → Gantt (all real-time)</p>
       </div>
 
       {/* Live summary bar */}
