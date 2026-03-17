@@ -754,7 +754,9 @@ export default function BoqWizard() {
       )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-8">
+          <TabsTrigger value="bid-doc" className="text-xs gap-1"><FileText className="h-3 w-3" /> Bid Doc</TabsTrigger>
+          <TabsTrigger value="excel-boq" className="text-xs gap-1"><Table2 className="h-3 w-3" /> BOQ Excel</TabsTrigger>
           <TabsTrigger value="upload" className="text-xs gap-1"><Upload className="h-3 w-3" /> Upload</TabsTrigger>
           <TabsTrigger value="boq" className="text-xs gap-1"><CheckSquare className="h-3 w-3" /> BOQ</TabsTrigger>
           <TabsTrigger value="estimation" className="text-xs gap-1"><Calculator className="h-3 w-3" /> Estimate</TabsTrigger>
@@ -762,6 +764,177 @@ export default function BoqWizard() {
           <TabsTrigger value="wbs" className="text-xs gap-1"><FolderTree className="h-3 w-3" /> WBS</TabsTrigger>
           <TabsTrigger value="gantt" className="text-xs gap-1"><BarChart3 className="h-3 w-3" /> Gantt</TabsTrigger>
         </TabsList>
+
+        {/* ═══ BID DOC TAB ═══ */}
+        <TabsContent value="bid-doc" className="mt-4 space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5 text-primary" /> बोलपत्र कागजात विश्लेषण — Bid Document Analysis</CardTitle>
+              <CardDescription>Upload a complete bid document (PDF/TXT) and AI will extract all major items, dates, amounts, BOQ, and project details.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div className="border-2 border-dashed border-border rounded-xl p-8 text-center cursor-pointer hover:border-primary/50 hover:bg-muted/30 transition-colors" onClick={() => bidDocInputRef.current?.click()}>
+                <input ref={bidDocInputRef} type="file" accept=".pdf,.txt,.doc,.docx" className="hidden" onChange={handleBidDocUpload} />
+                <FileText className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                {bidDocFile ? (
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-foreground">{bidDocFile.name}</p>
+                    <p className="text-xs text-muted-foreground">{(bidDocFile.size / 1024).toFixed(1)} KB</p>
+                    <Button variant="ghost" size="sm" className="mt-1" onClick={(e) => { e.stopPropagation(); setBidDocFile(null); if (bidDocInputRef.current) bidDocInputRef.current.value = ''; }}>
+                      <Trash2 className="h-3 w-3 mr-1" /> Remove
+                    </Button>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Drop your Bid Document here (PDF, TXT)</p>
+                    <p className="text-xs text-muted-foreground/60 mt-1">AI will extract project info, dates, amounts, and BOQ items</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label>Or paste bid document text directly</Label>
+                <textarea className="w-full h-36 rounded-lg border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:ring-2 focus:ring-ring resize-none"
+                  placeholder="Paste the full bid document text here... AI will extract all information including project name, dates, financial details, eligibility criteria, and BOQ items."
+                  value={bidDocText} onChange={e => setBidDocText(e.target.value)}
+                />
+              </div>
+
+              {(bidDocFile || bidDocText.trim()) && (
+                <Button className="w-full" onClick={analyzeBidDocument} disabled={bidDocAnalyzing}>
+                  {bidDocAnalyzing ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />{bidDocStatus}</> : <><Cpu className="h-4 w-4 mr-2" /> Analyze Full Bid Document with AI</>}
+                </Button>
+              )}
+              {bidDocAnalyzing && <Progress value={bidDocProgress} />}
+            </CardContent>
+          </Card>
+
+          {/* Extracted Info Display */}
+          {extractedInfo.length > 0 && (
+            <Card className="border-primary/30">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary" /> Extracted Information ({extractedInfo.length} items found)</CardTitle>
+                <CardDescription>Data auto-populated into wizard tabs. BOQ items loaded into BOQ tab.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="border rounded-lg overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted/60">
+                      <tr>
+                        <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground">Field</th>
+                        <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground">Extracted Value</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {extractedInfo.map((info, i) => (
+                        <tr key={i} className="border-t border-border hover:bg-muted/20">
+                          <td className="px-3 py-2 text-xs font-medium text-muted-foreground">{info.label}</td>
+                          <td className="px-3 py-2 text-xs font-medium text-foreground">{info.value}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {bidDocResult?.boqItems && bidDocResult.boqItems.length > 0 && (
+                  <div className="mt-3 p-3 bg-accent/10 rounded-lg">
+                    <p className="text-xs font-medium text-accent">✅ {bidDocResult.boqItems.length} BOQ items extracted and loaded into the BOQ tab</p>
+                  </div>
+                )}
+
+                <div className="flex gap-2 mt-4">
+                  <Button size="sm" onClick={() => setActiveTab('boq')} disabled={parsedItems.length === 0}>
+                    <CheckSquare className="h-3.5 w-3.5 mr-1" /> View BOQ Items ({parsedItems.length})
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setActiveTab('estimation')} disabled={parsedItems.length === 0}>
+                    <Calculator className="h-3.5 w-3.5 mr-1" /> View Estimation
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setActiveTab('gantt')} disabled={parsedItems.length === 0}>
+                    <BarChart3 className="h-3.5 w-3.5 mr-1" /> View Gantt
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {bidDocResult?.specialConditions && bidDocResult.specialConditions.length > 0 && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">विशेष शर्तहरू — Special Conditions</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-1.5">
+                  {bidDocResult.specialConditions.map((c, i) => (
+                    <li key={i} className="text-xs flex items-start gap-2">
+                      <AlertCircle className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />
+                      <span>{c}</span>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        {/* ═══ EXCEL BOQ TAB ═══ */}
+        <TabsContent value="excel-boq" className="mt-4 space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><Table2 className="h-5 w-5 text-primary" /> BOQ Excel Upload — एक्सेल बोक्यू अपलोड</CardTitle>
+              <CardDescription>Upload an Excel (.xls/.xlsx) file with BOQ items. Columns are auto-detected (SN, Description, Unit, Quantity, Rate, Amount).</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div className="border-2 border-dashed border-border rounded-xl p-8 text-center cursor-pointer hover:border-primary/50 hover:bg-muted/30 transition-colors" onClick={() => excelInputRef.current?.click()}>
+                <input ref={excelInputRef} type="file" accept=".xls,.xlsx" className="hidden" onChange={handleExcelUpload} />
+                <FileSpreadsheet className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                {excelFile ? (
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-foreground">{excelFile.name}</p>
+                    <p className="text-xs text-muted-foreground">{(excelFile.size / 1024).toFixed(1)} KB</p>
+                    {excelProcessing && <Loader2 className="h-5 w-5 animate-spin mx-auto mt-2 text-primary" />}
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Drop your Excel BOQ file here (.xls, .xlsx)</p>
+                    <p className="text-xs text-muted-foreground/60 mt-1">Auto-detects columns: SN, Description, Unit, Quantity, Rate, Amount</p>
+                  </div>
+                )}
+              </div>
+
+              {parsedItems.length > 0 && (
+                <div className="p-3 bg-accent/10 rounded-lg flex items-center justify-between">
+                  <p className="text-xs font-medium text-accent">✅ {parsedItems.length} BOQ items loaded — data flows to all tabs automatically</p>
+                  <Button size="sm" onClick={() => setActiveTab('boq')}>
+                    <CheckSquare className="h-3.5 w-3.5 mr-1" /> Edit BOQ
+                  </Button>
+                </div>
+              )}
+
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <h4 className="text-xs font-semibold mb-2">Expected Excel Format:</h4>
+                <div className="border rounded overflow-hidden">
+                  <table className="w-full text-xs">
+                    <thead className="bg-muted">
+                      <tr>
+                        <th className="px-2 py-1.5 text-left">SN</th>
+                        <th className="px-2 py-1.5 text-left">Description</th>
+                        <th className="px-2 py-1.5 text-left">Unit</th>
+                        <th className="px-2 py-1.5 text-right">Quantity</th>
+                        <th className="px-2 py-1.5 text-right">Rate</th>
+                        <th className="px-2 py-1.5 text-right">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className="border-t"><td className="px-2 py-1">1</td><td className="px-2 py-1">Earthwork Excavation</td><td className="px-2 py-1">cum</td><td className="px-2 py-1 text-right">5000</td><td className="px-2 py-1 text-right">450</td><td className="px-2 py-1 text-right">2,250,000</td></tr>
+                      <tr className="border-t"><td className="px-2 py-1">2</td><td className="px-2 py-1">Sub-base Course</td><td className="px-2 py-1">cum</td><td className="px-2 py-1 text-right">2500</td><td className="px-2 py-1 text-right">2800</td><td className="px-2 py-1 text-right">7,000,000</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-2">Column headers are auto-detected. Similar column names like "Item", "Particular", "Qty" also work.</p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         {/* ═══ UPLOAD TAB ═══ */}
         <TabsContent value="upload" className="mt-4 space-y-4">
