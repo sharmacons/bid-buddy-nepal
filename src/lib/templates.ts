@@ -916,3 +916,213 @@ ${addr}
 प्यान/भ्याट नं.: ${pan}
 सम्पर्क: ${phone}`;
 }
+
+// ==========================================
+// Mobilization Advance निबेदन
+// ==========================================
+export function mobilizationAdvanceNibedanTemplate(profile: CompanyProfile | null, bid?: Partial<BidData>): string {
+  const co = profile?.companyName || '[कम्पनीको नाम]';
+  const addr = profile?.address || '[ठेगाना]';
+  const pan = profile?.panVatNumber || '[प्यान/भ्याट नं.]';
+  const rep = profile?.authorizedRepresentative || '[अधिकृत प्रतिनिधि]';
+  const desig = profile?.designation || '[पदनाम]';
+  const phone = profile?.contactPhone || '[फोन नं.]';
+  const project = bid?.projectName || '[योजनाको नाम]';
+  const employer = bid?.employer || '[नियोजकको नाम]';
+  const employerAddr = bid?.employerAddress || '[नियोजकको ठेगाना]';
+  const contractId = bid?.contractId || '[ठेक्का नं.]';
+
+  return `मिति: ${nepaliDateStr()}
+
+श्रीमान् कार्यालय प्रमुख ज्यू,
+${employer},
+${employerAddr}
+
+विषय: Mobilization Advance (परिचालन अग्रिम रकम) सम्बन्धमा ।
+
+सन्दर्भ: ठेक्का नं. ${contractId} — ${project}
+
+महोदय,
+
+उपरोक्त सम्बन्धमा यस ${co} ले ठेक्का नं. ${contractId} अन्तर्गत ${project} योजनाको निर्माण कार्य सुचारु रूपमा सञ्चालन गर्नको लागि ठेक्का सम्झौता बमोजिम Mobilization Advance (परिचालन अग्रिम रकम) उपलब्ध गराई दिनु हुन अनुरोध गर्दछु ।
+
+परिचालन अग्रिम विवरण:
+┌──────────────────────────────────────────────────────┐
+│ ठेक्का रकम (Contract Amount):  NPR ________________ │
+│ अग्रिम प्रतिशत:                 १०%               │
+│ अग्रिम रकम (Advance Amount):   NPR ________________ │
+│ Bank Guarantee No.:            ________________     │
+│ Bank Guarantee रकम:            NPR ________________ │
+└──────────────────────────────────────────────────────┘
+
+संलग्न कागजातहरू:
+१. ठेक्का सम्झौता पत्र (Contract Agreement) — प्रतिलिपि
+२. Bank Guarantee (अग्रिम रकम बराबरको)
+३. कार्य सञ्चालन योजना (Work Plan / Mobilization Schedule)
+४. बीमा प्रमाणपत्र (Insurance Certificate)
+५. कम्पनी दर्ता / नवीकरण प्रमाणपत्र
+
+अतः सार्वजनिक खरिद ऐन, २०६३ तथा सार्वजनिक खरिद नियमावली, २०६४ को प्रावधान अनुसार उपरोक्त Mobilization Advance यथाशीघ्र उपलब्ध गराई दिनु हुन विनम्र अनुरोध गर्दछु ।
+
+धन्यवाद ।
+
+भवदीय,
+
+
+…………………………
+${rep}
+${desig}
+${co}
+${addr}
+प्यान/भ्याट नं.: ${pan}
+सम्पर्क: ${phone}`;
+}
+
+// ==========================================
+// Time Extension निबेदन (समय थप)
+// ==========================================
+export function timeExtensionNibedanTemplate(profile: CompanyProfile | null, bid?: Partial<BidData>): string {
+  const co = profile?.companyName || '[कम्पनीको नाम]';
+  const addr = profile?.address || '[ठेगाना]';
+  const pan = profile?.panVatNumber || '[प्यान/भ्याट नं.]';
+  const rep = profile?.authorizedRepresentative || '[अधिकृत प्रतिनिधि]';
+  const desig = profile?.designation || '[पदनाम]';
+  const phone = profile?.contactPhone || '[फोन नं.]';
+  const project = bid?.projectName || '[योजनाको नाम]';
+  const employer = bid?.employer || '[नियोजकको नाम]';
+  const employerAddr = bid?.employerAddress || '[नियोजकको ठेगाना]';
+  const contractId = bid?.contractId || '[ठेक्का नं.]';
+
+  return `मिति: ${nepaliDateStr()}
+
+श्रीमान् कार्यालय प्रमुख ज्यू,
+${employer},
+${employerAddr}
+
+विषय: ठेक्का अवधि थप (Time Extension) सम्बन्धमा ।
+
+सन्दर्भ: ठेक्का नं. ${contractId} — ${project}
+
+महोदय,
+
+उपरोक्त सम्बन्धमा यस ${co} ले ठेक्का नं. ${contractId} अन्तर्गत ${project} योजनाको निर्माण कार्य गरिरहेको व्यहोरा विदितै छ ।
+
+निम्न कारणहरूले गर्दा निर्माण कार्य समयमा सम्पन्न हुन नसकेकोले ठेक्का अवधि थप गरी दिनु हुन अनुरोध गर्दछु:
+
+विलम्बका कारणहरू (Reasons for Delay):
+१. अत्यधिक वर्षा / बाढी / प्राकृतिक प्रकोप (Force Majeure)
+२. जग्गा अधिग्रहण / Right of Way समस्या
+३. Design परिवर्तन / Variation Order
+४. सामग्री आपूर्तिमा विलम्ब (Supply Chain Delay)
+५. नियोजक तर्फबाट निर्देशन / Drawing प्राप्त नभएको
+
+समय थप विवरण:
+┌──────────────────────────────────────────────────────┐
+│ मूल ठेक्का अवधि:              ________ दिन         │
+│ ठेक्का सम्झौता मिति:           ________________     │
+│ मूल सम्पन्न मिति:              ________________     │
+│ थप माग अवधि:                  ________ दिन         │
+│ प्रस्तावित नयाँ सम्पन्न मिति:   ________________     │
+│ हालसम्मको कार्य प्रगति:         ________%            │
+└──────────────────────────────────────────────────────┘
+
+संलग्न कागजातहरू:
+१. विस्तृत विलम्ब विश्लेषण (Delay Analysis Report)
+२. Site Record / Log Book प्रतिलिपि
+३. मौसम विवरण (Weather Record) — यदि लागू भएमा
+४. Correspondence / पत्राचार प्रतिलिपिहरू
+५. संशोधित कार्य तालिका (Revised Work Schedule)
+
+अतः सार्वजनिक खरिद ऐन, २०६३ को दफा ५५ तथा सार्वजनिक खरिद नियमावली, २०६४ को नियम ११९ बमोजिम ठेक्का अवधि थप गरी दिनु हुन विनम्र अनुरोध गर्दछु ।
+
+धन्यवाद ।
+
+भवदीय,
+
+
+…………………………
+${rep}
+${desig}
+${co}
+${addr}
+प्यान/भ्याट नं.: ${pan}
+सम्पर्क: ${phone}`;
+}
+
+// ==========================================
+// Variation Order निबेदन (भेरिएशन अर्डर)
+// ==========================================
+export function variationOrderNibedanTemplate(profile: CompanyProfile | null, bid?: Partial<BidData>): string {
+  const co = profile?.companyName || '[कम्पनीको नाम]';
+  const addr = profile?.address || '[ठेगाना]';
+  const pan = profile?.panVatNumber || '[प्यान/भ्याट नं.]';
+  const rep = profile?.authorizedRepresentative || '[अधिकृत प्रतिनिधि]';
+  const desig = profile?.designation || '[पदनाम]';
+  const phone = profile?.contactPhone || '[फोन नं.]';
+  const project = bid?.projectName || '[योजनाको नाम]';
+  const employer = bid?.employer || '[नियोजकको नाम]';
+  const employerAddr = bid?.employerAddress || '[नियोजकको ठेगाना]';
+  const contractId = bid?.contractId || '[ठेक्का नं.]';
+
+  return `मिति: ${nepaliDateStr()}
+
+श्रीमान् कार्यालय प्रमुख ज्यू,
+${employer},
+${employerAddr}
+
+विषय: Variation Order (भेरिएशन अर्डर) स्वीकृति सम्बन्धमा ।
+
+सन्दर्भ: ठेक्का नं. ${contractId} — ${project}
+
+महोदय,
+
+उपरोक्त सम्बन्धमा यस ${co} ले ठेक्का नं. ${contractId} अन्तर्गत ${project} योजनाको निर्माण कार्य गरिरहेको व्यहोरा विदितै छ ।
+
+निर्माण कार्यको क्रममा तल उल्लेखित कार्यहरूमा परिवर्तन (Variation) आवश्यक भएकोले सोको स्वीकृति प्रदान गरी दिनु हुन अनुरोध गर्दछु ।
+
+Variation विवरण:
+| क्र.सं. | कार्य विवरण (Description)    | मूल परिमाण | परिवर्तित परिमाण | एकाइ   | दर (Rate) | रकम (Amount) |
+|---------|------------------------------|-----------|-----------------|--------|----------|-------------|
+| १       |                              |           |                 |        |          |             |
+| २       |                              |           |                 |        |          |             |
+| ३       |                              |           |                 |        |          |             |
+| ४       |                              |           |                 |        |          |             |
+| ५       |                              |           |                 |        |          |             |
+
+┌──────────────────────────────────────────────────────┐
+│ मूल ठेक्का रकम:                NPR ________________ │
+│ Variation रकम:                 NPR ________________ │
+│ Variation प्रतिशत:              ________%            │
+│ संशोधित ठेक्का रकम:            NPR ________________ │
+└──────────────────────────────────────────────────────┘
+
+Variation को कारण:
+१. Site Condition अपेक्षा भन्दा फरक भएको
+२. Design परिवर्तन / Engineer को निर्देशन
+३. नयाँ कार्य थप भएको (Additional Work)
+४. परिमाणमा वृद्धि / कमी (Quantity Variation)
+
+संलग्न कागजातहरू:
+१. Variation Order विस्तृत विवरण (Detailed Variation Statement)
+२. तुलनात्मक दर विश्लेषण (Comparative Rate Analysis)
+३. Site Instruction / Engineer को पत्र
+४. Drawing / Sketch (संशोधित)
+५. फोटोग्राफ (Site Photographs)
+
+अतः सार्वजनिक खरिद ऐन, २०६३ को दफा ५४ तथा सार्वजनिक खरिद नियमावली, २०६४ को नियम ११७ बमोजिम उपरोक्त Variation Order स्वीकृत गरी दिनु हुन विनम्र अनुरोध गर्दछु ।
+
+नोट: सार्वजनिक खरिद नियमावली अनुसार Variation को सीमा मूल ठेक्का रकमको अधिकतम १५% सम्म हुन सक्नेछ ।
+
+धन्यवाद ।
+
+भवदीय,
+
+
+…………………………
+${rep}
+${desig}
+${co}
+${addr}
+प्यान/भ्याट नं.: ${pan}
+सम्पर्क: ${phone}`;
+}

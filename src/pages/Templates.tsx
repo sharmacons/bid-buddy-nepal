@@ -14,6 +14,7 @@ import {
   jvAgreementTemplate, jvPowerOfAttorneyTemplate, jvInfoELI2Template,
   constructionScheduleTemplate,
   runningBillNibedanTemplate, labTestNibedanTemplate, dharautiRakamFirtaNibedanTemplate,
+  mobilizationAdvanceNibedanTemplate, timeExtensionNibedanTemplate, variationOrderNibedanTemplate,
 } from '@/lib/templates';
 import { detectActivitiesFromBOQ, generateWorkSchedule } from '@/lib/work-schedule';
 import { generatePrintPackageHTML, wrapDocumentWithLetterhead } from '@/lib/letterhead';
@@ -116,6 +117,9 @@ export default function Templates() {
       { title: 'Running Bill निबेदन (चालु बिल भुक्तानी)', content: runningBillNibedanTemplate(profile, bid || undefined) },
       { title: 'Lab Test निबेदन (प्रयोगशाला परीक्षण)', content: labTestNibedanTemplate(profile, bid || undefined) },
       { title: 'धरौटी रकम फिर्ता निबेदन (Security Deposit Refund)', content: dharautiRakamFirtaNibedanTemplate(profile, bid || undefined) },
+      { title: 'Mobilization Advance निबेदन (परिचालन अग्रिम)', content: mobilizationAdvanceNibedanTemplate(profile, bid || undefined) },
+      { title: 'Time Extension निबेदन (समय थप)', content: timeExtensionNibedanTemplate(profile, bid || undefined) },
+      { title: 'Variation Order निबेदन (भेरिएशन अर्डर)', content: variationOrderNibedanTemplate(profile, bid || undefined) },
     ];
   }, [profile, selectedBid]);
 
