@@ -16,6 +16,7 @@ import {
   runningBillNibedanTemplate, labTestNibedanTemplate, dharautiRakamFirtaNibedanTemplate,
   mobilizationAdvanceNibedanTemplate, timeExtensionNibedanTemplate, variationOrderNibedanTemplate,
   eotClaimNibedanTemplate, interimPaymentNibedanTemplate, materialApprovalNibedanTemplate,
+  finalBillNibedanTemplate, dlpCompletionNibedanTemplate, insuranceClaimNibedanTemplate,
 } from '@/lib/templates';
 import { detectActivitiesFromBOQ, generateWorkSchedule } from '@/lib/work-schedule';
 import { generatePrintPackageHTML, wrapDocumentWithLetterhead } from '@/lib/letterhead';
@@ -124,6 +125,9 @@ export default function Templates() {
       { title: 'EOT Claim निबेदन (समय थप दाबी)', content: eotClaimNibedanTemplate(profile, bid || undefined) },
       { title: 'IPC निबेदन (Interim Payment Certificate)', content: interimPaymentNibedanTemplate(profile, bid || undefined) },
       { title: 'Material Approval निबेदन (सामग्री स्वीकृति)', content: materialApprovalNibedanTemplate(profile, bid || undefined) },
+      { title: 'Final Bill निबेदन (अन्तिम बिल)', content: finalBillNibedanTemplate(profile, bid || undefined) },
+      { title: 'DLP Completion निबेदन (त्रुटि दायित्व अवधि)', content: dlpCompletionNibedanTemplate(profile, bid || undefined) },
+      { title: 'Insurance Claim निबेदन (बीमा दाबी)', content: insuranceClaimNibedanTemplate(profile, bid || undefined) },
     ];
   }, [profile, selectedBid]);
 
