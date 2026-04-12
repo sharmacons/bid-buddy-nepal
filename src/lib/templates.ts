@@ -1126,3 +1126,279 @@ ${addr}
 प्यान/भ्याट नं.: ${pan}
 सम्पर्क: ${phone}`;
 }
+
+// ==========================================
+// EOT Claim निबेदन (Extension of Time दाबी)
+// ==========================================
+export function eotClaimNibedanTemplate(profile: CompanyProfile | null, bid?: Partial<BidData>): string {
+  const co = profile?.companyName || '[कम्पनीको नाम]';
+  const addr = profile?.address || '[ठेगाना]';
+  const rep = profile?.authorizedRepresentative || '[अधिकृत प्रतिनिधि]';
+  const desig = shortDesignation(profile?.designation || '');
+  const pan = profile?.panVatNumber || '[प्यान/भ्याट]';
+  const phone = profile?.contactPhone || '[फोन]';
+  const proj = bid?.projectName || '[आयोजनाको नाम]';
+  const employer = bid?.employer || '[नियोजक]';
+  const ifb = bid?.ifbNumber || '[IFB नं.]';
+  const contract = bid?.contractId || '[ठेक्का नं.]';
+
+  return `श्रीमान् ${employer}
+${bid?.employerAddress || '[नियोजकको ठेगाना]'}
+
+विषय: Extension of Time (EOT) Claim सम्बन्धमा ।
+
+सन्दर्भ:
+  ठेक्का नं.: ${contract}
+  IFB नं.: ${ifb}
+  आयोजना: ${proj}
+  मूल ठेक्का अवधि: ${bid?.totalDurationWeeks ? Math.ceil((bid.totalDurationWeeks) / 4) + ' महिना (' + bid.totalDurationWeeks + ' हप्ता)' : '[___] महिना'}
+  ठेक्का सम्झौता मिति: [___________]
+  मूल सम्पन्न मिति: [___________]
+
+महोदय,
+
+उपरोक्त सन्दर्भित ठेक्कामा ठेकेदार ${co} ले कार्य सम्पादन गरिरहेको छ । तर निम्नलिखित कारणहरूले गर्दा ठेक्का अवधि भित्र कार्य सम्पन्न गर्न सम्भव नभएको हुँदा Extension of Time (EOT) को दाबी प्रस्तुत गर्दछु ।
+
+═══════════════════════════════════════════════════
+          विलम्बको कारण र विश्लेषण (Delay Analysis)
+═══════════════════════════════════════════════════
+
+क्र.सं. │ विलम्बको कारण                    │ अवधि (दिन) │ श्रेणी
+────────┼───────────────────────────────────┼─────────────┼──────────────
+  १    │ अत्यधिक वर्षात् / बाढी            │  [___]      │ Force Majeure
+  २    │ Site Handover विलम्ब               │  [___]      │ Employer Risk
+  ३    │ Drawing / Design स्वीकृति ढिलाई    │  [___]      │ Employer Risk
+  ४    │ Variation Order कार्य              │  [___]      │ Employer Risk
+  ५    │ Utility Shifting ढिलाई            │  [___]      │ Third Party
+  ६    │ Right of Way समस्या               │  [___]      │ Employer Risk
+  ७    │ अन्य [___________________]        │  [___]      │ [_________]
+────────┴───────────────────────────────────┴─────────────┴──────────────
+         कुल विलम्ब (Gross Delay):            [___] दिन
+         Concurrent Delay कटौती:              [___] दिन
+         Net Excusable Delay:                 [___] दिन
+
+═══════════════════════════════════════════════════
+             EOT दाबी विवरण (Claim Summary)
+═══════════════════════════════════════════════════
+
+विवरण                              │ मिति / अवधि
+────────────────────────────────────┼─────────────────
+मूल ठेक्का अवधि                    │ [___] महिना
+मूल सम्पन्न मिति                    │ [___________]
+अनुरोधित EOT अवधि                  │ [___] दिन
+संशोधित सम्पन्न मिति                │ [___________]
+────────────────────────────────────┴─────────────────
+
+FIDIC / PPA Reference:
+  - FIDIC Clause 8.4: Extension of Time for Completion
+  - सार्वजनिक खरिद ऐन, २०६३ दफा ५५
+  - सार्वजनिक खरिद नियमावली, २०६४ नियम ११९
+
+संलग्न कागजातहरू:
+  १. विलम्ब विश्लेषण प्रतिवेदन (Delay Analysis Report)
+  २. Critical Path Method (CPM) अद्यावधिक कार्यक्रम
+  ३. मौसम विभागको प्रमाणपत्र (यदि लागू)
+  ४. Site Diary / Log Book Extracts
+  ५. Engineer का पत्रहरू / Site Instructions
+  ६. Progress Photographs
+  ७. Updated Work Programme (Bar Chart)
+
+अतः सार्वजनिक खरिद नियमावली बमोजिम उपरोक्त EOT दाबी स्वीकृत गरी ठेक्का अवधि थप गरिदिनु हुन विनम्र अनुरोध गर्दछु ।
+
+नोट: यो दाबीमा Prolongation Cost / Idling Cost समावेश गरिएको छैन । सो सम्बन्धमा छुट्टै दाबी प्रस्तुत गरिनेछ ।
+
+धन्यवाद ।
+
+भवदीय,
+
+
+…………………………
+${rep}
+${desig}
+${co}
+${addr}
+प्यान/भ्याट नं.: ${pan}
+सम्पर्क: ${phone}`;
+}
+
+// ==========================================
+// Interim Payment Certificate (IPC) निबेदन
+// ==========================================
+export function interimPaymentNibedanTemplate(profile: CompanyProfile | null, bid?: Partial<BidData>): string {
+  const co = profile?.companyName || '[कम्पनीको नाम]';
+  const addr = profile?.address || '[ठेगाना]';
+  const rep = profile?.authorizedRepresentative || '[अधिकृत प्रतिनिधि]';
+  const desig = shortDesignation(profile?.designation || '');
+  const pan = profile?.panVatNumber || '[प्यान/भ्याट]';
+  const phone = profile?.contactPhone || '[फोन]';
+  const proj = bid?.projectName || '[आयोजनाको नाम]';
+  const employer = bid?.employer || '[नियोजक]';
+  const ifb = bid?.ifbNumber || '[IFB नं.]';
+  const contract = bid?.contractId || '[ठेक्का नं.]';
+
+  return `श्रीमान् ${employer}
+${bid?.employerAddress || '[नियोजकको ठेगाना]'}
+
+विषय: Interim Payment Certificate (IPC) जारी गरिदिन निवेदन ।
+
+सन्दर्भ:
+  ठेक्का नं.: ${contract}
+  IFB नं.: ${ifb}
+  आयोजना: ${proj}
+  IPC नं.: [___] (${formatDate()} सम्मको)
+  बिल अवधि: [मिति] देखि [मिति] सम्म
+
+महोदय,
+
+उपरोक्त सन्दर्भित ठेक्कामा ठेकेदार ${co} ले सम्पादन गरेको कार्यको Interim Payment Certificate (IPC) जारी गरिदिनु हुन यो निवेदन पेश गर्दछु ।
+
+═══════════════════════════════════════════════════
+         कार्य सम्पादन सारांश (Work Summary)
+═══════════════════════════════════════════════════
+
+क्र.सं. │ विवरण                        │ रकम (रु.)
+────────┼───────────────────────────────┼──────────────
+  १    │ मूल ठेक्का रकम                │ [___________]
+  २    │ Variation (यदि भए)            │ [___________]
+  ३    │ संशोधित ठेक्का रकम            │ [___________]
+────────┼───────────────────────────────┼──────────────
+  ४    │ यस अवधि सम्म कार्य सम्पादन   │ [___________]
+  ५    │ अघिल्लो IPC सम्म भुक्तानी     │ [___________]
+  ६    │ यस अवधिको कार्य (4 - 5)      │ [___________]
+────────┼───────────────────────────────┼──────────────
+  ७    │ कट्टी (Deductions):           │
+       │   - Advance Recovery          │ [___________]
+       │   - Retention Money (५%)      │ [___________]
+       │   - अन्य कट्टी               │ [___________]
+────────┼───────────────────────────────┼──────────────
+  ८    │ कुल कट्टी                     │ [___________]
+  ९    │ भुक्तानीयोग्य रकम (6 - 8)    │ [___________]
+────────┴───────────────────────────────┴──────────────
+
+═══════════════════════════════════════════════════
+        कार्य प्रगति विवरण (Progress Summary)
+═══════════════════════════════════════════════════
+
+विवरण                              │ प्रतिशत / अवधि
+────────────────────────────────────┼─────────────────
+भौतिक प्रगति (Physical Progress)    │ [___] %
+आर्थिक प्रगति (Financial Progress)  │ [___] %
+समय प्रगति (Time Progress)          │ [___] %
+────────────────────────────────────┴─────────────────
+
+संलग्न कागजातहरू:
+  १. Measurement Book (M-Book) प्रतिलिपि
+  २. Joint Measurement Sheet (Engineer सँग)
+  ३. कार्य सम्पादन विस्तृत विवरण (BOQ wise)
+  ४. Quality Test Reports
+  ५. Progress Photographs (Before & After)
+  ६. Updated Work Programme
+  ७. Invoice / Bill
+
+अतः सार्वजनिक खरिद ऐन, २०६३ को दफा ४८ तथा ठेक्का सम्झौताको शर्त बमोजिम उपरोक्त IPC जारी गरी भुक्तानी प्रक्रिया अगाडि बढाइदिनु हुन विनम्र अनुरोध गर्दछु ।
+
+नोट: Engineer ले कार्य प्रमाणित गरिसकेपछि नियोजकले ५६ दिन भित्र भुक्तानी गर्नुपर्नेछ (FIDIC Clause 14.7) ।
+
+धन्यवाद ।
+
+भवदीय,
+
+
+…………………………
+${rep}
+${desig}
+${co}
+${addr}
+प्यान/भ्याट नं.: ${pan}
+सम्पर्क: ${phone}`;
+}
+
+// ==========================================
+// Material Approval निबेदन (सामग्री स्वीकृति)
+// ==========================================
+export function materialApprovalNibedanTemplate(profile: CompanyProfile | null, bid?: Partial<BidData>): string {
+  const co = profile?.companyName || '[कम्पनीको नाम]';
+  const addr = profile?.address || '[ठेगाना]';
+  const rep = profile?.authorizedRepresentative || '[अधिकृत प्रतिनिधि]';
+  const desig = shortDesignation(profile?.designation || '');
+  const pan = profile?.panVatNumber || '[प्यान/भ्याट]';
+  const phone = profile?.contactPhone || '[फोन]';
+  const proj = bid?.projectName || '[आयोजनाको नाम]';
+  const employer = bid?.employer || '[नियोजक]';
+  const ifb = bid?.ifbNumber || '[IFB नं.]';
+  const contract = bid?.contractId || '[ठेक्का नं.]';
+
+  return `श्रीमान् इन्जिनियर / परामर्शदाता
+${employer}
+${bid?.employerAddress || '[नियोजकको ठेगाना]'}
+
+विषय: निर्माण सामग्री स्वीकृति (Material Approval) सम्बन्धमा ।
+
+सन्दर्भ:
+  ठेक्का नं.: ${contract}
+  IFB नं.: ${ifb}
+  आयोजना: ${proj}
+  Material Submission नं.: [___]
+
+महोदय,
+
+उपरोक्त सन्दर्भित ठेक्कामा प्रयोग गरिने निर्माण सामग्रीहरूको स्वीकृतिको लागि यो निवेदन पेश गर्दछु ।
+
+═══════════════════════════════════════════════════
+         सामग्री विवरण (Material Details)
+═══════════════════════════════════════════════════
+
+क्र.सं. │ सामग्रीको नाम     │ Specification  │ परिमाण   │ Brand/Source
+────────┼────────────────────┼────────────────┼──────────┼─────────────
+  १    │ [_____________]    │ [__________]   │ [______] │ [_________]
+  २    │ [_____________]    │ [__________]   │ [______] │ [_________]
+  ३    │ [_____________]    │ [__________]   │ [______] │ [_________]
+  ४    │ [_____________]    │ [__________]   │ [______] │ [_________]
+  ५    │ [_____________]    │ [__________]   │ [______] │ [_________]
+────────┴────────────────────┴────────────────┴──────────┴─────────────
+
+═══════════════════════════════════════════════════
+         प्रयोग स्थान र उद्देश्य (Usage Details)
+═══════════════════════════════════════════════════
+
+BOQ Item नं.       │ कार्य विवरण              │ प्रयोग स्थान
+────────────────────┼──────────────────────────┼──────────────
+[_____________]     │ [____________________]   │ Ch. [___] - [___]
+[_____________]     │ [____________________]   │ Ch. [___] - [___]
+────────────────────┴──────────────────────────┴──────────────
+
+गुणस्तर मानक (Quality Standards):
+  - Nepal Standard (NS): [___________]
+  - Indian Standard (IS): [___________]
+  - ASTM / BS Standard: [___________]
+  - Contract Specification Reference: Section [___]
+
+संलग्न कागजातहरू:
+  १. सामग्रीको नमूना (Physical Sample) — यदि लागू
+  २. निर्माता को गुणस्तर प्रमाणपत्र (Manufacturer Certificate)
+  ३. Test Report / Mill Certificate
+  ४. Material Safety Data Sheet (MSDS) — यदि लागू
+  ५. Technical Brochure / Catalogue
+  ६. Compliance Statement (Specification अनुरूप)
+  ७. Source / Quarry Approval (यदि लागू)
+
+अतः ठेक्का सम्झौताको शर्त तथा Technical Specification अनुसार उपरोक्त सामग्रीहरू स्वीकृत गरिदिनु हुन विनम्र अनुरोध गर्दछु ।
+
+नोट: 
+  - Engineer ले १४ दिन भित्र स्वीकृति वा अस्वीकृति दिनुपर्नेछ (FIDIC Clause 7.2)
+  - स्वीकृत सामग्री मात्र Site मा प्रयोग गरिनेछ
+  - सामग्री परिवर्तन भएमा पुनः स्वीकृति लिइनेछ
+
+धन्यवाद ।
+
+भवदीय,
+
+
+…………………………
+${rep}
+${desig}
+${co}
+${addr}
+प्यान/भ्याट नं.: ${pan}
+सम्पर्क: ${phone}`;
+}
