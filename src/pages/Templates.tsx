@@ -15,6 +15,7 @@ import {
   constructionScheduleTemplate,
   runningBillNibedanTemplate, labTestNibedanTemplate, dharautiRakamFirtaNibedanTemplate,
   mobilizationAdvanceNibedanTemplate, timeExtensionNibedanTemplate, variationOrderNibedanTemplate,
+  eotClaimNibedanTemplate, interimPaymentNibedanTemplate, materialApprovalNibedanTemplate,
 } from '@/lib/templates';
 import { detectActivitiesFromBOQ, generateWorkSchedule } from '@/lib/work-schedule';
 import { generatePrintPackageHTML, wrapDocumentWithLetterhead } from '@/lib/letterhead';
@@ -120,6 +121,9 @@ export default function Templates() {
       { title: 'Mobilization Advance निबेदन (परिचालन अग्रिम)', content: mobilizationAdvanceNibedanTemplate(profile, bid || undefined) },
       { title: 'Time Extension निबेदन (समय थप)', content: timeExtensionNibedanTemplate(profile, bid || undefined) },
       { title: 'Variation Order निबेदन (भेरिएशन अर्डर)', content: variationOrderNibedanTemplate(profile, bid || undefined) },
+      { title: 'EOT Claim निबेदन (समय थप दाबी)', content: eotClaimNibedanTemplate(profile, bid || undefined) },
+      { title: 'IPC निबेदन (Interim Payment Certificate)', content: interimPaymentNibedanTemplate(profile, bid || undefined) },
+      { title: 'Material Approval निबेदन (सामग्री स्वीकृति)', content: materialApprovalNibedanTemplate(profile, bid || undefined) },
     ];
   }, [profile, selectedBid]);
 
