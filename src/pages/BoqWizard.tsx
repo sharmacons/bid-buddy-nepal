@@ -828,6 +828,21 @@ export default function BoqWizard() {
         </div>
       </div>
 
+      {/* Extracted Project Info Bar */}
+      {(employer || ifbNumber || submissionDeadline || bidSecurityAmount) && (
+        <Card className="border-accent/30 bg-accent/5">
+          <CardContent className="p-3 flex flex-wrap gap-x-4 gap-y-1 items-center text-xs">
+            {employer && <span>Employer: <strong>{employer}</strong></span>}
+            {ifbNumber && <><Separator orientation="vertical" className="h-4" /><span>IFB: <strong>{ifbNumber}</strong></span></>}
+            {contractId && <><Separator orientation="vertical" className="h-4" /><span>Contract: <strong>{contractId}</strong></span></>}
+            {submissionDeadline && <><Separator orientation="vertical" className="h-4" /><span>Deadline: <strong>{submissionDeadline}</strong></span></>}
+            {bidSecurityAmount && <><Separator orientation="vertical" className="h-4" /><span>Bid Security: <strong>{bidSecurityAmount}</strong></span></>}
+            {completionPeriod && <><Separator orientation="vertical" className="h-4" /><span>Duration: <strong>{completionPeriod} days</strong></span></>}
+            {performanceSecurityPercent && <><Separator orientation="vertical" className="h-4" /><span>Perf. Security: <strong>{performanceSecurityPercent}%</strong></span></>}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Live summary bar */}
       {parsedItems.length > 0 && (
         <Card className="border-primary/30 bg-primary/5">
@@ -856,7 +871,6 @@ export default function BoqWizard() {
           </CardContent>
         </Card>
       )}
-
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="bid-doc" className="text-xs gap-1"><FileText className="h-3 w-3" /> Bid Doc</TabsTrigger>
