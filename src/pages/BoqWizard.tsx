@@ -809,10 +809,24 @@ export default function BoqWizard() {
   // ═══════════════════════════════════════════
 
   return (
-    <div className="space-y-4 max-w-5xl mx-auto">
-      <div>
-        <h1 className="text-2xl font-bold font-heading text-foreground">BoQ Upload Wizard</h1>
-        <p className="text-sm text-muted-foreground mt-1">Bid Doc → BOQ Excel → Edit → Estimate → Qualify → WBS → Gantt (all real-time)</p>
+    <div className="space-y-4 max-w-5xl mx-auto pb-20">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold font-heading text-foreground">BoQ Upload Wizard</h1>
+          <p className="text-sm text-muted-foreground mt-1">Bid Doc → BOQ Excel → Edit → Estimate → Qualify → WBS → Gantt (all real-time)</p>
+        </div>
+        <div className="flex gap-2">
+          <Button onClick={handleSaveAllData} disabled={isSaving || !projectName.trim()} className="gap-1.5">
+            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            {savedBidId ? 'Update Saved Data' : 'Save All Data'}
+          </Button>
+          {savedBidId && (
+            <Button variant="outline" size="sm" onClick={() => navigate(`/bid/${savedBidId}`)}>
+              View Bid →
+            </Button>
+          )}
+        </div>
+      </div>
       </div>
 
       {/* Live summary bar */}
