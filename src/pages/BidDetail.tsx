@@ -411,6 +411,9 @@ export default function BidDetail() {
           </div>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => navigate(`/boq-wizard?bid=${bid!.id}`)} className="gap-1">
+            <Calculator className="h-4 w-4" /> Open in Wizard
+          </Button>
           <Button variant="outline" size="sm" onClick={handlePrint} className="gap-1">
             <Printer className="h-4 w-4" /> Print All
           </Button>
