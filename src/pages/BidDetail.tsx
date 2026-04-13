@@ -26,7 +26,7 @@ import { exportWorkScheduleExcel } from '@/lib/excel-export';
 import { suggestContent, generateAISchedule } from '@/lib/ai-assist';
 import { detectActivitiesFromBOQ, generateWorkSchedule } from '@/lib/work-schedule';
 import { toast } from 'sonner';
-import { Trash2, Save, FileText, CheckCircle2, Printer, Plus, Users, Calendar, Upload, Sparkles, Loader2, Download, Link2, Cpu } from 'lucide-react';
+import { Trash2, Save, FileText, CheckCircle2, Printer, Plus, Users, Calendar, Upload, Sparkles, Loader2, Download, Link2, Cpu, Calculator } from 'lucide-react';
 import GanttChart from '@/components/GanttChart';
 
 export default function BidDetail() {
