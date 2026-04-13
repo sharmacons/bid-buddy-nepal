@@ -1664,6 +1664,30 @@ export default function BoqWizard() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Floating Save Bar */}
+      {(parsedItems.length > 0 || employer) && (
+        <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur border-t border-border p-3 z-50">
+          <div className="max-w-5xl mx-auto flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              {projectName && <span className="font-medium text-foreground">{projectName}</span>}
+              {parsedItems.length > 0 && <><Separator orientation="vertical" className="h-4" /><span>{selectedItems.length} BOQ items · {formatNPR(grandTotal)}</span></>}
+              {savedBidId && <Badge variant="secondary" className="text-[10px]">Saved ✓</Badge>}
+            </div>
+            <div className="flex gap-2">
+              {savedBidId && (
+                <Button variant="outline" size="sm" onClick={() => navigate(`/bid/${savedBidId}`)}>
+                  Open in Bid Detail →
+                </Button>
+              )}
+              <Button size="sm" onClick={handleSaveAllData} disabled={isSaving || !projectName.trim()} className="gap-1.5">
+                {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                {savedBidId ? 'Update' : 'Save All'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
