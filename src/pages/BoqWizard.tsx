@@ -215,6 +215,64 @@ export default function BoqWizard() {
   const [workNature, setWorkNature] = useState<string>('road');
   const [scheduleOverrides, setScheduleOverrides] = useState<Record<string, { duration?: number; overlapPercent?: number }>>({});
 
+  // ─── LOAD EXISTING BID ───
+  const loadBidData = useCallback((bid: BidData) => {
+    setSavedBidId(bid.id);
+    setProjectName(bid.projectName || '');
+    setEmployer(bid.employer || '');
+    setEmployerAddress(bid.employerAddress || '');
+    setBidType(bid.bidType || 'ncb-single');
+    setSubmissionDeadline(bid.submissionDeadline || '');
+    setBidValidity(bid.bidValidity || '');
+    setCompletionPeriod(bid.completionPeriod || '');
+    setCommencementDays(bid.commencementDays || '');
+    setBidSecurityAmount(bid.bidSecurityAmount || '');
+    setPerformanceSecurityPercent(bid.performanceSecurityPercent || '');
+    setIfbNumber(bid.ifbNumber || '');
+    setContractId(bid.contractId || '');
+    setIsJV(bid.isJV || false);
+    setTotalDurationWeeks(bid.totalDurationWeeks || 24);
+    if (bid.bidAmount) setQuotedAmount(Number(bid.bidAmount) || 0);
+
+    // Load BOQ items
+    if (bid.boqItems && bid.boqItems.length > 0) {
+      const items: ParsedBoqRow[] = bid.boqItems.map((item, idx) => ({
+        id: item.id || `boq-${idx + 1}`,
+        sn: String(idx + 1),
+        description: item.description,
+        unit: item.unit,
+        quantity: item.quantity,
+        rate: item.rate,
+        amount: item.amount,
+        selected: true,
+        category: 'General',
+      }));
+      // Auto-fill norm rates for comparison
+      const rateMap = autoFillRates(items);
+      const enhanced = items.map(item => {
+        const match = rateMap.get(item.id);
+        return match ? { ...item, autoRate: { rate: match.rate, normDescription: match.normDescription, confidence: match.confidence } } : item;
+      });
+      setParsedItems(enhanced);
+    }
+
+    setActiveTab('boq');
+    toast.success(`Loaded bid: "${bid.projectName}" with ${bid.boqItems?.length || 0} BOQ items`);
+  }, []);
+
+  // Auto-load bid from URL param ?bid=<id>
+  useState(() => {
+    const bidId = searchParams.get('bid');
+    if (bidId) {
+      const bids = getBids();
+      const bid = bids.find(b => b.id === bidId);
+      if (bid) {
+        // Defer to avoid setting state during render
+        setTimeout(() => loadBidData(bid), 0);
+      }
+    }
+  });
+
   // ─── REAL-TIME COMPUTED VALUES ───
   const selectedItems = useMemo(() => parsedItems.filter(i => i.selected), [parsedItems]);
   const totalAmount = useMemo(() => selectedItems.reduce((s, i) => s + i.amount, 0), [selectedItems]);
