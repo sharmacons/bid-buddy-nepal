@@ -37,7 +37,7 @@ import { getCompanyProfile, saveBid, getBids } from '@/lib/storage';
 import { getChecklistForType } from '@/lib/checklists';
 import { fullBidAnalysis, FullAnalysisResult } from '@/lib/ai-assist';
 import * as XLSX from 'xlsx';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 // ═══════════════════════════════════════════
 // ─── TYPES ───
 // ═══════════════════════════════════════════
