@@ -464,9 +464,28 @@ export default function BoqWizard() {
         if (result.summary) add('Summary', result.summary, 'summary');
         setExtractedInfo(info);
 
-        // Auto-populate wizard fields
+        // Auto-populate ALL wizard fields from analysis
         if (result.projectName) setProjectName(result.projectName);
+        if (result.employer) setEmployer(result.employer);
+        if (result.employerAddress) setEmployerAddress(result.employerAddress);
+        if (result.ifbNumber) setIfbNumber(result.ifbNumber);
+        if (result.contractId) setContractId(result.contractId);
+        if (result.submissionDeadline) setSubmissionDeadline(result.submissionDeadline);
+        if (result.bidValidity) setBidValidity(result.bidValidity);
+        if (result.bidSecurityAmount) setBidSecurityAmount(result.bidSecurityAmount);
+        if (result.performanceSecurityPercent) setPerformanceSecurityPercent(result.performanceSecurityPercent);
+        if (result.commencementDays) setCommencementDays(result.commencementDays);
+        if (result.estimatedCost) setEstimatedCostFromDoc(result.estimatedCost);
+        if (result.isJV !== undefined) setIsJV(result.isJV);
+        if (result.bidType) {
+          const bt = result.bidType.toLowerCase();
+          if (bt.includes('double')) setBidType('ncb-double');
+          else if (bt.includes('icb')) setBidType('icb');
+          else if (bt.includes('quotation') || bt.includes('sealed')) setBidType('sealed-quotation');
+          else setBidType('ncb-single');
+        }
         if (result.completionPeriod) {
+          setCompletionPeriod(result.completionPeriod);
           const days = parseInt(result.completionPeriod);
           if (days > 0) setTotalDurationWeeks(Math.ceil(days / 7));
         }
