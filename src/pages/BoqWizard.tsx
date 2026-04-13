@@ -827,7 +827,6 @@ export default function BoqWizard() {
           )}
         </div>
       </div>
-      </div>
 
       {/* Live summary bar */}
       {parsedItems.length > 0 && (
