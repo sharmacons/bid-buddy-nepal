@@ -37,7 +37,7 @@ import { getCompanyProfile, saveBid, getBids } from '@/lib/storage';
 import { getChecklistForType } from '@/lib/checklists';
 import { fullBidAnalysis, FullAnalysisResult } from '@/lib/ai-assist';
 import * as XLSX from 'xlsx';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 // ═══════════════════════════════════════════
 // ─── TYPES ───
 // ═══════════════════════════════════════════
@@ -147,6 +147,7 @@ ${htmlContent}
 
 export default function BoqWizard() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState('bid-doc');
   const [projectName, setProjectName] = useState('');
   const [projectStartDate, setProjectStartDate] = useState('');
@@ -213,6 +214,64 @@ export default function BoqWizard() {
   const [quotedAmount, setQuotedAmount] = useState(0);
   const [workNature, setWorkNature] = useState<string>('road');
   const [scheduleOverrides, setScheduleOverrides] = useState<Record<string, { duration?: number; overlapPercent?: number }>>({});
+
+  // ─── LOAD EXISTING BID ───
+  const loadBidData = useCallback((bid: BidData) => {
+    setSavedBidId(bid.id);
+    setProjectName(bid.projectName || '');
+    setEmployer(bid.employer || '');
+    setEmployerAddress(bid.employerAddress || '');
+    setBidType(bid.bidType || 'ncb-single');
+    setSubmissionDeadline(bid.submissionDeadline || '');
+    setBidValidity(bid.bidValidity || '');
+    setCompletionPeriod(bid.completionPeriod || '');
+    setCommencementDays(bid.commencementDays || '');
+    setBidSecurityAmount(bid.bidSecurityAmount || '');
+    setPerformanceSecurityPercent(bid.performanceSecurityPercent || '');
+    setIfbNumber(bid.ifbNumber || '');
+    setContractId(bid.contractId || '');
+    setIsJV(bid.isJV || false);
+    setTotalDurationWeeks(bid.totalDurationWeeks || 24);
+    if (bid.bidAmount) setQuotedAmount(Number(bid.bidAmount) || 0);
+
+    // Load BOQ items
+    if (bid.boqItems && bid.boqItems.length > 0) {
+      const items: ParsedBoqRow[] = bid.boqItems.map((item, idx) => ({
+        id: item.id || `boq-${idx + 1}`,
+        sn: String(idx + 1),
+        description: item.description,
+        unit: item.unit,
+        quantity: item.quantity,
+        rate: item.rate,
+        amount: item.amount,
+        selected: true,
+        category: 'General',
+      }));
+      // Auto-fill norm rates for comparison
+      const rateMap = autoFillRates(items);
+      const enhanced = items.map(item => {
+        const match = rateMap.get(item.id);
+        return match ? { ...item, autoRate: { rate: match.rate, normDescription: match.normDescription, confidence: match.confidence } } : item;
+      });
+      setParsedItems(enhanced);
+    }
+
+    setActiveTab('boq');
+    toast.success(`Loaded bid: "${bid.projectName}" with ${bid.boqItems?.length || 0} BOQ items`);
+  }, []);
+
+  // Auto-load bid from URL param ?bid=<id>
+  useState(() => {
+    const bidId = searchParams.get('bid');
+    if (bidId) {
+      const bids = getBids();
+      const bid = bids.find(b => b.id === bidId);
+      if (bid) {
+        // Defer to avoid setting state during render
+        setTimeout(() => loadBidData(bid), 0);
+      }
+    }
+  });
 
   // ─── REAL-TIME COMPUTED VALUES ───
   const selectedItems = useMemo(() => parsedItems.filter(i => i.selected), [parsedItems]);
@@ -808,17 +867,42 @@ export default function BoqWizard() {
   // ─── RENDER ───
   // ═══════════════════════════════════════════
 
+  const existingBids = useMemo(() => getBids(), [savedBidId]);
+
   return (
     <div className="space-y-4 max-w-5xl mx-auto pb-20">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <h1 className="text-2xl font-bold font-heading text-foreground">BoQ Upload Wizard</h1>
           <p className="text-sm text-muted-foreground mt-1">Bid Doc → BOQ Excel → Edit → Estimate → Qualify → WBS → Gantt (all real-time)</p>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={handleSaveAllData} disabled={isSaving || !projectName.trim()} className="gap-1.5">
+        <div className="flex gap-2 flex-wrap">
+          {existingBids.length > 0 && (
+            <Select onValueChange={(bidId) => {
+              const bid = existingBids.find(b => b.id === bidId);
+              if (bid) {
+                loadBidData(bid);
+                setSearchParams({ bid: bidId });
+              }
+            }} value={savedBidId || ''}>
+              <SelectTrigger className="w-[220px] h-9 text-xs">
+                <SelectValue placeholder="📂 Load Existing Bid..." />
+              </SelectTrigger>
+              <SelectContent>
+                {existingBids.map(b => (
+                  <SelectItem key={b.id} value={b.id} className="text-xs">
+                    <div className="flex flex-col">
+                      <span className="font-medium truncate max-w-[180px]">{b.projectName}</span>
+                      <span className="text-muted-foreground text-[10px]">{b.boqItems?.length || 0} items · {b.status}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          <Button onClick={handleSaveAllData} disabled={isSaving || !projectName.trim()} size="sm" className="gap-1.5">
             {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            {savedBidId ? 'Update Saved Data' : 'Save All Data'}
+            {savedBidId ? 'Update' : 'Save All'}
           </Button>
           {savedBidId && (
             <Button variant="outline" size="sm" onClick={() => navigate(`/bid/${savedBidId}`)}>
