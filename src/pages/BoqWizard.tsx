@@ -14,9 +14,9 @@ import { toast } from 'sonner';
 import {
   Upload, FileSpreadsheet, Cpu, CheckSquare, BarChart3,
   Loader2, Trash2, Calculator, Sparkles, AlertCircle, IndianRupee, Plus, Download, Printer,
-  FolderTree, Calendar, Shield, FileText, Table2,
+  FolderTree, Calendar, Shield, FileText, Table2, Save,
 } from 'lucide-react';
-import { BOQItem, WorkScheduleItem } from '@/lib/types';
+import { BOQItem, WorkScheduleItem, BidData, BidType } from '@/lib/types';
 import GanttChart from '@/components/GanttChart';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -33,10 +33,11 @@ import {
   WORK_NATURE_OPTIONS,
 } from '@/lib/bid-qualification';
 import { wrapDocumentWithLetterhead } from '@/lib/letterhead';
-import { getCompanyProfile } from '@/lib/storage';
+import { getCompanyProfile, saveBid, getBids } from '@/lib/storage';
+import { getChecklistForType } from '@/lib/checklists';
 import { fullBidAnalysis, FullAnalysisResult } from '@/lib/ai-assist';
 import * as XLSX from 'xlsx';
-
+import { useNavigate } from 'react-router-dom';
 // ═══════════════════════════════════════════
 // ─── TYPES ───
 // ═══════════════════════════════════════════
@@ -145,6 +146,7 @@ ${htmlContent}
 // ═══════════════════════════════════════════
 
 export default function BoqWizard() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('bid-doc');
   const [projectName, setProjectName] = useState('');
   const [projectStartDate, setProjectStartDate] = useState('');
@@ -158,6 +160,23 @@ export default function BoqWizard() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bidDocInputRef = useRef<HTMLInputElement>(null);
   const excelInputRef = useRef<HTMLInputElement>(null);
+
+  // ─── Bid Info State (auto-populated from bid doc) ───
+  const [employer, setEmployer] = useState('');
+  const [employerAddress, setEmployerAddress] = useState('');
+  const [ifbNumber, setIfbNumber] = useState('');
+  const [contractId, setContractId] = useState('');
+  const [bidType, setBidType] = useState<BidType>('ncb-single');
+  const [submissionDeadline, setSubmissionDeadline] = useState('');
+  const [bidValidity, setBidValidity] = useState('');
+  const [completionPeriod, setCompletionPeriod] = useState('');
+  const [commencementDays, setCommencementDays] = useState('');
+  const [bidSecurityAmount, setBidSecurityAmount] = useState('');
+  const [performanceSecurityPercent, setPerformanceSecurityPercent] = useState('');
+  const [estimatedCostFromDoc, setEstimatedCostFromDoc] = useState('');
+  const [isJV, setIsJV] = useState(false);
+  const [savedBidId, setSavedBidId] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Bid Doc analysis state
   const [bidDocAnalyzing, setBidDocAnalyzing] = useState(false);
@@ -272,7 +291,60 @@ export default function BoqWizard() {
 
   const selectedStandard = UNIT_COST_STANDARDS.find(s => s.id === unitStandardId);
 
-  // ─── Load sample template ───
+  // ─── SAVE ALL DATA ───
+  const handleSaveAllData = useCallback(() => {
+    if (!projectName.trim()) {
+      toast.error('Project name is required to save.');
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const id = savedBidId || `bid-${Date.now()}`;
+      const boqItems: BOQItem[] = selectedItems.map((item, idx) => ({
+        id: item.id,
+        description: item.description,
+        unit: item.unit,
+        quantity: item.quantity,
+        rate: item.rate,
+        amount: item.amount,
+      }));
+
+      const bid: BidData = {
+        id,
+        projectName,
+        employer,
+        employerAddress,
+        bidType,
+        status: 'preparing',
+        submissionDeadline: submissionDeadline || new Date().toISOString().slice(0, 10),
+        createdAt: savedBidId ? (getBids().find(b => b.id === id)?.createdAt || new Date().toISOString()) : new Date().toISOString(),
+        checklist: getChecklistForType(bidType),
+        boqItems,
+        isJV,
+        jvPartners: [],
+        runningContracts: [],
+        workSchedule,
+        totalDurationWeeks,
+        ifbNumber,
+        contractId,
+        bidAmount: String(grandTotal),
+        bidValidity,
+        completionPeriod,
+        commencementDays,
+        bidSecurityAmount,
+        performanceSecurityPercent,
+      };
+
+      saveBid(bid);
+      setSavedBidId(id);
+      toast.success('✅ All data saved successfully! You can view it in Bid Tracker.');
+    } catch (err) {
+      console.error('Save error:', err);
+      toast.error('Failed to save data.');
+    } finally {
+      setIsSaving(false);
+    }
+  }, [projectName, employer, employerAddress, bidType, submissionDeadline, selectedItems, workSchedule, totalDurationWeeks, ifbNumber, contractId, grandTotal, bidValidity, completionPeriod, commencementDays, bidSecurityAmount, performanceSecurityPercent, isJV, savedBidId]);
   const loadSampleTemplate = (templateIndex: number) => {
     const template = SAMPLE_TEMPLATES[templateIndex];
     if (!template) return;
@@ -445,9 +517,28 @@ export default function BoqWizard() {
         if (result.summary) add('Summary', result.summary, 'summary');
         setExtractedInfo(info);
 
-        // Auto-populate wizard fields
+        // Auto-populate ALL wizard fields from analysis
         if (result.projectName) setProjectName(result.projectName);
+        if (result.employer) setEmployer(result.employer);
+        if (result.employerAddress) setEmployerAddress(result.employerAddress);
+        if (result.ifbNumber) setIfbNumber(result.ifbNumber);
+        if (result.contractId) setContractId(result.contractId);
+        if (result.submissionDeadline) setSubmissionDeadline(result.submissionDeadline);
+        if (result.bidValidity) setBidValidity(result.bidValidity);
+        if (result.bidSecurityAmount) setBidSecurityAmount(result.bidSecurityAmount);
+        if (result.performanceSecurityPercent) setPerformanceSecurityPercent(result.performanceSecurityPercent);
+        if (result.commencementDays) setCommencementDays(result.commencementDays);
+        if (result.estimatedCost) setEstimatedCostFromDoc(result.estimatedCost);
+        if (result.isJV !== undefined) setIsJV(result.isJV);
+        if (result.bidType) {
+          const bt = result.bidType.toLowerCase();
+          if (bt.includes('double')) setBidType('ncb-double');
+          else if (bt.includes('icb')) setBidType('icb');
+          else if (bt.includes('quotation') || bt.includes('sealed')) setBidType('sealed-quotation');
+          else setBidType('ncb-single');
+        }
         if (result.completionPeriod) {
+          setCompletionPeriod(result.completionPeriod);
           const days = parseInt(result.completionPeriod);
           if (days > 0) setTotalDurationWeeks(Math.ceil(days / 7));
         }
@@ -718,11 +809,39 @@ export default function BoqWizard() {
   // ═══════════════════════════════════════════
 
   return (
-    <div className="space-y-4 max-w-5xl mx-auto">
-      <div>
-        <h1 className="text-2xl font-bold font-heading text-foreground">BoQ Upload Wizard</h1>
-        <p className="text-sm text-muted-foreground mt-1">Bid Doc → BOQ Excel → Edit → Estimate → Qualify → WBS → Gantt (all real-time)</p>
+    <div className="space-y-4 max-w-5xl mx-auto pb-20">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold font-heading text-foreground">BoQ Upload Wizard</h1>
+          <p className="text-sm text-muted-foreground mt-1">Bid Doc → BOQ Excel → Edit → Estimate → Qualify → WBS → Gantt (all real-time)</p>
+        </div>
+        <div className="flex gap-2">
+          <Button onClick={handleSaveAllData} disabled={isSaving || !projectName.trim()} className="gap-1.5">
+            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            {savedBidId ? 'Update Saved Data' : 'Save All Data'}
+          </Button>
+          {savedBidId && (
+            <Button variant="outline" size="sm" onClick={() => navigate(`/bid/${savedBidId}`)}>
+              View Bid →
+            </Button>
+          )}
+        </div>
       </div>
+
+      {/* Extracted Project Info Bar */}
+      {(employer || ifbNumber || submissionDeadline || bidSecurityAmount) && (
+        <Card className="border-accent/30 bg-accent/5">
+          <CardContent className="p-3 flex flex-wrap gap-x-4 gap-y-1 items-center text-xs">
+            {employer && <span>Employer: <strong>{employer}</strong></span>}
+            {ifbNumber && <><Separator orientation="vertical" className="h-4" /><span>IFB: <strong>{ifbNumber}</strong></span></>}
+            {contractId && <><Separator orientation="vertical" className="h-4" /><span>Contract: <strong>{contractId}</strong></span></>}
+            {submissionDeadline && <><Separator orientation="vertical" className="h-4" /><span>Deadline: <strong>{submissionDeadline}</strong></span></>}
+            {bidSecurityAmount && <><Separator orientation="vertical" className="h-4" /><span>Bid Security: <strong>{bidSecurityAmount}</strong></span></>}
+            {completionPeriod && <><Separator orientation="vertical" className="h-4" /><span>Duration: <strong>{completionPeriod} days</strong></span></>}
+            {performanceSecurityPercent && <><Separator orientation="vertical" className="h-4" /><span>Perf. Security: <strong>{performanceSecurityPercent}%</strong></span></>}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Live summary bar */}
       {parsedItems.length > 0 && (
@@ -752,7 +871,6 @@ export default function BoqWizard() {
           </CardContent>
         </Card>
       )}
-
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="bid-doc" className="text-xs gap-1"><FileText className="h-3 w-3" /> Bid Doc</TabsTrigger>
@@ -1546,6 +1664,30 @@ export default function BoqWizard() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Floating Save Bar */}
+      {(parsedItems.length > 0 || employer) && (
+        <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur border-t border-border p-3 z-50">
+          <div className="max-w-5xl mx-auto flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              {projectName && <span className="font-medium text-foreground">{projectName}</span>}
+              {parsedItems.length > 0 && <><Separator orientation="vertical" className="h-4" /><span>{selectedItems.length} BOQ items · {formatNPR(grandTotal)}</span></>}
+              {savedBidId && <Badge variant="secondary" className="text-[10px]">Saved ✓</Badge>}
+            </div>
+            <div className="flex gap-2">
+              {savedBidId && (
+                <Button variant="outline" size="sm" onClick={() => navigate(`/bid/${savedBidId}`)}>
+                  Open in Bid Detail →
+                </Button>
+              )}
+              <Button size="sm" onClick={handleSaveAllData} disabled={isSaving || !projectName.trim()} className="gap-1.5">
+                {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                {savedBidId ? 'Update' : 'Save All'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
