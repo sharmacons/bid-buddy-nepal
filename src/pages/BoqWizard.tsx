@@ -14,9 +14,9 @@ import { toast } from 'sonner';
 import {
   Upload, FileSpreadsheet, Cpu, CheckSquare, BarChart3,
   Loader2, Trash2, Calculator, Sparkles, AlertCircle, IndianRupee, Plus, Download, Printer,
-  FolderTree, Calendar, Shield, FileText, Table2,
+  FolderTree, Calendar, Shield, FileText, Table2, Save,
 } from 'lucide-react';
-import { BOQItem, WorkScheduleItem } from '@/lib/types';
+import { BOQItem, WorkScheduleItem, BidData, BidType } from '@/lib/types';
 import GanttChart from '@/components/GanttChart';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -33,10 +33,11 @@ import {
   WORK_NATURE_OPTIONS,
 } from '@/lib/bid-qualification';
 import { wrapDocumentWithLetterhead } from '@/lib/letterhead';
-import { getCompanyProfile } from '@/lib/storage';
+import { getCompanyProfile, saveBid, getBids } from '@/lib/storage';
+import { getChecklistForType } from '@/lib/checklists';
 import { fullBidAnalysis, FullAnalysisResult } from '@/lib/ai-assist';
 import * as XLSX from 'xlsx';
-
+import { useNavigate } from 'react-router-dom';
 // ═══════════════════════════════════════════
 // ─── TYPES ───
 // ═══════════════════════════════════════════
