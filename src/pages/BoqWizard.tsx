@@ -146,6 +146,7 @@ ${htmlContent}
 // ═══════════════════════════════════════════
 
 export default function BoqWizard() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('bid-doc');
   const [projectName, setProjectName] = useState('');
   const [projectStartDate, setProjectStartDate] = useState('');
@@ -159,6 +160,23 @@ export default function BoqWizard() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bidDocInputRef = useRef<HTMLInputElement>(null);
   const excelInputRef = useRef<HTMLInputElement>(null);
+
+  // ─── Bid Info State (auto-populated from bid doc) ───
+  const [employer, setEmployer] = useState('');
+  const [employerAddress, setEmployerAddress] = useState('');
+  const [ifbNumber, setIfbNumber] = useState('');
+  const [contractId, setContractId] = useState('');
+  const [bidType, setBidType] = useState<BidType>('ncb-single');
+  const [submissionDeadline, setSubmissionDeadline] = useState('');
+  const [bidValidity, setBidValidity] = useState('');
+  const [completionPeriod, setCompletionPeriod] = useState('');
+  const [commencementDays, setCommencementDays] = useState('');
+  const [bidSecurityAmount, setBidSecurityAmount] = useState('');
+  const [performanceSecurityPercent, setPerformanceSecurityPercent] = useState('');
+  const [estimatedCostFromDoc, setEstimatedCostFromDoc] = useState('');
+  const [isJV, setIsJV] = useState(false);
+  const [savedBidId, setSavedBidId] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Bid Doc analysis state
   const [bidDocAnalyzing, setBidDocAnalyzing] = useState(false);
