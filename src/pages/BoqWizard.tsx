@@ -291,7 +291,60 @@ export default function BoqWizard() {
 
   const selectedStandard = UNIT_COST_STANDARDS.find(s => s.id === unitStandardId);
 
-  // ─── Load sample template ───
+  // ─── SAVE ALL DATA ───
+  const handleSaveAllData = useCallback(() => {
+    if (!projectName.trim()) {
+      toast.error('Project name is required to save.');
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const id = savedBidId || `bid-${Date.now()}`;
+      const boqItems: BOQItem[] = selectedItems.map((item, idx) => ({
+        id: item.id,
+        description: item.description,
+        unit: item.unit,
+        quantity: item.quantity,
+        rate: item.rate,
+        amount: item.amount,
+      }));
+
+      const bid: BidData = {
+        id,
+        projectName,
+        employer,
+        employerAddress,
+        bidType,
+        status: 'preparing',
+        submissionDeadline: submissionDeadline || new Date().toISOString().slice(0, 10),
+        createdAt: savedBidId ? (getBids().find(b => b.id === id)?.createdAt || new Date().toISOString()) : new Date().toISOString(),
+        checklist: getChecklistForType(bidType),
+        boqItems,
+        isJV,
+        jvPartners: [],
+        runningContracts: [],
+        workSchedule,
+        totalDurationWeeks,
+        ifbNumber,
+        contractId,
+        bidAmount: String(grandTotal),
+        bidValidity,
+        completionPeriod,
+        commencementDays,
+        bidSecurityAmount,
+        performanceSecurityPercent,
+      };
+
+      saveBid(bid);
+      setSavedBidId(id);
+      toast.success('✅ All data saved successfully! You can view it in Bid Tracker.');
+    } catch (err) {
+      console.error('Save error:', err);
+      toast.error('Failed to save data.');
+    } finally {
+      setIsSaving(false);
+    }
+  }, [projectName, employer, employerAddress, bidType, submissionDeadline, selectedItems, workSchedule, totalDurationWeeks, ifbNumber, contractId, grandTotal, bidValidity, completionPeriod, commencementDays, bidSecurityAmount, performanceSecurityPercent, isJV, savedBidId]);
   const loadSampleTemplate = (templateIndex: number) => {
     const template = SAMPLE_TEMPLATES[templateIndex];
     if (!template) return;
