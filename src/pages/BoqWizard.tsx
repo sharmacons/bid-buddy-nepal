@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 import {
   Upload, FileSpreadsheet, Cpu, CheckSquare, BarChart3,
   Loader2, Trash2, Calculator, Sparkles, AlertCircle, IndianRupee, Plus, Download, Printer,
-  FolderTree, Calendar, Shield, FileText, Table2, Save,
+  FolderTree, Calendar, Shield, FileText, Table2, Save, FileUp, FileDown,
 } from 'lucide-react';
 import { BOQItem, WorkScheduleItem, BidData, BidType } from '@/lib/types';
 import GanttChart from '@/components/GanttChart';
@@ -33,7 +33,7 @@ import {
   WORK_NATURE_OPTIONS,
 } from '@/lib/bid-qualification';
 import { wrapDocumentWithLetterhead } from '@/lib/letterhead';
-import { getCompanyProfile, saveBid, getBids } from '@/lib/storage';
+import { getCompanyProfile, saveBid, getBids, exportBid, exportAllBids, importBidsFromFile } from '@/lib/storage';
 import { getChecklistForType } from '@/lib/checklists';
 import { fullBidAnalysis, FullAnalysisResult } from '@/lib/ai-assist';
 import * as XLSX from 'xlsx';
