@@ -34,6 +34,151 @@ export function deleteBid(id: string) {
   localStorage.setItem(KEYS.bids, JSON.stringify(bids));
 }
 
+// ═══════════════════════════════════════════
+// ─── PER-BID IMPORT / EXPORT ───
+// ═══════════════════════════════════════════
+
+export interface BidExport {
+  kind: 'bidready-bid-export';
+  version: '1.0';
+  exportedAt: string;
+  bids: BidData[];
+}
+
+function safeName(s: string) {
+  return (s || 'bid').replace(/[^a-z0-9-_]+/gi, '-').replace(/^-+|-+$/g, '').slice(0, 60);
+}
+
+function downloadJson(filename: string, data: unknown) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+export function exportBid(id: string): boolean {
+  const bid = getBids().find((b) => b.id === id);
+  if (!bid) return false;
+  const payload: BidExport = {
+    kind: 'bidready-bid-export',
+    version: '1.0',
+    exportedAt: new Date().toISOString(),
+    bids: [bid],
+  };
+  const date = new Date().toISOString().slice(0, 10);
+  downloadJson(`Bid-${safeName(bid.projectName)}-${date}.json`, payload);
+  return true;
+}
+
+export function exportAllBids(): number {
+  const bids = getBids();
+  if (bids.length === 0) return 0;
+  const payload: BidExport = {
+    kind: 'bidready-bid-export',
+    version: '1.0',
+    exportedAt: new Date().toISOString(),
+    bids,
+  };
+  const date = new Date().toISOString().slice(0, 10);
+  downloadJson(`BidReady-Bids-${date}.json`, payload);
+  return bids.length;
+}
+
+export interface ImportBidsResult {
+  success: boolean;
+  message: string;
+  imported: number;
+  replaced: number;
+  skipped: number;
+  ids: string[];
+}
+
+export function importBidsFromFile(
+  file: File,
+  options: { onConflict?: 'replace' | 'duplicate' | 'skip' } = {}
+): Promise<ImportBidsResult> {
+  const onConflict = options.onConflict ?? 'replace';
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const raw = JSON.parse(e.target?.result as string);
+        // Accept three shapes: BidExport, full BackupData, or a single BidData
+        let incoming: BidData[] = [];
+        if (raw && Array.isArray(raw.bids)) incoming = raw.bids as BidData[];
+        else if (Array.isArray(raw)) incoming = raw as BidData[];
+        else if (raw && typeof raw === 'object' && 'projectName' in raw && 'boqItems' in raw)
+          incoming = [raw as BidData];
+
+        if (!incoming.length) {
+          resolve({ success: false, message: 'No bids found in file', imported: 0, replaced: 0, skipped: 0, ids: [] });
+          return;
+        }
+
+        const existing = getBids();
+        const byId = new Map(existing.map((b) => [b.id, b]));
+        let imported = 0;
+        let replaced = 0;
+        let skipped = 0;
+        const ids: string[] = [];
+
+        for (const bid of incoming) {
+          if (!bid || !bid.projectName) {
+            skipped++;
+            continue;
+          }
+          const incomingBid: BidData = {
+            ...bid,
+            id: bid.id || `bid-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            checklist: bid.checklist || [],
+            boqItems: bid.boqItems || [],
+            jvPartners: bid.jvPartners || [],
+            runningContracts: bid.runningContracts || [],
+            workSchedule: bid.workSchedule || [],
+            createdAt: bid.createdAt || new Date().toISOString(),
+          };
+          if (byId.has(incomingBid.id)) {
+            if (onConflict === 'skip') {
+              skipped++;
+              continue;
+            }
+            if (onConflict === 'duplicate') {
+              incomingBid.id = `${incomingBid.id}-copy-${Date.now().toString(36)}`;
+              incomingBid.projectName = `${incomingBid.projectName} (imported)`;
+              imported++;
+            } else {
+              replaced++;
+            }
+          } else {
+            imported++;
+          }
+          byId.set(incomingBid.id, incomingBid);
+          ids.push(incomingBid.id);
+        }
+
+        const merged = Array.from(byId.values());
+        localStorage.setItem(KEYS.bids, JSON.stringify(merged));
+        resolve({
+          success: true,
+          message: `Imported ${imported} new, replaced ${replaced}, skipped ${skipped}`,
+          imported,
+          replaced,
+          skipped,
+          ids,
+        });
+      } catch {
+        resolve({ success: false, message: 'Failed to parse file (must be valid JSON)', imported: 0, replaced: 0, skipped: 0, ids: [] });
+      }
+    };
+    reader.onerror = () =>
+      resolve({ success: false, message: 'Failed to read file', imported: 0, replaced: 0, skipped: 0, ids: [] });
+    reader.readAsText(file);
+  });
+}
+
 export function getDocuments(): StoredDocument[] {
   const raw = localStorage.getItem(KEYS.documents);
   return raw ? JSON.parse(raw) : [];

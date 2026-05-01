@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 import {
   Upload, FileSpreadsheet, Cpu, CheckSquare, BarChart3,
   Loader2, Trash2, Calculator, Sparkles, AlertCircle, IndianRupee, Plus, Download, Printer,
-  FolderTree, Calendar, Shield, FileText, Table2, Save,
+  FolderTree, Calendar, Shield, FileText, Table2, Save, FileUp, FileDown,
 } from 'lucide-react';
 import { BOQItem, WorkScheduleItem, BidData, BidType } from '@/lib/types';
 import GanttChart from '@/components/GanttChart';
@@ -33,7 +33,7 @@ import {
   WORK_NATURE_OPTIONS,
 } from '@/lib/bid-qualification';
 import { wrapDocumentWithLetterhead } from '@/lib/letterhead';
-import { getCompanyProfile, saveBid, getBids } from '@/lib/storage';
+import { getCompanyProfile, saveBid, getBids, exportBid, exportAllBids, importBidsFromFile } from '@/lib/storage';
 import { getChecklistForType } from '@/lib/checklists';
 import { fullBidAnalysis, FullAnalysisResult } from '@/lib/ai-assist';
 import * as XLSX from 'xlsx';
@@ -161,6 +161,7 @@ export default function BoqWizard() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bidDocInputRef = useRef<HTMLInputElement>(null);
   const excelInputRef = useRef<HTMLInputElement>(null);
+  const bidImportInputRef = useRef<HTMLInputElement>(null);
 
   // ─── Bid Info State (auto-populated from bid doc) ───
   const [employer, setEmployer] = useState('');
@@ -270,6 +271,39 @@ export default function BoqWizard() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
+
+  // Import / export saved bids (JSON)
+  const handleExportCurrentBid = useCallback(() => {
+    if (!savedBidId) {
+      toast.error('Save the bid first, then export.');
+      return;
+    }
+    if (exportBid(savedBidId)) toast.success('Bid exported as JSON');
+    else toast.error('Could not find bid to export');
+  }, [savedBidId]);
+
+  const handleExportAllBids = useCallback(() => {
+    const n = exportAllBids();
+    if (n === 0) toast.error('No saved bids to export');
+    else toast.success(`Exported ${n} bid${n === 1 ? '' : 's'}`);
+  }, []);
+
+  const handleImportBidsFile = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const result = await importBidsFromFile(file, { onConflict: 'replace' });
+    if (bidImportInputRef.current) bidImportInputRef.current.value = '';
+    if (!result.success) {
+      toast.error(result.message);
+      return;
+    }
+    toast.success(result.message);
+    // If exactly one bid was imported, load it into the wizard automatically
+    if (result.ids.length === 1) {
+      const bid = getBids().find(b => b.id === result.ids[0]);
+      if (bid) loadBidData(bid);
+    }
+  }, [loadBidData]);
 
   // ─── REAL-TIME COMPUTED VALUES ───
   const selectedItems = useMemo(() => parsedItems.filter(i => i.selected), [parsedItems]);
@@ -901,6 +935,32 @@ export default function BoqWizard() {
           <Button onClick={handleSaveAllData} disabled={isSaving || !projectName.trim()} size="sm" className="gap-1.5">
             {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             {savedBidId ? 'Update' : 'Save All'}
+          </Button>
+          <input
+            ref={bidImportInputRef}
+            type="file"
+            accept="application/json,.json"
+            className="hidden"
+            onChange={handleImportBidsFile}
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={() => bidImportInputRef.current?.click()}
+            title="Import a bid (.json) exported from another device"
+          >
+            <FileUp className="h-4 w-4" /> Import
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={savedBidId ? handleExportCurrentBid : handleExportAllBids}
+            disabled={!savedBidId && existingBids.length === 0}
+            title={savedBidId ? 'Export this bid as JSON' : 'Export all saved bids as JSON'}
+          >
+            <FileDown className="h-4 w-4" /> {savedBidId ? 'Export' : 'Export All'}
           </Button>
           {savedBidId && (
             <Button variant="outline" size="sm" onClick={() => navigate(`/bid/${savedBidId}`)}>
