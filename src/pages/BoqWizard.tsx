@@ -161,6 +161,7 @@ export default function BoqWizard() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bidDocInputRef = useRef<HTMLInputElement>(null);
   const excelInputRef = useRef<HTMLInputElement>(null);
+  const bidImportInputRef = useRef<HTMLInputElement>(null);
 
   // ─── Bid Info State (auto-populated from bid doc) ───
   const [employer, setEmployer] = useState('');
