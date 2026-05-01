@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useMemo } from 'react';
+import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -261,17 +261,15 @@ export default function BoqWizard() {
   }, []);
 
   // Auto-load bid from URL param ?bid=<id>
-  useState(() => {
+  useEffect(() => {
     const bidId = searchParams.get('bid');
-    if (bidId) {
+    if (bidId && bidId !== savedBidId) {
       const bids = getBids();
       const bid = bids.find(b => b.id === bidId);
-      if (bid) {
-        // Defer to avoid setting state during render
-        setTimeout(() => loadBidData(bid), 0);
-      }
+      if (bid) loadBidData(bid);
     }
-  });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   // ─── REAL-TIME COMPUTED VALUES ───
   const selectedItems = useMemo(() => parsedItems.filter(i => i.selected), [parsedItems]);
