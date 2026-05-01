@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { getBids, saveBid, deleteBid, getCompanyProfile } from '@/lib/storage';
+import { getBids, saveBid, deleteBid, getCompanyProfile, exportBid } from '@/lib/storage';
 import { BID_TYPE_LABELS, BID_STATUS_LABELS, BidData, BidStatus, BOQItem, JVPartner, RunningContract, WorkScheduleItem, COMMON_ROAD_WORK_ITEMS } from '@/lib/types';
 import {
   letterOfBidTemplate, letterOfPriceBidTemplate, bidSecurityTemplate, powerOfAttorneyTemplate,
@@ -26,7 +26,7 @@ import { exportWorkScheduleExcel } from '@/lib/excel-export';
 import { suggestContent, generateAISchedule } from '@/lib/ai-assist';
 import { detectActivitiesFromBOQ, generateWorkSchedule } from '@/lib/work-schedule';
 import { toast } from 'sonner';
-import { Trash2, Save, FileText, CheckCircle2, Printer, Plus, Users, Calendar, Upload, Sparkles, Loader2, Download, Link2, Cpu, Calculator } from 'lucide-react';
+import { Trash2, Save, FileText, CheckCircle2, Printer, Plus, Users, Calendar, Upload, Sparkles, Loader2, Download, Link2, Cpu, Calculator, FileDown } from 'lucide-react';
 import GanttChart from '@/components/GanttChart';
 
 export default function BidDetail() {
@@ -413,6 +413,18 @@ export default function BidDetail() {
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={() => navigate(`/boq-wizard?bid=${bid!.id}`)} className="gap-1">
             <Calculator className="h-4 w-4" /> Open in Wizard
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1"
+            onClick={() => {
+              if (exportBid(bid!.id)) toast.success('Bid exported as JSON');
+              else toast.error('Could not export bid');
+            }}
+            title="Export this bid as JSON (portable to other devices)"
+          >
+            <FileDown className="h-4 w-4" /> Export
           </Button>
           <Button variant="outline" size="sm" onClick={handlePrint} className="gap-1">
             <Printer className="h-4 w-4" /> Print All
