@@ -272,6 +272,39 @@ export default function BoqWizard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
+  // Import / export saved bids (JSON)
+  const handleExportCurrentBid = useCallback(() => {
+    if (!savedBidId) {
+      toast.error('Save the bid first, then export.');
+      return;
+    }
+    if (exportBid(savedBidId)) toast.success('Bid exported as JSON');
+    else toast.error('Could not find bid to export');
+  }, [savedBidId]);
+
+  const handleExportAllBids = useCallback(() => {
+    const n = exportAllBids();
+    if (n === 0) toast.error('No saved bids to export');
+    else toast.success(`Exported ${n} bid${n === 1 ? '' : 's'}`);
+  }, []);
+
+  const handleImportBidsFile = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const result = await importBidsFromFile(file, { onConflict: 'replace' });
+    if (bidImportInputRef.current) bidImportInputRef.current.value = '';
+    if (!result.success) {
+      toast.error(result.message);
+      return;
+    }
+    toast.success(result.message);
+    // If exactly one bid was imported, load it into the wizard automatically
+    if (result.ids.length === 1) {
+      const bid = getBids().find(b => b.id === result.ids[0]);
+      if (bid) loadBidData(bid);
+    }
+  }, [loadBidData]);
+
   // ─── REAL-TIME COMPUTED VALUES ───
   const selectedItems = useMemo(() => parsedItems.filter(i => i.selected), [parsedItems]);
   const totalAmount = useMemo(() => selectedItems.reduce((s, i) => s + i.amount, 0), [selectedItems]);
