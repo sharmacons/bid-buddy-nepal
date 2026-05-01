@@ -94,6 +94,96 @@ export interface ImportBidsResult {
   replaced: number;
   skipped: number;
   ids: string[];
+  errors?: string[];
+  warnings?: string[];
+}
+
+// ─── Schema validation helpers ───
+function isPlainObject(v: unknown): v is Record<string, unknown> {
+  return !!v && typeof v === 'object' && !Array.isArray(v);
+}
+
+/**
+ * Validate the shape of a parsed JSON payload.
+ * Returns the list of candidate bids together with any validation errors/warnings.
+ */
+function validateImportPayload(raw: unknown): {
+  bids: BidData[];
+  errors: string[];
+  warnings: string[];
+  shape: 'BidExport' | 'Backup' | 'Array' | 'SingleBid' | 'Unknown';
+} {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  if (raw === null || raw === undefined) {
+    return { bids: [], errors: ['File is empty'], warnings, shape: 'Unknown' };
+  }
+  if (typeof raw !== 'object') {
+    return { bids: [], errors: ['Root JSON value must be an object or array'], warnings, shape: 'Unknown' };
+  }
+
+  let candidates: unknown[] = [];
+  let shape: 'BidExport' | 'Backup' | 'Array' | 'SingleBid' | 'Unknown' = 'Unknown';
+
+  if (Array.isArray(raw)) {
+    shape = 'Array';
+    candidates = raw;
+  } else if (isPlainObject(raw)) {
+    const obj = raw;
+    if (obj.kind === 'bidready-bid-export') {
+      shape = 'BidExport';
+      if (!Array.isArray(obj.bids)) {
+        errors.push('Bid export file is missing the "bids" array');
+      } else {
+        candidates = obj.bids;
+      }
+      if (obj.version && obj.version !== '1.0') {
+        warnings.push(`Unknown export version "${String(obj.version)}" — proceeding anyway`);
+      }
+    } else if ('version' in obj && 'bids' in obj && Array.isArray(obj.bids)) {
+      shape = 'Backup';
+      candidates = obj.bids as unknown[];
+      warnings.push('Detected full system backup — only the bids section will be imported. Use Restore Backup to import everything.');
+    } else if ('projectName' in obj && 'boqItems' in obj) {
+      shape = 'SingleBid';
+      candidates = [obj];
+    } else {
+      errors.push('Unrecognised file format. Expected a bid export, backup, or a single bid object.');
+    }
+  }
+
+  if (errors.length === 0 && candidates.length === 0) {
+    errors.push('No bids were found in the file');
+  }
+
+  // Validate every candidate bid
+  const validBids: BidData[] = [];
+  candidates.forEach((c, i) => {
+    const label = `Bid #${i + 1}`;
+    if (!isPlainObject(c)) {
+      warnings.push(`${label}: not an object — skipped`);
+      return;
+    }
+    const projectName = c.projectName;
+    if (typeof projectName !== 'string' || !projectName.trim()) {
+      warnings.push(`${label}: missing required "projectName" — skipped`);
+      return;
+    }
+    if ('boqItems' in c && c.boqItems !== undefined && c.boqItems !== null && !Array.isArray(c.boqItems)) {
+      warnings.push(`${label} (${projectName}): "boqItems" must be an array — skipped`);
+      return;
+    }
+    if ('jvPartners' in c && c.jvPartners !== undefined && c.jvPartners !== null && !Array.isArray(c.jvPartners)) {
+      warnings.push(`${label} (${projectName}): "jvPartners" must be an array — ignored`);
+    }
+    if ('workSchedule' in c && c.workSchedule !== undefined && c.workSchedule !== null && !Array.isArray(c.workSchedule)) {
+      warnings.push(`${label} (${projectName}): "workSchedule" must be an array — ignored`);
+    }
+    validBids.push(c as unknown as BidData);
+  });
+
+  return { bids: validBids, errors, warnings, shape };
 }
 
 export function importBidsFromFile(
@@ -102,21 +192,60 @@ export function importBidsFromFile(
 ): Promise<ImportBidsResult> {
   const onConflict = options.onConflict ?? 'replace';
   return new Promise((resolve) => {
+    // Pre-flight checks
+    if (!file) {
+      resolve({ success: false, message: 'No file selected', imported: 0, replaced: 0, skipped: 0, ids: [] });
+      return;
+    }
+    const nameOk = /\.json$/i.test(file.name);
+    const typeOk = !file.type || file.type === 'application/json' || file.type === 'text/plain';
+    if (!nameOk && !typeOk) {
+      resolve({
+        success: false,
+        message: `Unsupported file type "${file.type || file.name}". Please upload a .json file exported from BidReady.`,
+        imported: 0, replaced: 0, skipped: 0, ids: [],
+      });
+      return;
+    }
+    if (file.size === 0) {
+      resolve({ success: false, message: 'File is empty', imported: 0, replaced: 0, skipped: 0, ids: [] });
+      return;
+    }
+    const MAX_BYTES = 25 * 1024 * 1024; // 25 MB safety cap
+    if (file.size > MAX_BYTES) {
+      resolve({
+        success: false,
+        message: `File is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum allowed is 25 MB.`,
+        imported: 0, replaced: 0, skipped: 0, ids: [],
+      });
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = (e) => {
+      let raw: unknown;
       try {
-        const raw = JSON.parse(e.target?.result as string);
-        // Accept three shapes: BidExport, full BackupData, or a single BidData
-        let incoming: BidData[] = [];
-        if (raw && Array.isArray(raw.bids)) incoming = raw.bids as BidData[];
-        else if (Array.isArray(raw)) incoming = raw as BidData[];
-        else if (raw && typeof raw === 'object' && 'projectName' in raw && 'boqItems' in raw)
-          incoming = [raw as BidData];
+        raw = JSON.parse(e.target?.result as string);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Unknown parse error';
+        resolve({
+          success: false,
+          message: `Invalid JSON: ${msg}`,
+          imported: 0, replaced: 0, skipped: 0, ids: [],
+        });
+        return;
+      }
 
-        if (!incoming.length) {
-          resolve({ success: false, message: 'No bids found in file', imported: 0, replaced: 0, skipped: 0, ids: [] });
-          return;
-        }
+      const { bids: incoming, errors, warnings } = validateImportPayload(raw);
+      if (errors.length > 0 || incoming.length === 0) {
+        resolve({
+          success: false,
+          message: errors[0] || 'No valid bids found in file',
+          imported: 0, replaced: 0, skipped: 0, ids: [],
+          errors, warnings,
+        });
+        return;
+      }
 
         const existing = getBids();
         const byId = new Map(existing.map((b) => [b.id, b]));
@@ -168,10 +297,8 @@ export function importBidsFromFile(
           replaced,
           skipped,
           ids,
+          warnings,
         });
-      } catch {
-        resolve({ success: false, message: 'Failed to parse file (must be valid JSON)', imported: 0, replaced: 0, skipped: 0, ids: [] });
-      }
     };
     reader.onerror = () =>
       resolve({ success: false, message: 'Failed to read file', imported: 0, replaced: 0, skipped: 0, ids: [] });
