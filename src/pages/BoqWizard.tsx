@@ -294,10 +294,18 @@ export default function BoqWizard() {
     const result = await importBidsFromFile(file, { onConflict: 'replace' });
     if (bidImportInputRef.current) bidImportInputRef.current.value = '';
     if (!result.success) {
-      toast.error(result.message);
+      toast.error(result.message, {
+        description: result.warnings && result.warnings.length
+          ? result.warnings.slice(0, 3).join(' · ')
+          : 'Please upload a valid BidReady bid export (.json).',
+      });
       return;
     }
-    toast.success(result.message);
+    toast.success(result.message, {
+      description: result.warnings && result.warnings.length
+        ? `${result.warnings.length} warning(s): ${result.warnings.slice(0, 2).join(' · ')}`
+        : undefined,
+    });
     // If exactly one bid was imported, load it into the wizard automatically
     if (result.ids.length === 1) {
       const bid = getBids().find(b => b.id === result.ids[0]);
