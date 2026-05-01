@@ -936,6 +936,32 @@ export default function BoqWizard() {
             {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             {savedBidId ? 'Update' : 'Save All'}
           </Button>
+          <input
+            ref={bidImportInputRef}
+            type="file"
+            accept="application/json,.json"
+            className="hidden"
+            onChange={handleImportBidsFile}
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={() => bidImportInputRef.current?.click()}
+            title="Import a bid (.json) exported from another device"
+          >
+            <FileUp className="h-4 w-4" /> Import
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={savedBidId ? handleExportCurrentBid : handleExportAllBids}
+            disabled={!savedBidId && existingBids.length === 0}
+            title={savedBidId ? 'Export this bid as JSON' : 'Export all saved bids as JSON'}
+          >
+            <FileDown className="h-4 w-4" /> {savedBidId ? 'Export' : 'Export All'}
+          </Button>
           {savedBidId && (
             <Button variant="outline" size="sm" onClick={() => navigate(`/bid/${savedBidId}`)}>
               View Bid →
